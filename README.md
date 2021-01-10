@@ -37,17 +37,29 @@ At this point, I decided to design a systems language which would compile into C
 
 ## Types
 
-Tractor has the following built-in primitive types:
+Tractor has the following built-in type classes:
 
-* `u8`, `u16`, `u32`, and `u64` are unsigned integers.
-* `s8`, `s16`, `s32`, and `s64` are signed integers.
-* `type` is the metatype representing all types.
+* `compT` is a value which is known at compile time.
+* `constT` is an immutable value.
+* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT`.
+* `frameT` is a value which is stored in the current frame in memory. `frameT` and `fixedT` are mutually exclusive.
+* `scopeT` is a value which may be accessed anywhere in the current scope.
+* `anyT` is the wildcard type representing a value of any type.
+* `typeT` is the metatype representing all types.
+
+Tractor has the following built-in integer types:
+
+* `uInt8T`, `uInt16T`, `uInt32T`, and `uInt64T` are unsigned integers with the given number of bits.
+* `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T` are signed integers with the given number of bits.
+* `int8T`, `int16T`, `int32T`, and `int64T` are integers with the given number of bits and unknown sign.
+* `uIntT`, `sIntT` are integers with the given sign and unknown number of bits.
+* `intT` is an integer with an unknown number of bits and unknown sign.
 
 Tractor has the following built-in composite types:
 
-* `const(<type>)` is an immutable value with type `<type>`. For example, `const(u8)` is an immutable unsigned 8-bit integer.
-* `ptr(<type>)` is a native pointer to a value with type `<type>`. For example, `ptr(u8)` is a pointer to an unsigned 8-bit integer.
-* `array(<type>, <length>)` is an array of values with type `<type>` and length `<length>`. For example, `array(u8, 10)` is an array of ten unsigned 8-bit integers.
+* `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
+* `arrayT(<type>, <length>)` is an array of values with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
+* `softArrayT(<type>)` is an array of values with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of unsigned 8-bit integers.
 
 ## Value Literals
 
@@ -62,8 +74,8 @@ Tractor has the following built-in primitive value literals:
 Tractor has the following built-in composite value literals:
 
 * A string value literal consists of a sequence of ASCII characters enclosed by quotation marks. For example, `"Hello"` is an array containing the unsigned 8-bit integers 72, 101, 108, 108, and 111.
-* An array value literal has the format `{<value>, <value>, <value>...}:<arrayType>`. For example, `{10, 20, 30}:array(u8)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
-* A struct value literal has the format `{<value>, <value>, <value>...}:<structType>`, where each `<value>` is a field value of the struct. For example, `{45, 60}:myStructType` is a struct of type `myStructType` whose field values are 45 and 60.
+* An array value literal has the format `{<value>, <value>, <value>...}:<arrayType>`. For example, `{10, 20, 30}:softArrayT(uInt8T)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
+* A struct value literal has the format `{<value>, <value>, <value>...}:<structType>`, where each `<value>` is a field value of the struct. For example, `{45, 60}:myStructT` is a struct of type `myStructT` whose field values are 45 and 60.
 
 ## Expressions
 
@@ -73,6 +85,7 @@ Tractor has the following unary and binary operators:
 * `~`, `&`, `|`, `^`, `>>`, and `<<` perform bitwise operations.
 * `!`, `&&`, `||`, and `^^` perform boolean operations.
 * `==`, `!=`, `>`, `>=`, `<` and `<=` perform comparison operations.
+* `~`, `&`, `|`, and `^` also perform type operations. For example, `intT & compT` returns the type of an integer known at compile time.
 
 Tractor has the following assignment operators:
 
@@ -83,7 +96,7 @@ Tractor has the following assignment operators:
 
 Parentheses manipulate order of operations. For example, the expression `2 * (3 + 4)` performs addition before multiplication, so the result is 14 instead of 10.
 
-The expression `<value>:<type>` casts value `<value>` to type `<type>`. For example, the expression `10:s32` returns 10 as a signed 32-bit integer.
+The expression `<value>:<type>` casts value `<value>` to type `<type>`. For example, the expression `10:sInt32T` returns 10 as a signed 32-bit integer.
 
 The expression `<array>[<index>]` accesses the element in array `<array>` with index `<index>`. For example, the expression `myArray[3]` accesses the fourth value of `myArray`.
 
