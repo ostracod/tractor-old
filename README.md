@@ -39,11 +39,11 @@ At this point, I decided to design a systems language which would compile into C
 
 Tractor has the following built-in type classes:
 
-* `compT` is a value which is known at compile time.
 * `constT` is an immutable value.
-* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT` and `compT`.
-* `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
+* `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
+* `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
+* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `compT` and `scopeT`.
 * `anyT` is the wildcard type representing a value of any type.
 * `typeT` is the metatype representing all types.
 
