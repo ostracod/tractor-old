@@ -43,7 +43,7 @@ Tractor has the following built-in type classes:
 * `compT` is a value which is known at compile time.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT`, `compT`, and `scopeT`.
+* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `constT`, `compT`, and `scopeT`.
 * `anyT` is the wildcard type representing a value of any type.
 
 Tractor has the following built-in integer types:
@@ -103,5 +103,49 @@ The expression `<array>[<index>]` accesses the element in array `<array>` with i
 The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` retrieves the field with name `x` in `myStruct`.
 
 Function invocation has the format `<function>(<value>, <value>, <value>...)`, where each `<value>` is an argument value of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
+
+## Statements
+
+**Expression statement:**
+
+```
+<expression>
+```
+
+Evaluates `<expression>`, which should result in some side-effect.
+
+**Frame variable definition:**
+
+```
+VAR <name>, <type>, <value?>
+```
+
+Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`. If `<value>` is provided, the variable will be initialized with the given value.
+
+**Compile-time variable declaration:**
+
+```
+COMP <name>, <type>, <value?>
+```
+
+Declares a variable with name `<name>` whose value is known at compile time. The variable will have type `<type> & compT & scopeT`. If `<value>` is provided, the variable will be initialized with the given value. Note that the variable is not constant unless `<type>` conforms to `constT`, so the variable may be reassigned later in the same scope. As an exception, `COMP` variables may not be reassigned in a `WHILE` loop.
+
+**Compile-time variable declaration:**
+
+```
+FIXED <name>, <type>, <value>
+```
+
+Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixed`, and will be initialized with the given value.
+
+**Block scope statement:**
+
+```
+SCOPE
+    <body>
+END
+```
+
+Establishes a scope which is visible to all statements in `<body>`. Any variable declared in `<body>` will not be visible outside of the scope.
 
 
