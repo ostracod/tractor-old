@@ -40,12 +40,11 @@ At this point, I decided to design a systems language which would compile into C
 Tractor has the following built-in type classes:
 
 * `constT` is an immutable value.
-* `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
+* `compT` is a value which is known at compile time.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `compT` and `scopeT`.
+* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT`, `compT`, and `scopeT`.
 * `anyT` is the wildcard type representing a value of any type.
-* `typeT` is the metatype representing all types.
 
 Tractor has the following built-in integer types:
 
@@ -60,6 +59,7 @@ Tractor has the following built-in composite types:
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of values with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of values with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of unsigned 8-bit integers.
+* `typeT(<type>)` is the metatype representing type `<type>`. For example, `typeT(uIntT)` is the metatype representing the type of an unsigned integer.
 
 ## Value Literals
 
