@@ -148,4 +148,42 @@ END
 
 Establishes a scope which is visible to all statements in `<body>`. Any variable declared in `<body>` will not be visible outside of the scope.
 
+**If statement:**
+
+```
+IF <condition1>
+    <body1>
+ELSE_IF <condition2>
+    <body2>
+ELSE
+    <body3>
+END
+```
+
+Evaluates the statements in `<body1>` only if value `<condition1>` is non-zero. If `<condition1>` is zero but `<condition2>` is non-zero, then `<body2>` is evaluated. If both `<condition1>` and `<condition2>` are zero, then `<body3>` is evaluated. An `IF` statement may contain any number of `ELSE_IF` clauses, and the `ELSE` clause is optional.
+
+**While statement:**
+
+```
+WHILE <condition>
+    <body>
+END
+```
+
+Repeats evaluation of the statements in `<body>` until expression `<condition>` evaluates to zero.
+
+**Break and continue statements:**
+
+```
+BREAK
+```
+
+Stops evaluation of the body in the parent `WHILE` statement, causing evaluation to pass beyond the `END` statement after the body.
+
+```
+CONTINUE
+```
+
+Interrupts evaluation of the body in the parent `WHILE` statement, causing the condition of the `WHILE` statement to be evaluated again. If the condition is non-zero, the body will repeat from the beginning. If the condition is zero, evaluation will pass beyond the `END` statment after the body.
+
 
