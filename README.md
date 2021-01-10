@@ -41,8 +41,8 @@ Tractor has the following built-in type classes:
 
 * `compT` is a value which is known at compile time.
 * `constT` is an immutable value.
-* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT`.
-* `frameT` is a value which is stored in the current frame in memory. `frameT` and `fixedT` are mutually exclusive.
+* `fixedT` is stored in a region which may be non-volatile. `fixedT` is a subtype of `constT` and `compT`.
+* `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
 * `anyT` is the wildcard type representing a value of any type.
 * `typeT` is the metatype representing all types.
