@@ -130,13 +130,13 @@ COMP <name>, <type>, <value?>
 
 Declares a variable with name `<name>` whose value is known at compile time. The variable will have type `<type> & compT & scopeT`. If `<value>` is provided, the variable will be initialized with the given value. Note that the variable is not constant unless `<type>` conforms to `constT`, so the variable may be reassigned later in the same scope. As an exception, `COMP` variables may not be reassigned in a `WHILE` loop.
 
-**Compile-time variable declaration:**
+**Fixed variable declaration:**
 
 ```
 FIXED <name>, <type>, <value>
 ```
 
-Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixed`, and will be initialized with the given value.
+Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixed`, and will be initialized with value `<value>`.
 
 **Block scope statement:**
 
@@ -185,5 +185,51 @@ CONTINUE
 ```
 
 Interrupts evaluation of the body in the parent `WHILE` statement, causing the condition of the `WHILE` statement to be evaluated again. If the condition is non-zero, the body will repeat from the beginning. If the condition is zero, evaluation will pass beyond the `END` statment after the body.
+
+**Field statements:**
+
+```
+FIELD <name>, <type>
+```
+
+Declares a member of a struct or union with name `<name>` and type `<type>`. This statement is only valid in the body of a `STRUCT` or `UNION` statement.
+
+```
+TYPE_FIELD <name>, <type>
+```
+
+Declares an empty member of a struct or union  with name `<name>` and type `<type>`. A member declared with `TYPE_FIELD` does not occupy any space, but conveys type information.
+
+**Argument statement:**
+
+```
+ARG <name>, <type>
+```
+
+Declares an argument of a function, struct, or union with name `<name>`.
+
+* In the case of an inline function, the argument will have the same type as the value passed during invocation. The argument value must conform to type `<type>`.
+* In the case of a non-inline function, the argument will have type `<type> & frameT & scopeT`.
+* In the case of a struct or union, the argument will have type `<type> & compT & scopeT`.
+
+**Struct statement:**
+
+```
+STRUCT <name?>
+    <body>
+END
+```
+
+Declares a struct with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory with the order given by `<body>`. The struct will not contain any padding between fields. `<name>` may be omitted if the struct is embedded in another struct or union declaration.
+
+**Union statement:**
+
+```
+UNION <name?>
+    <body>
+END
+```
+
+Declares a union with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory so that they all begin at the same position and overlap each other. `<name>` may be omitted if the union is embedded in another union or struct declaration.
 
 
