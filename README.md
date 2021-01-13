@@ -45,6 +45,7 @@ Tractor has the following built-in type classes:
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
 * `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `constT`, `compT`, and `scopeT`.
 * `anyT` is the wildcard type representing a value of any type.
+* `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
 
 Tractor has the following built-in integer types:
 
@@ -60,6 +61,14 @@ Tractor has the following built-in composite types:
 * `arrayT(<type>, <length>)` is an array of values with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of values with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of unsigned 8-bit integers.
 * `typeT(<type>)` is the metatype representing type `<type>`. For example, `typeT(uIntT)` is the metatype representing the type of an unsigned integer.
+
+The following types are subtypes of `concreteT`:
+
+* `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
+* `ptrT(<type>)` when `<type>` conforms to `concreteT`
+* `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
+* Any struct or union whose fields all conform to `concreteT`
+* Any function type whose arguments and return value all conform to `concreteT`
 
 ## Value Literals
 
@@ -136,7 +145,7 @@ Declares a variable with name `<name>` whose value is known at compile time. The
 FIXED <name>, <type>, <value>
 ```
 
-Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixed`, and will be initialized with value `<value>`.
+Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`, and will be initialized with value `<value>`.
 
 **Block scope statement:**
 
@@ -231,5 +240,49 @@ END
 ```
 
 Declares a union with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory so that they all begin at the same position and overlap each other. `<name>` may be omitted if the union is embedded in another union or struct declaration.
+
+**Return type statement:**
+
+```
+RET_TYPE <type>
+```
+
+Declares the return type of a function to be `<type>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
+
+**Return statement:**
+
+```
+RET <value?>
+```
+
+Stops evaluation of the body in the parent `FUNC` or `INIT_FUNC` statement, causing control to return to the function caller. If value `<value>` is provided, the caller will receive the given value as output of the function.
+
+**Function type statement:**
+
+```
+FUNC_TYPE <name>
+    <body>
+END
+```
+
+Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior the function aside from argument types and return type.
+
+**Function statements:**
+
+```
+FUNC <name>
+    <body>
+END
+```
+
+Declares a function with name `<name>`. The statements in `<body>` describe both the signature and runtime behavior of the function.
+
+```
+INIT_FUNC
+    <body>
+END
+```
+
+Declares the entry point function of the program with the statements in `<body>`. Each program may only have one entry point function.
 
 
