@@ -28,6 +28,8 @@ At this point, I decided to design a systems language which would compile into C
 
 ## Design Goals
 
+Tractor has the following design goals:
+
 * Easy to parse
 * Rugged aesthetic
 * Support for generic types
@@ -112,6 +114,17 @@ The expression `<array>[<index>]` accesses the element in array `<array>` with i
 The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` retrieves the field with name `x` in `myStruct`.
 
 Function invocation has the format `<function>(<value>, <value>, <value>...)`, where each `<value>` is an argument value of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
+
+## Built-in Functions
+
+Tractor has the following built-in functions:
+
+* The composite types `ptrT`, `arrayT`, `softArrayT`, and `typeT`.
+* `getType(<value>)` returns the type of value `<value>`.
+* `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
+* `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
+* `newPtr(<value>)` returns a native pointer to value `<value>`.
+* `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
 
 ## Statements
 
@@ -341,5 +354,19 @@ When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be on
 * In the case of a struct or union statement, the field types may conform to `~concreteT`.
 * In the case of a function type statement, the argument and return types may conform to `~concreteT`.
 * In the case of a function statement, the argument and return types may conform to `~concreteT`, and the body cannot define runtime behavior of the function.
+
+**Inline statement modifiers:**
+
+```
+INLINE <function>
+```
+
+Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` statement or `FUNC` statement. Inline function arguments and return values are passed by reference, and may conform to `~concreteT`. However, a handle to an inline function may not be stored in a variable.
+
+```
+MAYBE_INLINE <function>
+```
+
+Specifies that function `<function>` may be expanded inline for each invocation. `<function>` can only be a `FUNC_TYPE` statement.
 
 
