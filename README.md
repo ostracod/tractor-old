@@ -369,4 +369,90 @@ MAYBE_INLINE <function>
 
 Specifies that function `<function>` may be expanded inline for each invocation. `<function>` can only be a `FUNC_TYPE` statement.
 
+## Examples
+
+The following example prints prime numbers:
+
+```
+# This function must be defined externally.
+REQUIRE FUNC printNumber
+    ARG number, uInt32T
+END
+
+# Defines a function which determines whether
+# the given number is prime.
+FUNC isPrime
+    ARG number, uInt32T
+    RET_TYPE uInt8T
+    
+    VAR factor, uInt32T, 2
+    WHILE factor < number
+        IF number % factor == 0
+            RET TRUE
+        END
+        factor += 1
+    END
+    RET FALSE
+END
+
+# Entry point function of the program.
+INIT_FUNC
+    VAR number, uInt32T, 2
+    WHILE TRUE
+        IF isPrime(number)
+            printNumber(number)
+        END
+        number += 1
+    END
+END
+```
+
+The following example defines a custom pointer type:
+
+```
+REQUIRE FUNC printNumber
+    ARG number, uInt32T
+END
+
+VAR dataRegion, arrayT(uInt8T, 100)
+
+STRUCT myPtrT
+    ARG T, typeT(anyT)
+    
+    FIELD offset, uInt8T
+    TYPE_FIELD type, T
+END
+
+INLINE FUNC newMyPtr
+    ARG offset, uInt8T
+    ARG T, typeT(anyT)
+    RET_TYPE myPtrT(T)
+    
+    RET {offset, T}
+END
+
+INLINE FUNC readMyPtr
+    ARG myPtr, myPtrT(anyT)
+    RET_TYPE myPtr.type
+    
+    VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
+    RET derefPtr(tempPtr:ptrT(myPtr.type))
+END
+
+INLINE FUNC writeMyPtr
+    ARG myPtr, myPtrT(anyT)
+    ARG value, myPtr.type
+    
+    VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
+    derefPtr(tempPtr:ptrT(myPtr.type)) = value
+END
+
+INIT_FUNC
+    VAR myPtr, myPtrT(uInt32T), newMyPtr(20, uInt32T)
+    writeMyPtr(myPtr, 12345)
+    VAR number, uInt32T, readMyPtr(myPtr)
+    printNumber(number) # Prints 12345.
+END
+```
+
 
