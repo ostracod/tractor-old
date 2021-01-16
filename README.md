@@ -115,6 +115,18 @@ Function invocation has the format `<function>(<value>, <value>, <value>...)`, w
 
 ## Statements
 
+Every comment begins with a number sign. A comment may be placed after any statement:
+
+```
+<statement> # <comment>
+```
+
+Alternatively, a comment may be placed on its own line:
+
+```
+# <comment>
+```
+
 **Expression statement:**
 
 ```
@@ -284,5 +296,25 @@ END
 ```
 
 Declares the entry point function of the program with the statements in `<body>`. Each program may only have one entry point function.
+
+**Import statements:**
+
+```
+IMPORT <path>
+```
+
+Imports all definitions provided by the Tractor file with path `<path>`.
+
+```
+CONFIG_IMPORT <name>
+```
+
+Imports the set of Tractor files specified by name `<name>` in the target configuration.
+
+```
+FOREIGN_IMPORT
+```
+
+Imports all definitions provided by the C or assembly file with path `<path>`.
 
 
