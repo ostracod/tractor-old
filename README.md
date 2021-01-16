@@ -277,7 +277,7 @@ FUNC_TYPE <name>
 END
 ```
 
-Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior the function aside from argument types and return type.
+Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior the function.
 
 **Function statements:**
 
@@ -295,7 +295,7 @@ INIT_FUNC
 END
 ```
 
-Declares the entry point function of the program with the statements in `<body>`. Each program may only have one entry point function.
+Declares the entry point function of the program with the statements in `<body>`. Each program may only have one entry point function. The entry point function does not accept any arguments, and has no return value.
 
 **Import statements:**
 
@@ -312,9 +312,34 @@ CONFIG_IMPORT <name>
 Imports the set of Tractor files specified by name `<name>` in the target configuration.
 
 ```
-FOREIGN_IMPORT
+FOREIGN_IMPORT <path>
 ```
 
 Imports all definitions provided by the C or assembly file with path `<path>`.
+
+## Statement Modifiers
+
+Statement modifiers are keywords which are placed before statements.
+
+**Require and foreign statement modifiers:**
+
+```
+REQUIRE <definition>
+```
+
+Specifies that definition `<definition>` must be declared somewhere in the current project.
+
+```
+FOREIGN <definition>
+```
+
+Specifies that definition `<definition>` has been imported using a `FOREIGN_IMPORT` statement.
+
+When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be one of the following statement types: `VAR`, `COMP`, `FIXED`, `STRUCT`, `UNION`, `FUNC_TYPE`, or `FUNC`.
+
+* In the case of a variable statement, the variable type may conform to `~concreteT`, and the variable cannot have an initialization value.
+* In the case of a struct or union statement, the field types may conform to `~concreteT`.
+* In the case of a function type statement, the argument and return types may conform to `~concreteT`.
+* In the case of a function statement, the argument and return types may conform to `~concreteT`, and the body cannot define runtime behavior of the function.
 
 
