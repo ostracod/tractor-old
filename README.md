@@ -61,7 +61,6 @@ Tractor has the following built-in composite types:
 
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of values with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
-* `softArrayT(<type>)` is an array of values with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of unsigned 8-bit integers.
 * `typeT(<type>)` is the metatype representing type `<type>`. For example, `typeT(uIntT)` is the metatype representing the type of an unsigned integer.
 
 The following types are subtypes of `concreteT`:
@@ -85,7 +84,7 @@ Tractor has the following built-in primitive value literals:
 Tractor has the following built-in composite value literals:
 
 * A string value literal consists of a sequence of ASCII characters enclosed by quotation marks. For example, `"Hello"` is an array containing the unsigned 8-bit integers 72, 101, 108, 108, and 111.
-* An array value literal has the format `{<value>, <value>, <value>...}:<arrayType>`. For example, `{10, 20, 30}:softArrayT(uInt8T)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
+* An array value literal has the format `{<value>, <value>, <value>...}:<arrayType>`. For example, `{10, 20, 30}:arrayT(uInt8T, 3)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
 * A struct value literal has the format `{<value>, <value>, <value>...}:<structType>`, where each `<value>` is a field value of the struct. For example, `{45, 60}:myStructT` is a struct of type `myStructT` whose field values are 45 and 60.
 
 ## Expressions
@@ -115,11 +114,13 @@ The expression `<struct>.<name>` accesses the field in struct `<struct>` with na
 
 Function invocation has the format `<function>(<value>, <value>, <value>...)`, where each `<value>` is an argument value of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
 
+The expression `AUTO` refers to a value which can be inferred from context at compile time. For example, `AUTO` in `{10, 20, 30}:arrayT(uInt8T, AUTO)` has a value of 3. Furthermore, if a function argument is excluded, its value is `AUTO`. For example, `{10, 20, 30}:arrayT(uInt8T)` is equivalent to `{10, 20, 30}:arrayT(uInt8T, AUTO)`.
+
 ## Built-in Functions
 
 Tractor has the following built-in functions:
 
-* The composite types `ptrT`, `arrayT`, `softArrayT`, and `typeT`.
+* The composite types `ptrT`, `arrayT`, and `typeT`.
 * `getType(<value>)` returns the type of value `<value>`.
 * `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
 * `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
@@ -448,10 +449,16 @@ INLINE FUNC writeMyPtr
 END
 
 INIT_FUNC
-    VAR myPtr, myPtrT(uInt32T), newMyPtr(20, uInt32T)
+    # newMyPtr(20) is equivalent to newMyPtr(20, AUTO), which
+    # is equivalent to newMyPtr(20, uInt32T) in this context.
+    VAR myPtr, myPtrT(uInt32T), newMyPtr(20)
+    
     writeMyPtr(myPtr, 12345)
+    
     VAR number, uInt32T, readMyPtr(myPtr)
-    printNumber(number) # Prints 12345.
+    
+    # Prints 12345.
+    printNumber(number)
 END
 ```
 
