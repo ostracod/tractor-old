@@ -69,7 +69,7 @@ The following types are subtypes of `concreteT`:
 * `ptrT(<type>)` when `<type>` conforms to `concreteT`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
 * Any struct or union whose fields all conform to `concreteT`
-* Any function type whose arguments and return value all conform to `concreteT`
+* Any non-inline function type whose arguments and return value all conform to `concreteT`
 
 ## Value Literals
 
@@ -155,7 +155,7 @@ Evaluates `<expression>`, which should result in some side-effect.
 VAR <name>, <type>, <value?>
 ```
 
-Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`. If `<value>` is provided, the variable will be initialized with the given value.
+Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`. `<type>` must conform to `concreteT`. If `<value>` is provided, the variable will be initialized with the given value.
 
 **Compile-time variable declaration:**
 
@@ -171,7 +171,7 @@ Declares a variable with name `<name>` whose value is known at compile time. The
 FIXED <name>, <type>, <value>
 ```
 
-Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`, and will be initialized with value `<value>`.
+Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`, and will be initialized with value `<value>`. `<type>` must conform to `concreteT`.
 
 **Block scope statement:**
 
@@ -301,7 +301,7 @@ FUNC <name>
 END
 ```
 
-Declares a function with name `<name>`. The statements in `<body>` describe both the signature and runtime behavior of the function.
+Declares a function with name `<name>`. The statements in `<body>` describe both the signature and runtime behavior of the function. If the function is non-inline, the argument and return types must conform to `concreteT`.
 
 ```
 INIT_FUNC
@@ -351,10 +351,10 @@ Specifies that definition `<definition>` has been imported using a `FOREIGN_IMPO
 
 When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be one of the following statement types: `VAR`, `COMP`, `FIXED`, `STRUCT`, `UNION`, `FUNC_TYPE`, or `FUNC`.
 
-* In the case of a variable statement, the variable type may conform to `~concreteT`, and the variable cannot have an initialization value.
-* In the case of a struct or union statement, the field types may conform to `~concreteT`.
-* In the case of a function type statement, the argument and return types may conform to `~concreteT`.
-* In the case of a function statement, the argument and return types may conform to `~concreteT`, and the body cannot define runtime behavior of the function.
+* In the case of a `VAR`, `COMP`, or `FIXED` statement, the variable cannot have an initialization value.
+* In the case of a `VAR` or `FIXED` statement, the variable type may conform to `~concreteT`.
+* In the case of a `FUNC` statement, the body cannot define runtime behavior of the function.
+* In the case of a non-inline `FUNC` statement, the argument and return types may conform to `~concreteT`.
 
 **Inline statement modifiers:**
 
@@ -362,7 +362,7 @@ When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be on
 INLINE <function>
 ```
 
-Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` statement or `FUNC` statement. Inline function arguments and return values are passed by reference, and may conform to `~concreteT`. However, a handle to an inline function may not be stored in a variable.
+Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` statement or `FUNC` statement. Inline function arguments and return values are passed by reference, and may conform to `~concreteT`. However, inline function handles may not be stored in `VAR` or `FIXED` variables, because inline function types do not conform to `concreteT`.
 
 ```
 MAYBE_INLINE <function>
