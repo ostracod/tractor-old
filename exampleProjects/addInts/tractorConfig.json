@@ -1,0 +1,15 @@
+{
+    "name": "addInts",
+    "description": "Adds two integers and prints the result.",
+    "configs": [
+        {
+            "name": "unix",
+            "description": "Executable for unix-like systems.",
+            "importMap": {
+                "print": "./unixPrint.c"
+            },
+            "targetLanguage": "c",
+            "buildFileName": "unixAddInts.c"
+        }
+    ]
+}

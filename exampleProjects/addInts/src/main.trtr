@@ -1,0 +1,13 @@
+
+CONFIG_IMPORT "print"
+
+FOREIGN FUNC printNumber
+    ARG number, uInt16T
+END
+
+INIT_FUNC
+    VAR myNumber, uInt16T, 1 + 2
+    printNumber(myNumber)
+END
+
+

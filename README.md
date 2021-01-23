@@ -317,13 +317,13 @@ Declares the entry point function of the program with the statements in `<body>`
 IMPORT <path>
 ```
 
-Imports all definitions provided by the Tractor file with path `<path>`.
+Imports all definitions provided by the Tractor file with path `<path>`. Note that the path `.` resolves to `projectDirectory/src`.
 
 ```
 CONFIG_IMPORT <name>
 ```
 
-Imports the set of Tractor files specified by name `<name>` in the target configuration.
+Imports the Tractor file specified by name `<name>` in `importMap` of the target configuration.
 
 ```
 FOREIGN_IMPORT <path>
@@ -369,6 +369,39 @@ MAYBE_INLINE <function>
 ```
 
 Specifies that function `<function>` may be expanded inline for each invocation. `<function>` can only be a `FUNC_TYPE` statement.
+
+## Project Structure
+
+Every Tractor project directory must have the following structure:
+
+```
+projectDirectory/
+    tractorConfig.json
+    src/
+        main.trtr
+    build/
+```
+
+When building the project, the Tractor compiler will always include the `projectDirectory/src/main.trtr` Tractor source file. The Tractor compiler will place the build output file in the `projectDirectory/build` directory.
+
+The `tractorConfig.json` file must conform to the following structure:
+
+```
+interface TractorConfig {
+    name: string;
+    description: string;
+    isDefault?: boolean;
+    importMap?: {[name: string]: string};
+    targetLanguage?: string;
+    buildFileName?: string;
+    configs?: TractorConfig[];
+}
+```
+
+* `importMap` determines which files to import when using the `CONFIG_IMPORT` statement.
+* `targetLanguage` may only be `"c"` for the time being.
+* `buildFileName` determines the name of the file to create in `projectDirectory/build`.
+* `configs` defines nested configurations which override their parents.
 
 ## Examples
 
