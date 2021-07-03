@@ -39,15 +39,16 @@ Tractor has the following design goals:
 
 ## Types
 
-Tractor has the following built-in type classes:
+Tractor has the following built-in storage types:
 
 * `constT` is an immutable value.
-* `compT` is a value which is known at compile time.
+* `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `constT`, `compT`, and `scopeT`.
-* `anyT` is the wildcard type representing a value of any type.
+* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT` and `scopeT`.
 * `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
+* `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes may be unknown. `concreteT` is a subtype of `valueT`.
+* `itemT` is either a value or a type. Subtypes of `itemT` include `valueT` and `typeT`.
 
 Tractor has the following built-in integer types:
 
@@ -60,32 +61,34 @@ Tractor has the following built-in integer types:
 Tractor has the following built-in composite types:
 
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
-* `arrayT(<type>, <length>)` is an array of values with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
-* `typeT(<type>)` is the metatype representing type `<type>`. For example, `typeT(uIntT)` is the metatype representing the type of an unsigned integer.
+* `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
+* `softArrayT(<type>)` is an array of items with type `<type>` whose length may be unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
+* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer.
 
 The following types are subtypes of `concreteT`:
 
 * `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
-* `ptrT(<type>)` when `<type>` conforms to `concreteT`
+* `ptrT(<type>)` for any type `<type>`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
+* `softArrayT(<type>)` when `<type>` conforms to `concreteT` and the array length is known
 * Any struct or union whose fields all conform to `concreteT`
-* Any non-inline function type whose arguments and return value all conform to `concreteT`
+* Any non-inline function handle
 
-## Value Literals
+## Item Literals
 
 Tractor has the following built-in primitive value literals:
 
-* `TRUE` and `FALSE` are the boolean value literals.
-* `NULL` is the null pointer value literal.
-* A decimal integer value literal consists of a sequence of decimal digits. For example, `18` is the integer 18.
-* A hexadecimal integer value literal begins with `0x` followed by a sequence of hexadecimal digits. For example, `0x12` is the integer 18.
-* A character integer value literal consists of an ASCII character enclosed by apostrophes. For example, `'A'` is the integer 65.
+* `TRUE` and `FALSE` are the boolean literals.
+* `NULL` is the null pointer literal.
+* A decimal integer literal consists of a sequence of decimal digits. For example, `18` is the integer 18.
+* A hexadecimal integer literal begins with `0x` followed by a sequence of hexadecimal digits. For example, `0x12` is the integer 18.
+* A character integer literal consists of an ASCII character enclosed by apostrophes. For example, `'A'` is the integer 65.
 
-Tractor has the following built-in composite value literals:
+Tractor has the following built-in composite item literals:
 
-* A string value literal consists of a sequence of ASCII characters enclosed by quotation marks. For example, `"Hello"` is an array containing the unsigned 8-bit integers 72, 101, 108, 108, and 111.
-* An array value literal has the format `{<value>, <value>, <value>...}:<arrayType>`. For example, `{10, 20, 30}:arrayT(uInt8T, 3)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
-* A struct value literal has the format `{<value>, <value>, <value>...}:<structType>`, where each `<value>` is a field value of the struct. For example, `{45, 60}:myStructT` is a struct of type `myStructT` whose field values are 45 and 60.
+* A string literal consists of a sequence of ASCII characters enclosed by quotation marks. For example, `"Hello"` is an array containing the unsigned 8-bit integers 72, 101, 108, 108, and 111.
+* An array literal has the format `{<item>, <item>, <item>...}:<arrayType>`. For example, `{10, 20, 30}:softArrayT(uInt8T)` is an array containing the unsigned 8-bit integers 10, 20, and 30.
+* A struct literal has the format `{<item>, <item>, <item>...}:<structType>`, where each `<item>` is a field item of the struct. For example, `{45, 60}:myStructT` is a struct of type `myStructT` whose field values are 45 and 60.
 
 ## Expressions
 
@@ -106,24 +109,22 @@ Tractor has the following assignment operators:
 
 Parentheses manipulate order of operations. For example, the expression `2 * (3 + 4)` performs addition before multiplication, so the result is 14 instead of 10.
 
-The expression `<value>:<type>` casts value `<value>` to type `<type>`. For example, the expression `10:sInt32T` returns 10 as a signed 32-bit integer.
+The expression `<item>:<type>` casts item `<item>` to type `<type>`. For example, the expression `10:sInt32T` returns 10 as a signed 32-bit integer.
 
 The expression `<array>[<index>]` accesses the element in array `<array>` with index `<index>`. For example, the expression `myArray[3]` accesses the fourth value of `myArray`.
 
 The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` retrieves the field with name `x` in `myStruct`.
 
-Function invocation has the format `<function>(<value>, <value>, <value>...)`, where each `<value>` is an argument value of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
-
-The expression `AUTO` refers to a value which can be inferred from context at compile time. For example, `AUTO` in `{10, 20, 30}:arrayT(uInt8T, AUTO)` has a value of 3. Furthermore, if a function argument is excluded, its value is `AUTO`. For example, `{10, 20, 30}:arrayT(uInt8T)` is equivalent to `{10, 20, 30}:arrayT(uInt8T, AUTO)`.
+Function invocation has the format `<function>(<item>, <item>, <item>...)`, where each `<item>` is an argument of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
 
 ## Built-in Functions
 
 Tractor has the following built-in functions:
 
-* The composite types `ptrT`, `arrayT`, and `typeT`.
-* `getType(<value>)` returns the type of value `<value>`.
-* `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
-* `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
+* The composite types `ptrT`, `arrayT`, `softArrayT`, and `typeT`.
+* `getSize(<item>)` returns the number of bytes which item `<item>` occupies.
+* `getLen(<array>)` returns the number of elements in array `<array>`.
+* `typeConforms(<item1>, <item2>)` returns whether the type of item `<item1>` conforms to the type of item `<item2>`.
 * `newPtr(<value>)` returns a native pointer to value `<value>`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
 
@@ -160,10 +161,10 @@ Declares a variable with name `<name>` which will be stored in the global frame 
 **Compile-time variable declaration:**
 
 ```
-COMP <name>, <type>, <value?>
+COMP <name>, <type>, <item>
 ```
 
-Declares a variable with name `<name>` whose value is known at compile time. The variable will have type `<type> & compT & scopeT`. If `<value>` is provided, the variable will be initialized with the given value. Note that the variable is not constant unless `<type>` conforms to `constT`, so the variable may be reassigned later in the same scope. As an exception, `COMP` variables may not be reassigned in a `WHILE` loop.
+Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT & scopeT`, and will be initialized with item `<item>`.
 
 **Fixed variable declaration:**
 
@@ -243,9 +244,9 @@ ARG <name>, <type>
 
 Declares an argument of a function, struct, or union with name `<name>`.
 
-* In the case of an inline function, the argument will have the same type as the value passed during invocation. The argument value must conform to type `<type>`.
-* In the case of a non-inline function, the argument will have type `<type> & frameT & scopeT`.
-* In the case of a struct or union, the argument will have type `<type> & compT & scopeT`.
+* When referenced in the body of an inline function, the argument will have the same type as the item passed during invocation. The argument must conform to type `<type>`.
+* When referenced in the body of a non-inline function, the argument will have type `<type> & frameT & scopeT`.
+* When referenced in the body of a struct or union, the argument will have type `<type> & compT & scopeT`.
 
 **Struct statement:**
 
@@ -273,15 +274,15 @@ Declares a union with name `<name>` and the fields defined by the statements in 
 RET_TYPE <type>
 ```
 
-Declares the return type of a function to be `<type>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
+Declares the return type of a function to be type `<type>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
 
 **Return statement:**
 
 ```
-RET <value?>
+RET <item?>
 ```
 
-Stops evaluation of the body in the parent `FUNC` or `INIT_FUNC` statement, causing control to return to the function caller. If value `<value>` is provided, the caller will receive the given value as output of the function.
+Stops evaluation of the body in the parent `FUNC` or `INIT_FUNC` statement, causing control to return to the function caller. If item `<item>` is provided, the caller will receive the given item as output of the function.
 
 **Function type statement:**
 
@@ -291,7 +292,7 @@ FUNC_TYPE <name>
 END
 ```
 
-Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior the function.
+Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior of the function.
 
 **Function statements:**
 
@@ -351,7 +352,7 @@ Specifies that definition `<definition>` has been imported using a `FOREIGN_IMPO
 
 When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be one of the following statement types: `VAR`, `COMP`, `FIXED`, `STRUCT`, `UNION`, `FUNC_TYPE`, or `FUNC`.
 
-* In the case of a `VAR`, `COMP`, or `FIXED` statement, the variable cannot have an initialization value.
+* In the case of a `VAR`, `COMP`, or `FIXED` statement, the variable cannot have an initialization item.
 * In the case of a `VAR` or `FIXED` statement, the variable type may conform to `~concreteT`.
 * In the case of a `FUNC` statement, the body cannot define runtime behavior of the function.
 * In the case of a non-inline `FUNC` statement, the argument and return types may conform to `~concreteT`.
@@ -362,7 +363,7 @@ When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be on
 INLINE <function>
 ```
 
-Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` statement or `FUNC` statement. Inline function arguments and return values are passed by reference, and may conform to `~concreteT`. However, inline function handles may not be stored in `VAR` or `FIXED` variables, because inline function types do not conform to `concreteT`.
+Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` or `FUNC` statement. Inline function arguments and return items are passed by reference, and may conform to `~concreteT`. However, inline function handles may not be stored in `VAR` or `FIXED` variables, because inline function handles do not conform to `concreteT`.
 
 ```
 MAYBE_INLINE <function>
@@ -451,7 +452,7 @@ END
 VAR dataRegion, arrayT(uInt8T, 100)
 
 STRUCT myPtrT
-    ARG T, typeT(anyT)
+    ARG T, typeT(valueT)
     
     FIELD offset, uInt8T
     TYPE_FIELD type, T
@@ -459,14 +460,14 @@ END
 
 INLINE FUNC newMyPtr
     ARG offset, uInt8T
-    ARG T, typeT(anyT)
+    ARG T, typeT(valueT)
     RET_TYPE myPtrT(T)
     
-    RET {offset, T}
+    RET {offset, T}:myPtrT(T)
 END
 
 INLINE FUNC readMyPtr
-    ARG myPtr, myPtrT(anyT)
+    ARG myPtr, myPtrT(valueT)
     RET_TYPE myPtr.type
     
     VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
@@ -474,7 +475,7 @@ INLINE FUNC readMyPtr
 END
 
 INLINE FUNC writeMyPtr
-    ARG myPtr, myPtrT(anyT)
+    ARG myPtr, myPtrT(valueT)
     ARG value, myPtr.type
     
     VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
@@ -482,14 +483,9 @@ INLINE FUNC writeMyPtr
 END
 
 INIT_FUNC
-    # newMyPtr(20) is equivalent to newMyPtr(20, AUTO), which
-    # is equivalent to newMyPtr(20, uInt32T) in this context.
-    VAR myPtr, myPtrT(uInt32T), newMyPtr(20)
-    
+    VAR myPtr, myPtrT(uInt32T), newMyPtr(20, uInt32T)
     writeMyPtr(myPtr, 12345)
-    
     VAR number, uInt32T, readMyPtr(myPtr)
-    
     # Prints 12345.
     printNumber(number)
 END
