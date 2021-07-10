@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
 import * as parseUtils from "./parseUtils.js";
+import { Token } from "./token.js";
 import { Statement } from "./statement.js";
 
 export default class Compiler {
@@ -22,12 +23,14 @@ export default class Compiler {
     
     importTractorFile(path) {
         const lines = fs.readFileSync(path, "utf8").split("\n");
+        const tokensList: Token[][] = [];
         lines.forEach((line) => {
-            const statement = parseUtils.parseLine(line);
-            if (statement !== null) {
-                this.statements.push(statement);
+            const tokens = parseUtils.parseLine(line);
+            if (tokens.length > 0) {
+                tokensList.push(tokens);
             }
         });
+        this.statements = tokensList.map(parseUtils.parseTokens);
     }
     
     compile(): void {

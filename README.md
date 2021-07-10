@@ -97,13 +97,13 @@ Tractor has the following unary and binary operators:
 * `+`, `-`, `*`, `/`, and `%` perform arithmetic operations.
 * `~`, `&`, `|`, `^`, `>>`, and `<<` perform bitwise operations.
 * `!`, `&&`, `||`, and `^^` perform boolean operations.
-* `==`, `!=`, `>`, `>=`, `<` and `<=` perform comparison operations.
+* `==`, `!=`, `>`, `>=`, `<`, and `<=` perform comparison operations.
 * `~`, `&`, `|`, and `^` also perform type operations. For example, `intT & compT` returns the type of an integer known at compile time.
 
 Tractor has the following assignment operators:
 
 * `=` performs assignment.
-* `+=`, `-=`, `*=`, `/=`, `%=` perform assignment with arithmetic manipulation.
+* `+=`, `-=`, `*=`, `/=`, and `%=` perform assignment with arithmetic manipulation.
 * `&=`, `|=`, `^=`, `>>=`, and `<<=` perform assignment with bitwise manipulation.
 * `&&=`, `||=`, and `^^=` perform assignment with boolean manipulation.
 
