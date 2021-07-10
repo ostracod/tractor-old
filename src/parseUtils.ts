@@ -1,5 +1,6 @@
 
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
+import CompilerError from "./compilerError.js";
 import { Statement } from "./statement.js";
 
 const delimiterCharacterSet = [",", "(", ")", "[", "]", "{", "}"];
@@ -62,8 +63,7 @@ const readStringToken = (text: string, index: number): { token: Token, index: nu
     const startIndex = index;
     while (true) {
         if (index >= text.length) {
-            // TODO: Throw an informative error.
-            return null;
+            throw new CompilerError("Missing end quotation mark.");
         }
         const character = text.charAt(index);
         const nextIndex = index + 1;
@@ -132,8 +132,7 @@ const readToken = (text: string, index: number): { token: Token, index: number }
     if (result !== null) {
         return result;
     }
-    // TODO: Throw an informative error.
-    return null;
+    throw new CompilerError(`Unexpected character "${firstCharacter}".`);
 };
 
 export const parseLine = (line: string): Token[] => {
@@ -157,7 +156,7 @@ export const parseLine = (line: string): Token[] => {
 
 export const parseTokens = (tokens: Token[]): Statement => {
     // TODO: Implement.
-    return null;
+    return new Statement();
 };
 
 
