@@ -3,6 +3,11 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import CompilerError from "./compilerError.js";
 import { Statement } from "./statement.js";
 
+interface TokenResult {
+    token: Token;
+    index: number;
+}
+
 const delimiterCharacterSet = [",", "(", ")", "[", "]", "{", "}"];
 const operatorTextSet = [
     "+", "-", "*", "/", "%",
@@ -57,28 +62,71 @@ const skipCharacters = (
     return index;
 };
 
-const readStringToken = (text: string, index: number): { token: Token, index: number } => {
+const escapeCharacter = (character: string): string => {
+    if (character === "n") {
+        return "\n";
+    }
+    if (character === "t") {
+        return "\t";
+    }
+    return character;
+};
+
+const readCharacterToken = (text: string, index: number): TokenResult => {
+    // First character is an apostrophe.
+    index += 1;
+    if (index >= text.length) {
+        throw new CompilerError("Expected character.");
+    }
+    let character = text.charAt(index);
+    index += 1;
+    if (character === "\\") {
+        if (index >= text.length) {
+            throw new CompilerError("Expected character.");
+        }
+        character = escapeCharacter(text.charAt(index));
+        index += 1;
+    }
+    if (index >= text.length || text.charAt(index) !== "'") {
+        throw new CompilerError("Expected end apostrophe.");
+    }
+    index += 1;
+    return {
+        token: new CharacterToken(character),
+        index,
+    }
+};
+
+const readStringToken = (text: string, index: number): TokenResult => {
     // First character is a quotation mark.
     index += 1;
-    const startIndex = index;
+    const characters = [];
+    let isEscaped = false;
     while (true) {
         if (index >= text.length) {
             throw new CompilerError("Missing end quotation mark.");
         }
         const character = text.charAt(index);
-        const nextIndex = index + 1;
-        // TODO: Handle escape sequences.
-        if (character === "\"") {
-            return {
-                token: new StringToken(text.substring(startIndex, index)),
-                index: nextIndex,
-            };
+        index += 1;
+        if (isEscaped) {
+            characters.push(escapeCharacter(character));
+            isEscaped = false;
+        } else {
+            if (character === "\"") {
+                return {
+                    token: new StringToken(characters.join("")),
+                    index,
+                };
+            } else if (character === "\\") {
+                isEscaped = true;
+            } else {
+                characters.push(character);
+            }
         }
-        index = nextIndex;
     }
 };
 
-const readOperatorToken = (text: string, index: number): { token: Token, index: number } => {
+const readOperatorToken = (text: string, index: number): TokenResult => {
     let outputText = null;
     operatorTextSet.forEach((operatorText) => {
         if (outputText !== null && operatorText.length < outputText.length) {
@@ -102,7 +150,7 @@ const readOperatorToken = (text: string, index: number): { token: Token, index: 
     };
 };
 
-const readToken = (text: string, index: number): { token: Token, index: number } => {
+const readToken = (text: string, index: number): TokenResult => {
     const firstCharacter = text.charAt(index);
     if (isFirstWordCharacter(firstCharacter)) {
         const endIndex = skipCharacters(text, index, isWordCharacter);
@@ -118,10 +166,12 @@ const readToken = (text: string, index: number): { token: Token, index: number }
             index: endIndex,
         };
     }
+    if (firstCharacter === "'") {
+        return readCharacterToken(text, index);
+    }
     if (firstCharacter === "\"") {
         return readStringToken(text, index);
     }
-    // TODO: Parse character token.
     if (delimiterCharacterSet.includes(firstCharacter)) {
         return {
             token: new DelimiterToken(firstCharacter),
