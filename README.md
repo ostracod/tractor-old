@@ -234,7 +234,27 @@ Declares a member of a struct or union with name `<name>` and type `<type>`. Thi
 TYPE_FIELD <name>, <type>
 ```
 
-Declares an empty member of a struct or union  with name `<name>` and type `<type>`. A member declared with `TYPE_FIELD` does not occupy any space, but conveys type information.
+Declares an empty member of a struct or union with name `<name>` and type `<type>`. A member declared with `TYPE_FIELD` does not occupy any space, but conveys type information.
+
+**Struct statement:**
+
+```
+STRUCT <name>
+    <body>
+END
+```
+
+Declares a struct with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory with the order given by `<body>`. The struct will not contain any padding between fields.
+
+**Union statement:**
+
+```
+UNION <name>
+    <body>
+END
+```
+
+Declares a union with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory so that they all begin at the same position and overlap each other.
 
 **Argument statement:**
 
@@ -242,31 +262,10 @@ Declares an empty member of a struct or union  with name `<name>` and type `<typ
 ARG <name>, <type>
 ```
 
-Declares an argument of a function, struct, or union with name `<name>`.
+Declares an argument of a function with name `<name>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
 
 * When referenced in the body of an inline function, the argument will have the same type as the item passed during invocation. The argument must conform to type `<type>`.
 * When referenced in the body of a non-inline function, the argument will have type `<type> & frameT & scopeT`.
-* When referenced in the body of a struct or union, the argument will have type `<type> & compT & scopeT`.
-
-**Struct statement:**
-
-```
-STRUCT <name?>
-    <body>
-END
-```
-
-Declares a struct with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory with the order given by `<body>`. The struct will not contain any padding between fields. `<name>` may be omitted if the struct is embedded in another struct or union declaration.
-
-**Union statement:**
-
-```
-UNION <name?>
-    <body>
-END
-```
-
-Declares a union with name `<name>` and the fields defined by the statements in `<body>`. The fields will be arranged in memory so that they all begin at the same position and overlap each other. `<name>` may be omitted if the union is embedded in another union or struct declaration.
 
 **Return type statement:**
 
@@ -451,11 +450,15 @@ END
 
 VAR dataRegion, arrayT(uInt8T, 100)
 
-STRUCT myPtrT
+INLINE FUNC myPtrT
     ARG T, typeT(valueT)
+    RET_TYPE typeT(valueT)
     
-    FIELD offset, uInt8T
-    TYPE_FIELD type, T
+    STRUCT output
+        FIELD offset, uInt8T
+        TYPE_FIELD type, T
+    END
+    RET output
 END
 
 INLINE FUNC newMyPtr

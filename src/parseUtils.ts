@@ -1,7 +1,8 @@
 
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 import CompilerError from "./compilerError.js";
-import { Statement } from "./statement.js";
+import Statement from "./statement.js";
+import { Expression } from "./expression.js";
 
 interface TokenResult {
     token: Token;
@@ -18,6 +19,16 @@ const operatorTextSet = [
     "+=", "-=", "*=", "/=", "%=",
     "&=", "|=", "^=", ">>=", "<<=",
     "&&=", "||=", "^^=",
+];
+const modifierSet = ["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"];
+const directiveSet = [
+    "VAR", "CONST", "FIXED",
+    "SCOPE", "END", "IF", "ELSE_IF", "ELSE",
+    "WHILE", "BREAK", "CONTINUE",
+    "STRUCT", "UNION", "FIELD", "TYPE_FIELD",
+    "FUNC_TYPE", "FUNC", "INIT_FUNC",
+    "ARG", "RET_TYPE", "RET",
+    "IMPORT", "CONFIG_IMPORT", "FOREIGN_IMPORT",
 ];
 
 const isWhitespaceCharacter = (character: string): boolean => (
@@ -205,8 +216,29 @@ export const parseLine = (line: string): Token[] => {
 };
 
 export const parseTokens = (tokens: Token[]): Statement => {
-    // TODO: Implement.
-    return new Statement();
+    const modifiers = [];
+    let index = 0;
+    while (index < tokens.length) {
+        const token = tokens[index];
+        if (token instanceof WordToken && modifierSet.includes(token.text)) {
+            modifiers.push(token.text);
+            index += 1;
+        } else {
+            break
+        }
+    }
+    let directive = null;
+    if (index < tokens.length) {
+        const token = tokens[index];
+        if (token instanceof WordToken && directiveSet.includes(token.text)) {
+            directive = token.text;
+            index += 1;
+        }
+    }
+    const args: Expression[] = [];
+    // TODO: Parse expressions.
+    
+    return new Statement(modifiers, directive, args);
 };
 
 

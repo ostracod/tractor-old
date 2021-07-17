@@ -7,7 +7,7 @@ import Pos from "./pos.js";
 import CompilerError from "./compilerError.js";
 import { Token } from "./token.js";
 import TokenLine from "./tokenLine.js";
-import { Statement } from "./statement.js";
+import Statement from "./statement.js";
 
 export default class Compiler {
     projectPath: string;
