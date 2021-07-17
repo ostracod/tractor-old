@@ -2,10 +2,16 @@
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 import CompilerError from "./compilerError.js";
 import Statement from "./statement.js";
-import { Expression } from "./expression.js";
+import { NumberConstant, StringConstant } from "./constant.js";
+import { Expression, ConstantExpression, IdentifierExpression } from "./expression.js";
 
 interface TokenResult {
     token: Token;
+    index: number;
+}
+
+interface ExpressionResult {
+    expression: Expression;
     index: number;
 }
 
@@ -15,7 +21,7 @@ const operatorTextSet = [
     "~", "&", "|", "^", ">>", "<<",
     "!", "&&", "||", "^^",
     "==", "!=", ">", ">=", "<", "<=",
-    ":", "=",
+    ":", ".", "=",
     "+=", "-=", "*=", "/=", "%=",
     "&=", "|=", "^=", ">>=", "<<=",
     "&&=", "||=", "^^=",
@@ -215,6 +221,66 @@ export const parseLine = (line: string): Token[] => {
     return output;
 };
 
+const readExpression = (tokens: Token[], index: number): ExpressionResult => {
+    if (index >= tokens.length) {
+        return null;
+    }
+    const firstToken = tokens[index];
+    index += 1;
+    if (firstToken instanceof NumberToken) {
+        // TODO: Handle hexadecimal number tokens.
+        const value = BigInt(parseInt(firstToken.text, 10));
+        const constant = new NumberConstant(value);
+        return {
+            expression: new ConstantExpression(constant),
+            index,
+        };
+    }
+    if (firstToken instanceof StringToken) {
+        const constant = new StringConstant(firstToken.text);
+        return {
+            expression: new ConstantExpression(constant),
+            index,
+        };
+    }
+    if (firstToken instanceof WordToken) {
+        return {
+            expression: new IdentifierExpression(firstToken.text),
+            index,
+        };
+    }
+    // TODO: Read more types of expressions.
+    
+    return null;
+};
+
+const readExpressions = (
+    tokens: Token[],
+    index: number,
+): { expressions: Expression[], index: number } => {
+    const expressions: Expression[] = [];
+    while (true) {
+        const result = readExpression(tokens, index);
+        if (result === null) {
+            if (expressions.length > 0) {
+                throw new CompilerError("Expected expression after comma.");
+            }
+            break;
+        }
+        expressions.push(result.expression);
+        index = result.index;
+        if (index >= tokens.length) {
+            break;
+        }
+        const token = tokens[index];
+        if (!(token instanceof DelimiterToken && token.text === ",")) {
+            break;
+        }
+        index += 1;
+    }
+    return { expressions, index };
+};
+
 export const parseTokens = (tokens: Token[]): Statement => {
     const modifiers = [];
     let index = 0;
@@ -235,10 +301,13 @@ export const parseTokens = (tokens: Token[]): Statement => {
             index += 1;
         }
     }
-    const args: Expression[] = [];
-    // TODO: Parse expressions.
-    
-    return new Statement(modifiers, directive, args);
+    const result = readExpressions(tokens, index);
+    index = result.index;
+    if (index < tokens.length) {
+        const token = tokens[index];
+        throw new CompilerError(`Unexpected token "${token.text}".`);
+    }
+    return new Statement(modifiers, directive, result.expressions);
 };
 
 
