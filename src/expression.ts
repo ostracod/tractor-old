@@ -65,4 +65,49 @@ export class BinaryExpression extends Expression {
     }
 }
 
+export class SubscriptExpression extends Expression {
+    arrayExpression: Expression;
+    indexExpression: Expression;
+    
+    constructor(arrayExpression: Expression, indexExpression: Expression) {
+        super();
+        this.arrayExpression = arrayExpression;
+        this.indexExpression = indexExpression;
+    }
+    
+    toString(): string {
+        return `${this.arrayExpression.toString()}[${this.indexExpression.toString()}]`;
+    }
+}
+
+export class InvocationExpression extends Expression {
+    functionExpression: Expression;
+    argExpressions: Expression[];
+    
+    constructor(functionExpression: Expression, argExpressions: Expression[]) {
+        super();
+        this.functionExpression = functionExpression;
+        this.argExpressions = argExpressions;
+    }
+    
+    toString(): string {
+        const textList = this.argExpressions.map((element) => element.toString());
+        return `${this.functionExpression.toString()}(${textList.join(", ")})`;
+    }
+}
+
+export class ListExpression extends Expression {
+    elements: Expression[];
+    
+    constructor(elements: Expression[]) {
+        super();
+        this.elements = elements;
+    }
+    
+    toString(): string {
+        const textList = this.elements.map((element) => element.toString());
+        return `{${textList.join(", ")}}`;
+    }
+}
+
 

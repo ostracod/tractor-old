@@ -3,7 +3,7 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import CompilerError from "./compilerError.js";
 import Statement from "./statement.js";
 import { NumberConstant, StringConstant } from "./constant.js";
-import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression } from "./expression.js";
+import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 
 interface TokenResult {
@@ -212,6 +212,16 @@ export const parseLine = (line: string): Token[] => {
     return output;
 };
 
+const assertDelimiter = (tokens: Token[], index: number, text: string): void => {
+    if (index < tokens.length) {
+        const token = tokens[index];
+        if (token instanceof DelimiterToken && token.text === text) {
+            return;
+        }
+    }
+    throw new CompilerError(`Expected "${text}" delimiter.`);
+};
+
 const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult => {
     if (index >= tokens.length) {
         return null;
@@ -230,8 +240,7 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
         };
     }
     if (token instanceof NumberToken) {
-        // TODO: Handle hexadecimal number tokens.
-        const value = BigInt(parseInt(token.text, 10));
+        const value = BigInt(token.text);
         const constant = new NumberConstant(value);
         return {
             expression: new ConstantExpression(constant),
@@ -245,30 +254,57 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
             index,
         };
     }
+    if (token instanceof CharacterToken) {
+        const value = BigInt(token.text.charCodeAt(0));
+        const constant = new NumberConstant(value);
+        return {
+            expression: new ConstantExpression(constant),
+            index,
+        };
+    }
     if (token instanceof WordToken) {
         return {
             expression: new IdentifierExpression(token.text),
             index,
         };
     }
-    // TODO: Read more types of expressions.
-    
+    if (token instanceof DelimiterToken) {
+        if (token.text === "(") {
+            const result = readExpression(tokens, index);
+            index = result.index;
+            assertDelimiter(tokens, index, ")");
+            index += 1;
+            return {
+                expression: result.expression,
+                index,
+            }
+        }
+        if (token.text === "{") {
+            const result = readExpressions(tokens, index);
+            index = result.index;
+            assertDelimiter(tokens, index, "}");
+            index += 1;
+            return {
+                expression: new ListExpression(result.expressions),
+                index,
+            }
+        }
+    }
     return null;
 };
 
 const readExpression = (
     tokens: Token[],
     index: number,
-    precedence: number,
+    precedence = Infinity,
 ): ExpressionResult => {
     const result = readExpressionHelper(tokens, index);
     if (result === null) {
         return null;
     }
-    let operand1 = result.expression;
     index = result.index;
-    let output = {
-        expression: operand1,
+    const output = {
+        expression: result.expression,
         index,
     };
     while (true) {
@@ -289,17 +325,43 @@ const readExpression = (
             if (result === null) {
                 throw new CompilerError(`Expected expression after "${binaryOperator.text}".`);
             }
-            const operand2 = result.expression;
             index = result.index;
-            operand1 = new BinaryExpression(binaryOperator, operand1, operand2);
-            output = {
-                expression: operand1,
-                index,
-            };
-        } else {
-            // TODO: Handle subscript and invocation expressions.
-            break;
+            output.expression = new BinaryExpression(
+                binaryOperator,
+                output.expression,
+                result.expression,
+            );
+            output.index = index;
+            continue;
         }
+        if (token instanceof DelimiterToken && precedence > 0) {
+            if (token.text === "[") {
+                const result = readExpression(tokens, index);
+                if (result === null) {
+                    throw new CompilerError(`Expected expression after "[".`);
+                }
+                const operand = result.expression;
+                index = result.index;
+                assertDelimiter(tokens, index, "]");
+                index += 1;
+                output.expression = new SubscriptExpression(output.expression, operand);
+                output.index = index;
+                continue;
+            }
+            if (token.text === "(") {
+                const result = readExpressions(tokens, index);
+                index = result.index;
+                assertDelimiter(tokens, index, ")");
+                index += 1;
+                output.expression = new InvocationExpression(
+                    output.expression,
+                    result.expressions,
+                );
+                output.index = index;
+                continue;
+            }
+        }
+        break;
     }
     return output;
 };
@@ -310,7 +372,7 @@ const readExpressions = (
 ): { expressions: Expression[], index: number } => {
     const expressions: Expression[] = [];
     while (true) {
-        const result = readExpression(tokens, index, Infinity);
+        const result = readExpression(tokens, index);
         if (result === null) {
             if (expressions.length > 0) {
                 throw new CompilerError("Expected expression after comma.");
