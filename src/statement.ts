@@ -1,4 +1,5 @@
 
+import * as niceUtils from "./niceUtils.js";
 import Pos from "./pos.js";
 import { Expression } from "./expression.js";
 
@@ -13,11 +14,12 @@ export default class Statement {
         this.modifiers = modifiers;
         this.directive = directive;
         this.args = args;
-        this.nestedStatements = null;
+        this.nestedStatements = [];
         this.pos = null;
     }
     
-    toString(): string {
+    toString(indentationLevel = 0): string {
+        const indentation = niceUtils.getIndentation(indentationLevel);
         const textList = this.modifiers.slice();
         if (this.directive !== null) {
             textList.push(this.directive);
@@ -26,7 +28,11 @@ export default class Statement {
             const argsText = this.args.map((arg) => arg.toString()).join(", ");
             textList.push(argsText);
         }
-        return textList.join(" ");
+        const lines = [indentation + textList.join(" ")];
+        this.nestedStatements.forEach((statement) => {
+            lines.push(statement.toString(indentationLevel + 1));
+        });
+        return lines.join("\n");
     }
 }
 

@@ -2,21 +2,15 @@
 import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
-import * as parseUtils from "./parseUtils.js";
-import Pos from "./pos.js";
 import CompilerError from "./compilerError.js";
-import { Token } from "./token.js";
-import TokenLine from "./tokenLine.js";
-import Statement from "./statement.js";
+import TractorFile from "./tractorFile.js";
 
 export default class Compiler {
     projectPath: string;
-    statements: Statement[];
     config: Config;
     
     constructor(projectPath: string) {
         this.projectPath = projectPath;
-        this.statements = [];
     }
     
     readConfig() {
@@ -25,39 +19,8 @@ export default class Compiler {
     }
     
     importTractorFile(path) {
-        const lines = fs.readFileSync(path, "utf8").split("\n");
-        const tokenLines: TokenLine[] = [];
-        lines.forEach((line, index) => {
-            const pos = new Pos(path, index + 1);
-            let tokens: Token[];
-            try {
-                tokens = parseUtils.parseLine(line);
-            } catch (error) {
-                if (error instanceof CompilerError) {
-                    error.pos = pos;
-                }
-                throw error;
-            }
-            if (tokens.length > 0) {
-                const tokenLine = new TokenLine(tokens, pos);
-                tokenLines.push(tokenLine);
-            }
-        });
-        this.statements = tokenLines.map((tokenLine) => {
-            const { pos } = tokenLine;
-            let statement: Statement;
-            try {
-                statement = parseUtils.parseTokens(tokenLine.tokens);
-            } catch (error) {
-                if (error instanceof CompilerError) {
-                    error.pos = pos;
-                }
-                throw error;
-            }
-            statement.pos = pos;
-            console.log(statement.toString());
-            return statement;
-        });
+        const tractorFile = new TractorFile(path);
+        console.log(tractorFile.toString());
     }
     
     compile(): void {

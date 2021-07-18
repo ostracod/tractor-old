@@ -1,4 +1,5 @@
 
+import * as niceUtils from "./niceUtils.js";
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 import CompilerError from "./compilerError.js";
 import Statement from "./statement.js";
@@ -16,17 +17,25 @@ interface ExpressionResult {
     index: number;
 }
 
-const delimiterCharacterSet = [",", "(", ")", "[", "]", "{", "}"];
-const modifierSet = ["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"];
-const directiveSet = [
-    "VAR", "CONST", "FIXED",
-    "SCOPE", "END", "IF", "ELSE_IF", "ELSE",
-    "WHILE", "BREAK", "CONTINUE",
-    "STRUCT", "UNION", "FIELD", "TYPE_FIELD",
+const delimiterCharacterSet = new Set([",", "(", ")", "[", "]", "{", "}"]);
+const modifierSet = new Set(["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"]);
+const blockStartDirectiveSet = new Set([
+    "SCOPE", "IF", "ELSE_IF", "ELSE", "WHILE",
+    "STRUCT", "UNION",
     "FUNC_TYPE", "FUNC", "INIT_FUNC",
+]);
+const blockEndDirectiveSet = new Set([
+    "END", "ELSE_IF", "ELSE",
+]);
+const directiveSet = new Set([
+    "VAR", "CONST", "FIXED",
+    "BREAK", "CONTINUE",
+    "FIELD", "TYPE_FIELD",
     "ARG", "RET_TYPE", "RET",
     "IMPORT", "CONFIG_IMPORT", "FOREIGN_IMPORT",
-];
+]);
+niceUtils.extendSet(directiveSet, blockStartDirectiveSet);
+niceUtils.extendSet(directiveSet, blockEndDirectiveSet);
 
 const isWhitespaceCharacter = (character: string): boolean => (
     character === " " || character === "\t"
@@ -180,7 +189,7 @@ const readToken = (text: string, index: number): TokenResult => {
     if (firstCharacter === "\"") {
         return readStringToken(text, index);
     }
-    if (delimiterCharacterSet.includes(firstCharacter)) {
+    if (delimiterCharacterSet.has(firstCharacter)) {
         return {
             token: new DelimiterToken(firstCharacter),
             index: index + 1,
@@ -398,7 +407,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
     let index = 0;
     while (index < tokens.length) {
         const token = tokens[index];
-        if (token instanceof WordToken && modifierSet.includes(token.text)) {
+        if (token instanceof WordToken && modifierSet.has(token.text)) {
             modifiers.push(token.text);
             index += 1;
         } else {
@@ -408,7 +417,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
     let directive = null;
     if (index < tokens.length) {
         const token = tokens[index];
-        if (token instanceof WordToken && directiveSet.includes(token.text)) {
+        if (token instanceof WordToken && directiveSet.has(token.text)) {
             directive = token.text;
             index += 1;
         }
@@ -421,5 +430,13 @@ export const parseTokens = (tokens: Token[]): Statement => {
     }
     return new Statement(modifiers, directive, result.expressions);
 };
+
+export const directiveIsBlockStart = (directive: string): boolean => (
+    blockStartDirectiveSet.has(directive)
+);
+
+export const directiveIsBlockEnd = (directive: string): boolean => (
+    blockEndDirectiveSet.has(directive)
+);
 
 
