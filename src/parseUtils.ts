@@ -3,7 +3,8 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import CompilerError from "./compilerError.js";
 import Statement from "./statement.js";
 import { NumberConstant, StringConstant } from "./constant.js";
-import { Expression, ConstantExpression, IdentifierExpression } from "./expression.js";
+import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression } from "./expression.js";
+import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 
 interface TokenResult {
     token: Token;
@@ -16,16 +17,6 @@ interface ExpressionResult {
 }
 
 const delimiterCharacterSet = [",", "(", ")", "[", "]", "{", "}"];
-const operatorTextSet = [
-    "+", "-", "*", "/", "%",
-    "~", "&", "|", "^", ">>", "<<",
-    "!", "&&", "||", "^^",
-    "==", "!=", ">", ">=", "<", "<=",
-    ":", ".", "=",
-    "+=", "-=", "*=", "/=", "%=",
-    "&=", "|=", "^=", ">>=", "<<=",
-    "&&=", "||=", "^^=",
-];
 const modifierSet = ["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"];
 const directiveSet = [
     "VAR", "CONST", "FIXED",
@@ -221,31 +212,42 @@ export const parseLine = (line: string): Token[] => {
     return output;
 };
 
-const readExpression = (tokens: Token[], index: number): ExpressionResult => {
+const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult => {
     if (index >= tokens.length) {
         return null;
     }
-    const firstToken = tokens[index];
+    const token = tokens[index];
     index += 1;
-    if (firstToken instanceof NumberToken) {
+    if (token instanceof OperatorToken && token.text in unaryOperatorMap) {
+        const unaryOperator = unaryOperatorMap[token.text];
+        const result = readExpression(tokens, index, 1);
+        if (result === null) {
+            throw new CompilerError(`Expected expression after "${unaryOperator.text}".`);
+        }
+        return {
+            expression: new UnaryExpression(unaryOperator, result.expression),
+            index: result.index,
+        };
+    }
+    if (token instanceof NumberToken) {
         // TODO: Handle hexadecimal number tokens.
-        const value = BigInt(parseInt(firstToken.text, 10));
+        const value = BigInt(parseInt(token.text, 10));
         const constant = new NumberConstant(value);
         return {
             expression: new ConstantExpression(constant),
             index,
         };
     }
-    if (firstToken instanceof StringToken) {
-        const constant = new StringConstant(firstToken.text);
+    if (token instanceof StringToken) {
+        const constant = new StringConstant(token.text);
         return {
             expression: new ConstantExpression(constant),
             index,
         };
     }
-    if (firstToken instanceof WordToken) {
+    if (token instanceof WordToken) {
         return {
-            expression: new IdentifierExpression(firstToken.text),
+            expression: new IdentifierExpression(token.text),
             index,
         };
     }
@@ -254,13 +256,61 @@ const readExpression = (tokens: Token[], index: number): ExpressionResult => {
     return null;
 };
 
+const readExpression = (
+    tokens: Token[],
+    index: number,
+    precedence: number,
+): ExpressionResult => {
+    const result = readExpressionHelper(tokens, index);
+    if (result === null) {
+        return null;
+    }
+    let operand1 = result.expression;
+    index = result.index;
+    let output = {
+        expression: operand1,
+        index,
+    };
+    while (true) {
+        if (index >= tokens.length) {
+            break;
+        }
+        const token = tokens[index];
+        index += 1;
+        if (token instanceof OperatorToken) {
+            if (!(token.text in binaryOperatorMap)) {
+                break;
+            }
+            const binaryOperator = binaryOperatorMap[token.text];
+            if (binaryOperator.precedence >= precedence) {
+                break;
+            }
+            const result = readExpression(tokens, index, binaryOperator.precedence);
+            if (result === null) {
+                throw new CompilerError(`Expected expression after "${binaryOperator.text}".`);
+            }
+            const operand2 = result.expression;
+            index = result.index;
+            operand1 = new BinaryExpression(binaryOperator, operand1, operand2);
+            output = {
+                expression: operand1,
+                index,
+            };
+        } else {
+            // TODO: Handle subscript and invocation expressions.
+            break;
+        }
+    }
+    return output;
+};
+
 const readExpressions = (
     tokens: Token[],
     index: number,
 ): { expressions: Expression[], index: number } => {
     const expressions: Expression[] = [];
     while (true) {
-        const result = readExpression(tokens, index);
+        const result = readExpression(tokens, index, Infinity);
         if (result === null) {
             if (expressions.length > 0) {
                 throw new CompilerError("Expected expression after comma.");

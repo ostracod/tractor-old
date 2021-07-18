@@ -55,6 +55,7 @@ export default class Compiler {
                 throw error;
             }
             statement.pos = pos;
+            console.log(statement.toString());
             return statement;
         });
     }

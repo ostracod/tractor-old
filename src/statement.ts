@@ -16,6 +16,18 @@ export default class Statement {
         this.nestedStatements = null;
         this.pos = null;
     }
+    
+    toString(): string {
+        const textList = this.modifiers.slice();
+        if (this.directive !== null) {
+            textList.push(this.directive);
+        }
+        if (this.args.length > 0) {
+            const argsText = this.args.map((arg) => arg.toString()).join(", ");
+            textList.push(argsText);
+        }
+        return textList.join(" ");
+    }
 }
 
 
