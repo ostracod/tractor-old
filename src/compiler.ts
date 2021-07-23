@@ -33,7 +33,8 @@ export default class Compiler {
         const { statements } = tractorFile;
         const importStatements = [];
         statements.forEach((statement) => {
-            if (statement.directive === "IMPORT") {
+            const directive = statement.getDirective();
+            if (directive === "IMPORT") {
                 importStatements.push(statement);
             } else {
                 this.statements.push(statement);

@@ -64,23 +64,22 @@ export default class TractorFile {
         const rootStatements = [];
         const statementsStack: Statement[][] = [rootStatements];
         this.statements.forEach((statement) => {
-            const { directive } = statement;
-            const isBlockStart = parseUtils.directiveIsBlockStart(statement.directive);
-            if (parseUtils.directiveIsBlockEnd(directive)) {
+            const { statementType } = statement;
+            if (statementType.isBlockEnd) {
                 statementsStack.pop();
                 if (statementsStack.length <= 0) {
                     throw new CompilerError(
-                        `Unexpected "${directive}" statement.`,
+                        `Unexpected "${statementType.directive}" statement.`,
                         statement.pos,
                     );
                 }
-                if (!isBlockStart) {
+                if (!statementType.isBlockStart) {
                     return;
                 }
             }
             const lastStatements = statementsStack[statementsStack.length - 1];
             lastStatements.push(statement);
-            if (isBlockStart) {
+            if (statementType.isBlockStart) {
                 statementsStack.push(statement.nestedStatements);
             }
         });

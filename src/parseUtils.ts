@@ -2,6 +2,7 @@
 import * as niceUtils from "./niceUtils.js";
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 import CompilerError from "./compilerError.js";
+import { StatementType, expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
 import Statement from "./statement.js";
 import { NumberConstant, StringConstant } from "./constant.js";
 import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
@@ -19,24 +20,6 @@ interface ExpressionResult {
 
 const delimiterCharacterSet = new Set([",", "(", ")", "[", "]", "{", "}"]);
 const modifierSet = new Set(["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"]);
-const blockStartDirectiveSet = new Set([
-    "SCOPE", "IF", "ELSE_IF", "ELSE", "WHILE",
-    "STRUCT", "UNION",
-    "FUNC_TYPE", "FUNC", "INIT_FUNC",
-]);
-const blockEndDirectiveSet = new Set([
-    "END", "ELSE_IF", "ELSE",
-]);
-const directiveSet = new Set([
-    "VAR", "CONST", "FIXED",
-    "LABEL", "JUMP", "JUMP_IF",
-    "BREAK", "CONTINUE",
-    "FIELD", "TYPE_FIELD",
-    "ARG", "RET_TYPE", "RET",
-    "IMPORT", "CONFIG_IMPORT", "FOREIGN_IMPORT",
-]);
-niceUtils.extendSet(directiveSet, blockStartDirectiveSet);
-niceUtils.extendSet(directiveSet, blockEndDirectiveSet);
 
 const isWhitespaceCharacter = (character: string): boolean => (
     character === " " || character === "\t"
@@ -415,11 +398,11 @@ export const parseTokens = (tokens: Token[]): Statement => {
             break
         }
     }
-    let directive = null;
+    let statementType = expressionStatementType;
     if (index < tokens.length) {
         const token = tokens[index];
-        if (token instanceof WordToken && directiveSet.has(token.text)) {
-            directive = token.text;
+        if (token instanceof WordToken && token.text in directiveStatementTypeMap) {
+            statementType = directiveStatementTypeMap[token.text];
             index += 1;
         }
     }
@@ -429,15 +412,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
         const token = tokens[index];
         throw new CompilerError(`Unexpected token "${token.text}".`);
     }
-    return new Statement(modifiers, directive, result.expressions);
+    return new Statement(modifiers, statementType, result.expressions);
 };
-
-export const directiveIsBlockStart = (directive: string): boolean => (
-    blockStartDirectiveSet.has(directive)
-);
-
-export const directiveIsBlockEnd = (directive: string): boolean => (
-    blockEndDirectiveSet.has(directive)
-);
 
 

@@ -1,28 +1,35 @@
 
 import * as niceUtils from "./niceUtils.js";
 import Pos from "./pos.js";
+import { StatementType } from "./statementType.js";
 import { Expression } from "./expression.js";
 
 export default class Statement {
     modifiers: string[];
-    directive: string;
+    statementType: StatementType;
     args: Expression[];
     nestedStatements: Statement[];
     pos: Pos;
     
-    constructor(modifiers: string[], directive: string, args: Expression[]) {
+    constructor(modifiers: string[], statementType: StatementType, args: Expression[]) {
         this.modifiers = modifiers;
-        this.directive = directive;
+        this.statementType = statementType;
         this.args = args;
         this.nestedStatements = [];
         this.pos = null;
+        this.statementType.validateArgCount(this.args.length);
+    }
+    
+    getDirective(): string {
+        return this.statementType.directive;
     }
     
     toString(indentationLevel = 0): string {
         const indentation = niceUtils.getIndentation(indentationLevel);
         const textList = this.modifiers.slice();
-        if (this.directive !== null) {
-            textList.push(this.directive);
+        const directive = this.getDirective();
+        if (directive !== null) {
+            textList.push(directive);
         }
         if (this.args.length > 0) {
             const argsText = this.args.map((arg) => arg.toString()).join(", ");
