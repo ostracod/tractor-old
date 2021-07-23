@@ -11,6 +11,12 @@ export default class CompilerError extends Error {
         this.pos = pos;
     }
     
+    setPosIfMissing(pos: Pos) {
+        if (this.pos === null) {
+            this.pos = pos;
+        }
+    }
+    
     toString(): string {
         let header = "ERROR";
         if (this.pos !== null) {

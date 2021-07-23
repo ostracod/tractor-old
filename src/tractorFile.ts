@@ -20,6 +20,9 @@ export default class TractorFile {
     }
     
     parseLines(): void {
+        if (!fs.existsSync(this.path)) {
+            throw new CompilerError(`Could not find source file at "${this.path}".`);
+        }
         const lines = fs.readFileSync(this.path, "utf8").split("\n");
         this.tokenLines = [];
         lines.forEach((line, index) => {
