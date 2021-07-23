@@ -19,7 +19,7 @@ To install this application:
 To compile a Tractor project:
 
 ```
-node ./dist/compile.js <projectPath>
+node ./dist/compile.js <projectPath> <configName?> <configName?> <configName?>...
 ```
 
 ## Motivation

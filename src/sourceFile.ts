@@ -7,25 +7,33 @@ import { Token } from "./token.js";
 import TokenLine from "./tokenLine.js";
 import Statement from "./statement.js";
 
-export default class TractorFile {
+export class SourceFile {
     path: string;
+    lines: string[];
+    
+    constructor(path: string) {
+        this.path = path;
+        if (!fs.existsSync(this.path)) {
+            throw new CompilerError(`Could not find source file at "${this.path}".`);
+        }
+        this.lines = fs.readFileSync(this.path, "utf8").split("\n");
+    }
+}
+
+export class TractorFile extends SourceFile {
     tokenLines: TokenLine[];
     statements: Statement[];
     
     constructor(path: string) {
-        this.path = path;
+        super(path);
         this.parseLines();
         this.parseTokens();
         this.collapseBlocks();
     }
     
     parseLines(): void {
-        if (!fs.existsSync(this.path)) {
-            throw new CompilerError(`Could not find source file at "${this.path}".`);
-        }
-        const lines = fs.readFileSync(this.path, "utf8").split("\n");
         this.tokenLines = [];
-        lines.forEach((line, index) => {
+        this.lines.forEach((line, index) => {
             const pos = new Pos(this.path, index + 1);
             let tokens: Token[];
             try {
@@ -64,7 +72,7 @@ export default class TractorFile {
         const rootStatements = [];
         const statementsStack: Statement[][] = [rootStatements];
         this.statements.forEach((statement) => {
-            const { statementType } = statement;
+            const statementType = statement.type;
             if (statementType.isBlockEnd) {
                 statementsStack.pop();
                 if (statementsStack.length <= 0) {

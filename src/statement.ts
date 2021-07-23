@@ -4,30 +4,26 @@ import Pos from "./pos.js";
 import { StatementType } from "./statementType.js";
 import { Expression } from "./expression.js";
 
-export default class Statement {
+export default class Statement<T extends StatementType = StatementType> {
     modifiers: string[];
-    statementType: StatementType;
+    type: T;
     args: Expression[];
     nestedStatements: Statement[];
     pos: Pos;
     
-    constructor(modifiers: string[], statementType: StatementType, args: Expression[]) {
+    constructor(modifiers: string[], type: T, args: Expression[]) {
         this.modifiers = modifiers;
-        this.statementType = statementType;
+        this.type = type;
         this.args = args;
         this.nestedStatements = [];
         this.pos = null;
-        this.statementType.validateArgCount(this.args.length);
-    }
-    
-    getDirective(): string {
-        return this.statementType.directive;
+        this.type.validateArgCount(this.args.length);
     }
     
     toString(indentationLevel = 0): string {
         const indentation = niceUtils.getIndentation(indentationLevel);
         const textList = this.modifiers.slice();
-        const directive = this.getDirective();
+        const { directive } = this.type;
         if (directive !== null) {
             textList.push(directive);
         }

@@ -3,47 +3,107 @@ import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
 import CompilerError from "./compilerError.js";
-import TractorFile from "./tractorFile.js";
+import { SourceFile, TractorFile } from "./sourceFile.js";
+import { ImportStatementType } from "./statementType.js";
 import Statement from "./statement.js";
 
 export default class Compiler {
     projectPath: string;
     srcPath: string;
-    config: Config;
+    configNames: string[];
+    configImportMap: { [name: string]: string };
+    targetLanguage: string;
+    buildFileName: string;
     statements: Statement[];
     importedPaths: Set<string>;
+    foreignFiles: SourceFile[];
     
-    constructor(projectPath: string) {
+    constructor(projectPath: string, configNames: string[]) {
         this.projectPath = projectPath;
         this.srcPath = pathUtils.join(this.projectPath, "src");
+        this.configNames = configNames;
     }
     
-    readConfig() {
+    readConfig(): void {
         const path = pathUtils.join(this.projectPath, "tractorConfig.json");
-        this.config = JSON.parse(fs.readFileSync(path, "utf8"));
+        let config = JSON.parse(fs.readFileSync(path, "utf8")) as Config;
+        this.configImportMap = {};
+        this.targetLanguage = null;
+        this.buildFileName = null;
+        let index = 0;
+        while (true) {
+            const { importMap, targetLanguage, buildFileName, configs } = config;
+            if (typeof importMap !== "undefined") {
+                for (const name in importMap) {
+                    this.configImportMap[name] = importMap[name];
+                }
+            }
+            if (typeof targetLanguage !== "undefined") {
+                this.targetLanguage = targetLanguage;
+            }
+            if (typeof buildFileName !== "undefined") {
+                this.buildFileName = buildFileName;
+            }
+            if (typeof configs === "undefined") {
+                break;
+            }
+            let nextConfig: Config;
+            if (index < this.configNames.length) {
+                const name = this.configNames[index];
+                index += 1;
+                nextConfig = configs.find((config) => (config.name === name));
+                if (typeof nextConfig === "undefined") {
+                    throw new CompilerError(`Config "${config.name}" has no nested config "${name}".`);
+                }
+            } else {
+                nextConfig = configs.find((config) => (
+                    "isDefault" in config && config.isDefault
+                ));
+                if (typeof nextConfig === "undefined") {
+                    throw new CompilerError(`Config "${config.name}" has no default nested config.`);
+                }
+            }
+            config = nextConfig;
+        }
+        if (index < this.configNames.length) {
+            throw new CompilerError(`Config "${config.name}" has no nested configs.`);
+        }
+        if (this.targetLanguage === null) {
+            throw new CompilerError("Missing targetLanguage in config.");
+        }
+        if (this.buildFileName === null) {
+            throw new CompilerError("Missing buildFileName in config.");
+        }
     }
     
-    importTractorFile(path) {
+    registerImportedFile(path: string): string {
         const absolutePath = pathUtils.resolve(this.srcPath, path);
         if (this.importedPaths.has(absolutePath)) {
-            return;
+            return null;
         }
         this.importedPaths.add(absolutePath);
+        return absolutePath;
+    }
+    
+    importTractorFile(path: string): void {
+        const absolutePath = this.registerImportedFile(path);
+        if (absolutePath === null) {
+            return;
+        }
         const tractorFile = new TractorFile(absolutePath);
         const { statements } = tractorFile;
-        const importStatements = [];
+        const importStatements: Statement<ImportStatementType>[] = [];
         statements.forEach((statement) => {
-            const directive = statement.getDirective();
-            if (directive === "IMPORT") {
-                importStatements.push(statement);
+            if (statement.type instanceof ImportStatementType) {
+                importStatements.push(statement as Statement<ImportStatementType>);
             } else {
                 this.statements.push(statement);
             }
         });
         importStatements.forEach((statement) => {
             try {
-                const path = statement.args[0].evaluateToString();
-                this.importTractorFile(path);
+                const importStatementType = statement.type;
+                importStatementType.importFiles(statement.args, this);
             } catch (error) {
                 if (error instanceof CompilerError) {
                     error.setPosIfMissing(statement.pos);
@@ -53,9 +113,19 @@ export default class Compiler {
         });
     }
     
+    importForeignFile(path: string): void {
+        const absolutePath = this.registerImportedFile(path);
+        if (absolutePath === null) {
+            return;
+        }
+        const foreignFile = new SourceFile(absolutePath);
+        this.foreignFiles.push(foreignFile);
+    }
+    
     compile(): void {
         this.statements = [];
         this.importedPaths = new Set();
+        this.foreignFiles = [];
         try {
             console.log("Reading config...");
             this.readConfig();

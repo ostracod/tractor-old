@@ -1,6 +1,8 @@
 
 import * as niceUtils from "./niceUtils.js";
 import CompilerError from "./compilerError.js";
+import { Expression } from "./expression.js";
+import Compiler from "./compiler.js";
 
 interface StatementTypeOptions {
     minimumArgAmount?: number;
@@ -47,6 +49,48 @@ export class StatementType {
     }
 }
 
+export abstract class ImportStatementType extends StatementType {
+    
+    abstract importFiles(args: Expression[], compiler: Compiler): void;
+}
+
+class PathImportStatementType extends ImportStatementType {
+    
+    constructor() {
+        super("IMPORT", { argAmount: 1 });
+    }
+    
+    importFiles(args: Expression[], compiler: Compiler): void {
+        const path = args[0].evaluateToString();
+        compiler.importTractorFile(path);
+    }
+}
+
+class ConfigImportStatementType extends ImportStatementType {
+    
+    constructor() {
+        super("CONFIG_IMPORT", { argAmount: 1 });
+    }
+    
+    importFiles(args: Expression[], compiler: Compiler): void {
+        const name = args[0].evaluateToString();
+        const path = compiler.configImportMap[name];
+        compiler.importTractorFile(path);
+    }
+}
+
+class ForeignImportStatementType extends ImportStatementType {
+    
+    constructor() {
+        super("FOREIGN_IMPORT", { argAmount: 1 });
+    }
+    
+    importFiles(args: Expression[], compiler: Compiler): void {
+        const path = args[0].evaluateToString();
+        compiler.importForeignFile(path);
+    }
+}
+
 export const expressionStatementType = new StatementType(null, { argAmount: 1 });
 new StatementType("VAR", { minimumArgAmount: 2, maximumArgAmount: 3 });
 new StatementType("COMP", { argAmount: 3 });
@@ -72,8 +116,8 @@ new StatementType("RET", { maximumArgAmount: 1 });
 new StatementType("FUNC_TYPE", { argAmount: 1, isBlockStart: true });
 new StatementType("FUNC", { argAmount: 1, isBlockStart: true });
 new StatementType("INIT_FUNC", { isBlockStart: true });
-new StatementType("IMPORT", { argAmount: 1 });
-new StatementType("CONFIG_IMPORT", { argAmount: 1 });
-new StatementType("FOREIGN_IMPORT", { argAmount: 1 });
+new PathImportStatementType();
+new ConfigImportStatementType();
+new ForeignImportStatementType();
 
 
