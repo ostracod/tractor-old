@@ -3,6 +3,25 @@
 
 A programming language by Jack Eisenmann
 
+## Installation and Usage
+
+This application has the following system-wide dependencies:
+
+* Node.js version ^16.4
+* TypeScript version ^4.3
+
+To install this application:
+
+1. Clone this repository on your machine.
+1. Set your working directory to this repository: `cd tractor`
+1. Compile TypeScript code: `tsc`
+
+To compile a Tractor project:
+
+```
+node ./dist/compile.js <projectPath>
+```
+
 ## Motivation
 
 When creating the [WheatSystem C implementation](https://github.com/ostracod/wheatsystem-c), I wanted the codebase to be compatible with a variety of target platforms, including:
@@ -92,13 +111,17 @@ Tractor has the following built-in composite item literals:
 
 ## Expressions
 
-Tractor has the following unary and binary operators:
+Tractor has the following integer operators:
 
 * `+`, `-`, `*`, `/`, and `%` perform arithmetic operations.
 * `~`, `&`, `|`, `^`, `>>`, and `<<` perform bitwise operations.
 * `!`, `&&`, `||`, and `^^` perform boolean operations.
 * `==`, `!=`, `>`, `>=`, `<`, and `<=` perform comparison operations.
-* `~`, `&`, `|`, and `^` also perform type operations. For example, `intT & compT` returns the type of an integer known at compile time.
+
+Tractor has the following type operators:
+
+* `~`, `&`, `|`, and `^` perform type manipulation. For example, `intT & compT` returns the type of an integer known at compile time.
+* `==` and `!=` perform type comparison. For example, `uInt8T != uInt16T` returns `TRUE`.
 
 Tractor has the following assignment operators:
 
@@ -173,6 +196,29 @@ FIXED <name>, <type>, <value>
 ```
 
 Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`, and will be initialized with value `<value>`. `<type>` must conform to `concreteT`.
+
+
+**Label statement:**
+
+```
+LABEL <name>
+```
+
+Declares a label with name `<name>` in the current function body.
+
+**Jump statements:**
+
+```
+JUMP <name>
+```
+
+Causes program execution to skip to the label with name `<name>`.
+
+```
+JUMP_IF <name>, <condition>
+```
+
+Jumps to the label with name `<name>` if value `<condition>` is non-zero.
 
 **Block scope statement:**
 

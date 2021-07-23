@@ -29,6 +29,7 @@ const blockEndDirectiveSet = new Set([
 ]);
 const directiveSet = new Set([
     "VAR", "CONST", "FIXED",
+    "LABEL", "JUMP", "JUMP_IF",
     "BREAK", "CONTINUE",
     "FIELD", "TYPE_FIELD",
     "ARG", "RET_TYPE", "RET",
