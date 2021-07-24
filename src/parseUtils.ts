@@ -1,9 +1,8 @@
 
-import * as niceUtils from "./niceUtils.js";
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
-import CompilerError from "./compilerError.js";
-import { StatementType, expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
-import Statement from "./statement.js";
+import { CompilerError } from "./compilerError.js";
+import { expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
+import { Statement } from "./statement.js";
 import { NumberConstant, StringConstant } from "./constant.js";
 import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
@@ -412,7 +411,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
         const token = tokens[index];
         throw new CompilerError(`Unexpected token "${token.text}".`);
     }
-    return new Statement(modifiers, statementType, result.expressions);
+    return statementType.createStatement(modifiers, result.expressions);
 };
 
 

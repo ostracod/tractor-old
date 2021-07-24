@@ -1,17 +1,20 @@
 
 import * as fs from "fs";
 import * as parseUtils from "./parseUtils.js";
-import Pos from "./pos.js";
-import CompilerError from "./compilerError.js";
+import { Pos } from "./pos.js";
+import { CompilerError } from "./compilerError.js";
+import { Compiler } from "./compiler.js";
 import { Token } from "./token.js";
-import TokenLine from "./tokenLine.js";
-import Statement from "./statement.js";
+import { TokenLine } from "./tokenLine.js";
+import { Statement } from "./statement.js";
 
 export class SourceFile {
+    compiler: Compiler;
     path: string;
     lines: string[];
     
-    constructor(path: string) {
+    constructor(compiler: Compiler, path: string) {
+        this.compiler = compiler;
         this.path = path;
         if (!fs.existsSync(this.path)) {
             throw new CompilerError(`Could not find source file at "${this.path}".`);
@@ -24,8 +27,8 @@ export class TractorFile extends SourceFile {
     tokenLines: TokenLine[];
     statements: Statement[];
     
-    constructor(path: string) {
-        super(path);
+    constructor(compiler: Compiler, path: string) {
+        super(compiler, path);
         this.parseLines();
         this.parseTokens();
         this.collapseBlocks();
@@ -34,7 +37,7 @@ export class TractorFile extends SourceFile {
     parseLines(): void {
         this.tokenLines = [];
         this.lines.forEach((line, index) => {
-            const pos = new Pos(this.path, index + 1);
+            const pos = new Pos(this, index + 1);
             let tokens: Token[];
             try {
                 tokens = parseUtils.parseLine(line);

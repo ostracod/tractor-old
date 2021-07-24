@@ -1,23 +1,28 @@
 
 import * as niceUtils from "./niceUtils.js";
-import Pos from "./pos.js";
+import { Pos } from "./pos.js";
 import { StatementType } from "./statementType.js";
+import { Compiler } from "./compiler.js";
 import { Expression } from "./expression.js";
 
-export default class Statement<T extends StatementType = StatementType> {
+export class Statement {
+    type: StatementType;
     modifiers: string[];
-    type: T;
     args: Expression[];
-    nestedStatements: Statement[];
     pos: Pos;
+    nestedStatements: Statement[];
     
-    constructor(modifiers: string[], type: T, args: Expression[]) {
-        this.modifiers = modifiers;
+    constructor(type: StatementType, modifiers: string[], args: Expression[]) {
         this.type = type;
+        this.modifiers = modifiers;
         this.args = args;
-        this.nestedStatements = [];
         this.pos = null;
+        this.nestedStatements = [];
         this.type.validateArgCount(this.args.length);
+    }
+    
+    getCompiler(): Compiler {
+        return this.pos.sourceFile.compiler;
     }
     
     toString(indentationLevel = 0): string {
@@ -36,6 +41,39 @@ export default class Statement<T extends StatementType = StatementType> {
             lines.push(statement.toString(indentationLevel + 1));
         });
         return lines.join("\n");
+    }
+}
+
+export abstract class ImportStatement extends Statement {
+    
+    abstract importFiles(): void;
+}
+
+export class PathImportStatement extends ImportStatement {
+    
+    importFiles(): void {
+        const path = this.args[0].evaluateToString();
+        const compiler = this.getCompiler();
+        compiler.importTractorFile(path);
+    }
+}
+
+export class ConfigImportStatement extends ImportStatement {
+    
+    importFiles(): void {
+        const name = this.args[0].evaluateToString();
+        const compiler = this.getCompiler();
+        const path = compiler.configImportMap[name];
+        compiler.importTractorFile(path);
+    }
+}
+
+export class ForeignImportStatement extends ImportStatement {
+    
+    importFiles(): void {
+        const path = this.args[0].evaluateToString();
+        const compiler = this.getCompiler();
+        compiler.importForeignFile(path);
     }
 }
 

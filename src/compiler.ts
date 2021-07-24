@@ -2,12 +2,11 @@
 import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
-import CompilerError from "./compilerError.js";
+import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
-import { ImportStatementType } from "./statementType.js";
-import Statement from "./statement.js";
+import { Statement, ImportStatement } from "./statement.js";
 
-export default class Compiler {
+export class Compiler {
     projectPath: string;
     srcPath: string;
     configNames: string[];
@@ -90,20 +89,19 @@ export default class Compiler {
         if (absolutePath === null) {
             return;
         }
-        const tractorFile = new TractorFile(absolutePath);
+        const tractorFile = new TractorFile(this, absolutePath);
         const { statements } = tractorFile;
-        const importStatements: Statement<ImportStatementType>[] = [];
+        const importStatements: ImportStatement[] = [];
         statements.forEach((statement) => {
-            if (statement.type instanceof ImportStatementType) {
-                importStatements.push(statement as Statement<ImportStatementType>);
+            if (statement instanceof ImportStatement) {
+                importStatements.push(statement);
             } else {
                 this.statements.push(statement);
             }
         });
         importStatements.forEach((statement) => {
             try {
-                const importStatementType = statement.type;
-                importStatementType.importFiles(statement.args, this);
+                statement.importFiles();
             } catch (error) {
                 if (error instanceof CompilerError) {
                     error.setPosIfMissing(statement.pos);
@@ -118,7 +116,7 @@ export default class Compiler {
         if (absolutePath === null) {
             return;
         }
-        const foreignFile = new SourceFile(absolutePath);
+        const foreignFile = new SourceFile(this, absolutePath);
         this.foreignFiles.push(foreignFile);
     }
     

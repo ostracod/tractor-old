@@ -1,5 +1,5 @@
 
-import CompilerError from "./compilerError.js";
+import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
 

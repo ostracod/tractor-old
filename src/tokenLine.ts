@@ -1,8 +1,8 @@
 
 import { Token } from "./token.js";
-import Pos from "./pos.js";
+import { Pos } from "./pos.js";
 
-export default class TokenLine {
+export class TokenLine {
     tokens: Token[];
     pos: Pos;
     

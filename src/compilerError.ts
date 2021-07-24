@@ -1,7 +1,7 @@
 
-import Pos from "./pos.js";
+import { Pos } from "./pos.js";
 
-export default class CompilerError extends Error {
+export class CompilerError extends Error {
     message: string;
     pos: Pos;
     

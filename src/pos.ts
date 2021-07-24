@@ -1,18 +1,21 @@
 
-export default class Pos {
-    path: string;
+import { SourceFile } from "./sourceFile.js";
+
+export class Pos {
+    sourceFile: SourceFile;
     lineNumber: number;
     
-    constructor(path: string, lineNumber: number = null) {
-        this.path = path;
+    constructor(sourceFile: SourceFile, lineNumber: number = null) {
+        this.sourceFile = sourceFile;
         this.lineNumber = lineNumber;
     }
     
     getPrepositionPhrase(): string {
+        const { path } = this.sourceFile;
         if (this.lineNumber === null) {
-            return `in ${this.path}`;
+            return `in ${path}`;
         }
-        return `on line ${this.lineNumber} of ${this.path}`;
+        return `on line ${this.lineNumber} of ${path}`;
     }
 }
 

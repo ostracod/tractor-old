@@ -1,8 +1,14 @@
 
 import * as niceUtils from "./niceUtils.js";
-import CompilerError from "./compilerError.js";
+import { CompilerError } from "./compilerError.js";
+import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement } from "./statement.js";
 import { Expression } from "./expression.js";
-import Compiler from "./compiler.js";
+
+type StatementConstructor = new (
+    type: StatementType,
+    modifiers: string[],
+    args: Expression[],
+) => Statement;
 
 interface StatementTypeOptions {
     minimumArgAmount?: number;
@@ -20,8 +26,13 @@ export class StatementType {
     maximumArgAmount: number;
     isBlockStart: boolean;
     isBlockEnd: boolean;
+    statementConstructor: StatementConstructor;
     
-    constructor(directive: string, options: StatementTypeOptions = {}) {
+    constructor(
+        directive: string,
+        options: StatementTypeOptions = {},
+        statementConstructor: StatementConstructor = Statement,
+    ) {
         this.directive = directive;
         const { argAmount } = options;
         if (typeof argAmount !== "undefined") {
@@ -33,9 +44,14 @@ export class StatementType {
         }
         this.isBlockStart = niceUtils.getWithDefault(options, "isBlockStart", false);
         this.isBlockEnd = niceUtils.getWithDefault(options, "isBlockEnd", false);
+        this.statementConstructor = statementConstructor;
         if (this.directive !== null) {
             directiveStatementTypeMap[this.directive] = this;
         }
+    }
+    
+    createStatement(modifiers: string[], args: Expression[]): Statement {
+        return new this.statementConstructor(this, modifiers, args);
     }
     
     validateArgCount(argCount: number): void {
@@ -46,48 +62,6 @@ export class StatementType {
                 throw new CompilerError(`Expected between ${this.minimumArgAmount} and ${this.maximumArgAmount} arguments.`);
             }
         }
-    }
-}
-
-export abstract class ImportStatementType extends StatementType {
-    
-    abstract importFiles(args: Expression[], compiler: Compiler): void;
-}
-
-class PathImportStatementType extends ImportStatementType {
-    
-    constructor() {
-        super("IMPORT", { argAmount: 1 });
-    }
-    
-    importFiles(args: Expression[], compiler: Compiler): void {
-        const path = args[0].evaluateToString();
-        compiler.importTractorFile(path);
-    }
-}
-
-class ConfigImportStatementType extends ImportStatementType {
-    
-    constructor() {
-        super("CONFIG_IMPORT", { argAmount: 1 });
-    }
-    
-    importFiles(args: Expression[], compiler: Compiler): void {
-        const name = args[0].evaluateToString();
-        const path = compiler.configImportMap[name];
-        compiler.importTractorFile(path);
-    }
-}
-
-class ForeignImportStatementType extends ImportStatementType {
-    
-    constructor() {
-        super("FOREIGN_IMPORT", { argAmount: 1 });
-    }
-    
-    importFiles(args: Expression[], compiler: Compiler): void {
-        const path = args[0].evaluateToString();
-        compiler.importForeignFile(path);
     }
 }
 
@@ -116,8 +90,8 @@ new StatementType("RET", { maximumArgAmount: 1 });
 new StatementType("FUNC_TYPE", { argAmount: 1, isBlockStart: true });
 new StatementType("FUNC", { argAmount: 1, isBlockStart: true });
 new StatementType("INIT_FUNC", { isBlockStart: true });
-new PathImportStatementType();
-new ConfigImportStatementType();
-new ForeignImportStatementType();
+new StatementType("IMPORT", { argAmount: 1 }, PathImportStatement);
+new StatementType("CONFIG_IMPORT", { argAmount: 1 }, ConfigImportStatement);
+new StatementType("FOREIGN_IMPORT", { argAmount: 1 }, ForeignImportStatement);
 
 

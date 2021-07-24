@@ -355,7 +355,7 @@ INIT_FUNC
 END
 ```
 
-Declares the entry point function of the program with the statements in `<body>`. Each program may only have one entry point function. The entry point function does not accept any arguments, and has no return value.
+Declares the entry point function of the program with the statements in `<body>`. Each program must have exactly one entry point function. The entry point function does not accept any arguments, and has no return value.
 
 **Import statements:**
 
