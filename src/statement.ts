@@ -1,9 +1,11 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
+import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { Compiler } from "./compiler.js";
 import { Expression } from "./expression.js";
+import { FunctionDefinition, NamedFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export class Statement {
     type: StatementType;
@@ -23,6 +25,10 @@ export class Statement {
     
     getCompiler(): Compiler {
         return this.pos.sourceFile.compiler;
+    }
+    
+    createError(message: string): CompilerError {
+        return new CompilerError(message, this.pos);
     }
     
     toString(indentationLevel = 0): string {
@@ -53,8 +59,7 @@ export class PathImportStatement extends ImportStatement {
     
     importFiles(): void {
         const path = this.args[0].evaluateToString();
-        const compiler = this.getCompiler();
-        compiler.importTractorFile(path);
+        this.getCompiler().importTractorFile(path);
     }
 }
 
@@ -72,8 +77,33 @@ export class ForeignImportStatement extends ImportStatement {
     
     importFiles(): void {
         const path = this.args[0].evaluateToString();
+        this.getCompiler().importForeignFile(path);
+    }
+}
+
+export abstract class FunctionStatement extends Statement {
+    
+    abstract createFunctionDefinition(): void;
+}
+
+export class NamedFunctionStatement extends FunctionStatement {
+    
+    createFunctionDefinition(): void {
+        const name = this.args[0].evaluateToIdentifierName();
+        const definition = new NamedFunctionDefinition(name, this.nestedStatements);
+        this.getCompiler().namedFunctionDefinitions.push(definition);
+    }
+}
+
+export class InitFunctionStatement extends FunctionStatement {
+    
+    createFunctionDefinition(): void {
         const compiler = this.getCompiler();
-        compiler.importForeignFile(path);
+        if (compiler.initFunctionDefinition !== null) {
+            throw this.createError("Expected exactly one INIT_FUNC statement.");
+        }
+        const definition = new InitFunctionDefinition(this.nestedStatements);
+        compiler.initFunctionDefinition = definition;
     }
 }
 

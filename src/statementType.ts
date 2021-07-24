@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement } from "./statement.js";
+import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, NamedFunctionStatement, InitFunctionStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 
 type StatementConstructor = new (
@@ -88,8 +88,8 @@ new StatementType("ARG", { argAmount: 2 });
 new StatementType("RET_TYPE", { argAmount: 1 });
 new StatementType("RET", { maximumArgAmount: 1 });
 new StatementType("FUNC_TYPE", { argAmount: 1, isBlockStart: true });
-new StatementType("FUNC", { argAmount: 1, isBlockStart: true });
-new StatementType("INIT_FUNC", { isBlockStart: true });
+new StatementType("FUNC", { argAmount: 1, isBlockStart: true }, NamedFunctionStatement);
+new StatementType("INIT_FUNC", { isBlockStart: true }, InitFunctionStatement);
 new StatementType("IMPORT", { argAmount: 1 }, PathImportStatement);
 new StatementType("CONFIG_IMPORT", { argAmount: 1 }, ConfigImportStatement);
 new StatementType("FOREIGN_IMPORT", { argAmount: 1 }, ForeignImportStatement);

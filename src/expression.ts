@@ -11,12 +11,24 @@ export abstract class Expression {
         return null;
     }
     
+    evaluateToIdentifierNameOrNull(): string {
+        return null;
+    }
+    
     evaluateToString(): string {
         const constant = this.evaluateToConstantOrNull();
         if (constant === null || !(constant instanceof StringConstant)) {
             throw new CompilerError("Expected string.");
         }
         return (constant as StringConstant).value;
+    }
+    
+    evaluateToIdentifierName(): string {
+        const output = this.evaluateToIdentifierNameOrNull();
+        if (output === null) {
+            throw new CompilerError("Expected identifier name.");
+        }
+        return output;
     }
 }
 
@@ -46,6 +58,10 @@ export class IdentifierExpression extends Expression  {
     }
     
     toString(): string {
+        return this.text;
+    }
+    
+    evaluateToIdentifierNameOrNull(): string {
         return this.text;
     }
 }

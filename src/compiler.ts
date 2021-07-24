@@ -4,7 +4,8 @@ import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
 import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
-import { Statement, ImportStatement } from "./statement.js";
+import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
+import { NamedFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export class Compiler {
     projectPath: string;
@@ -13,9 +14,11 @@ export class Compiler {
     configImportMap: { [name: string]: string };
     targetLanguage: string;
     buildFileName: string;
-    statements: Statement[];
+    rootStatements: Statement[];
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
+    namedFunctionDefinitions: NamedFunctionDefinition[];
+    initFunctionDefinition: InitFunctionDefinition;
     
     constructor(projectPath: string, configNames: string[]) {
         this.projectPath = projectPath;
@@ -96,7 +99,7 @@ export class Compiler {
             if (statement instanceof ImportStatement) {
                 importStatements.push(statement);
             } else {
-                this.statements.push(statement);
+                this.rootStatements.push(statement);
             }
         });
         importStatements.forEach((statement) => {
@@ -120,18 +123,41 @@ export class Compiler {
         this.foreignFiles.push(foreignFile);
     }
     
+    extractFunctionDefinitions(): void {
+        this.rootStatements = this.rootStatements.filter((statement) => {
+            if (statement instanceof FunctionStatement) {
+                statement.createFunctionDefinition();
+                return false;
+            }
+            return true;
+        });
+        if (this.initFunctionDefinition === null) {
+            throw new CompilerError("Missing INIT_FUNC statement.");
+        }
+    }
+    
     compile(): void {
-        this.statements = [];
+        this.rootStatements = [];
         this.importedPaths = new Set();
         this.foreignFiles = [];
+        this.namedFunctionDefinitions = [];
+        this.initFunctionDefinition = null;
         try {
             console.log("Reading config...");
             this.readConfig();
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
+            this.extractFunctionDefinitions();
             // TODO: Finish this method.
-            const textList = this.statements.map((statement) => statement.toString());
-            console.log(textList.join("\n"));
+            console.log("\n= = = Root Lines = = =\n");
+            console.log(this.rootStatements.map(
+                (statement) => statement.toString()
+            ).join("\n"));
+            console.log("\n= = = Function Definitions = = =\n");
+            console.log(this.namedFunctionDefinitions.map(
+                (definition) => definition.toString()
+            ).join("\n"));
+            console.log(this.initFunctionDefinition.toString());
         } catch (error) {
             if (error instanceof CompilerError) {
                 console.log(error.toString());
