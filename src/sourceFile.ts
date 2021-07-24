@@ -1,6 +1,7 @@
 
 import * as fs from "fs";
 import * as parseUtils from "./parseUtils.js";
+import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Compiler } from "./compiler.js";
@@ -8,7 +9,7 @@ import { Token } from "./token.js";
 import { TokenLine } from "./tokenLine.js";
 import { Statement } from "./statement.js";
 
-export class SourceFile {
+export class SourceFile implements Displayable {
     compiler: Compiler;
     path: string;
     lines: string[];
@@ -20,6 +21,10 @@ export class SourceFile {
             throw new CompilerError(`Could not find source file at "${this.path}".`);
         }
         this.lines = fs.readFileSync(this.path, "utf8").split("\n");
+    }
+    
+    getDisplayString(): string {
+        return this.lines.join("\n");
     }
 }
 
@@ -96,8 +101,8 @@ export class TractorFile extends SourceFile {
         this.statements = rootStatements;
     }
     
-    toString(): string {
-        const textList = this.statements.map((statement) => statement.toString());
+    getDisplayString(): string {
+        const textList = this.statements.map((statement) => statement.getDisplayString());
         return textList.join("\n");
     }
 }

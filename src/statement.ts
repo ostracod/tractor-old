@@ -1,5 +1,6 @@
 
 import * as niceUtils from "./niceUtils.js";
+import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
@@ -7,7 +8,7 @@ import { Compiler } from "./compiler.js";
 import { Expression } from "./expression.js";
 import { FunctionDefinition, NamedFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
-export class Statement {
+export class Statement implements Displayable {
     type: StatementType;
     modifiers: string[];
     args: Expression[];
@@ -39,7 +40,7 @@ export class Statement {
         return new CompilerError(message, this.pos);
     }
     
-    toString(indentationLevel = 0): string {
+    getDisplayString(indentationLevel = 0): string {
         const indentation = niceUtils.getIndentation(indentationLevel);
         const textList = this.modifiers.slice();
         const { directive } = this.type;
@@ -47,12 +48,12 @@ export class Statement {
             textList.push(directive);
         }
         if (this.args.length > 0) {
-            const argsText = this.args.map((arg) => arg.toString()).join(", ");
+            const argsText = this.args.map((arg) => arg.getDisplayString()).join(", ");
             textList.push(argsText);
         }
         const lines = [indentation + textList.join(" ")];
         this.nestedStatements.forEach((statement) => {
-            lines.push(statement.toString(indentationLevel + 1));
+            lines.push(statement.getDisplayString(indentationLevel + 1));
         });
         return lines.join("\n");
     }

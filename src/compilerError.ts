@@ -1,7 +1,8 @@
 
+import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 
-export class CompilerError extends Error {
+export class CompilerError extends Error implements Displayable {
     message: string;
     pos: Pos;
     
@@ -17,7 +18,7 @@ export class CompilerError extends Error {
         }
     }
     
-    toString(): string {
+    getDisplayString(): string {
         let header = "ERROR";
         if (this.pos !== null) {
             header += " " + this.pos.getPrepositionPhrase();

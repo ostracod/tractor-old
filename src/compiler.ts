@@ -2,6 +2,7 @@
 import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
+import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
@@ -142,18 +143,14 @@ export class Compiler {
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
             // TODO: Finish this method.
-            console.log("\n= = = Root Lines = = =\n");
-            console.log(this.rootStatements.map(
-                (statement) => statement.toString()
-            ).join("\n"));
-            console.log("\n= = = Function Definitions = = =\n");
-            console.log(this.namedFunctionDefinitions.map(
-                (definition) => definition.toString()
-            ).join("\n"));
-            console.log(this.initFunctionDefinition.toString());
+            niceUtils.printDisplayables("Root Lines", this.rootStatements);
+            niceUtils.printDisplayables("Root Lines", [
+                this.initFunctionDefinition,
+                ...this.namedFunctionDefinitions,
+            ]);
         } catch (error) {
             if (error instanceof CompilerError) {
-                console.log(error.toString());
+                console.log(error.getDisplayString());
             } else {
                 throw error;
             }

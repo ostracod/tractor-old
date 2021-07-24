@@ -1,7 +1,9 @@
 
-export abstract class Constant {
+import { Displayable } from "./interfaces.js";
+
+export abstract class Constant implements Displayable {
     
-    abstract toString(): string;
+    abstract getDisplayString(): string;
 }
 
 export class NumberConstant extends Constant {
@@ -12,7 +14,7 @@ export class NumberConstant extends Constant {
         this.value = value;
     }
     
-    toString(): string {
+    getDisplayString(): string {
         return this.value.toString();
     }
 }
@@ -25,7 +27,7 @@ export class StringConstant extends Constant {
         this.value = value;
     }
     
-    toString(): string {
+    getDisplayString(): string {
         return `"${this.value}"`;
     }
 }

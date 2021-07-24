@@ -1,4 +1,6 @@
 
+import { Displayable } from "./interfaces.js";
+
 export const extendList = (destination: any[], source: any[]): void => {
     source.forEach((element) => {
         destination.push(element);
@@ -30,6 +32,13 @@ export const getIndentation = (indentationLevel: number): string => {
         textList.push("    ");
     }
     return textList.join("");
+};
+
+export const printDisplayables = (title: string, displayables: Displayable[]): void => {
+    console.log(`\n= = = ${title} = = =\n`);
+    displayables.forEach((displayable) => {
+        console.log(displayable.getDisplayString());
+    });
 };
 
 

@@ -1,19 +1,20 @@
 
+import { Displayable } from "./interfaces.js";
 import { Statement } from "./statement.js";
 
-export abstract class FunctionDefinition {
+export abstract class FunctionDefinition implements Displayable {
     statements: Statement[];
     
     constructor(statements: Statement[]) {
         this.statements = statements;
     }
     
-    abstract toStringHelper(): string;
+    abstract getDisplayStringHelper(): string;
     
-    toString(): string {
+    getDisplayString(): string {
         return [
-            this.toStringHelper(),
-            ...this.statements.map((statement) => statement.toString(1)),
+            this.getDisplayStringHelper(),
+            ...this.statements.map((statement) => statement.getDisplayString(1)),
         ].join("\n")
     }
 }
@@ -26,14 +27,14 @@ export class NamedFunctionDefinition extends FunctionDefinition {
         this.name = name;
     }
     
-    toStringHelper(): string {
+    getDisplayStringHelper(): string {
         return `Named function ${this.name}`;
     }
 }
 
 export class InitFunctionDefinition extends FunctionDefinition {
     
-    toStringHelper(): string {
+    getDisplayStringHelper(): string {
         return "Init function";
     }
 }

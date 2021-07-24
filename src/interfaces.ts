@@ -9,4 +9,8 @@ export interface Config {
     configs?: Config[];
 }
 
+export interface Displayable {
+    getDisplayString(): string;
+}
+
 

@@ -1,13 +1,14 @@
 
+import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
 
-export abstract class Expression {
+export abstract class Expression implements Displayable {
     pos: Pos;
     
-    abstract toString(): string;
+    abstract getDisplayString(): string;
     
     iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
         // Do nothing.
@@ -57,8 +58,8 @@ export class ConstantExpression extends Expression {
         this.constant = constant;
     }
     
-    toString(): string {
-        return this.constant.toString();
+    getDisplayString(): string {
+        return this.constant.getDisplayString();
     }
     
     evaluateToConstantOrNull(): Constant {
@@ -74,7 +75,7 @@ export class IdentifierExpression extends Expression  {
         this.text = text;
     }
     
-    toString(): string {
+    getDisplayString(): string {
         return this.text;
     }
     
@@ -97,8 +98,8 @@ export class UnaryExpression extends Expression {
         handle(this.operand);
     }
     
-    toString(): string {
-        return `${this.operator.text}(${this.operand.toString()})`;
+    getDisplayString(): string {
+        return `${this.operator.text}(${this.operand.getDisplayString()})`;
     }
 }
 
@@ -119,8 +120,8 @@ export class BinaryExpression extends Expression {
         handle(this.operand2);
     }
     
-    toString(): string {
-        return `(${this.operand1.toString()} ${this.operator.text} ${this.operand2.toString()})`;
+    getDisplayString(): string {
+        return `(${this.operand1.getDisplayString()} ${this.operator.text} ${this.operand2.getDisplayString()})`;
     }
 }
 
@@ -139,8 +140,8 @@ export class SubscriptExpression extends Expression {
         handle(this.indexExpression);
     }
     
-    toString(): string {
-        return `${this.arrayExpression.toString()}[${this.indexExpression.toString()}]`;
+    getDisplayString(): string {
+        return `${this.arrayExpression.getDisplayString()}[${this.indexExpression.getDisplayString()}]`;
     }
 }
 
@@ -159,9 +160,9 @@ export class InvocationExpression extends Expression {
         this.argExpressions.forEach(handle);
     }
     
-    toString(): string {
-        const textList = this.argExpressions.map((element) => element.toString());
-        return `${this.functionExpression.toString()}(${textList.join(", ")})`;
+    getDisplayString(): string {
+        const textList = this.argExpressions.map((element) => element.getDisplayString());
+        return `${this.functionExpression.getDisplayString()}(${textList.join(", ")})`;
     }
 }
 
@@ -177,8 +178,8 @@ export class ListExpression extends Expression {
         this.elements.forEach(handle);
     }
     
-    toString(): string {
-        const textList = this.elements.map((element) => element.toString());
+    getDisplayString(): string {
+        const textList = this.elements.map((element) => element.getDisplayString());
         return `{${textList.join(", ")}}`;
     }
 }
