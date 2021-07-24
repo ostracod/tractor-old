@@ -66,7 +66,7 @@ export class TractorFile extends SourceFile {
                 }
                 throw error;
             }
-            statement.pos = pos;
+            statement.setPos(pos);
             return statement;
         });
     }
@@ -79,9 +79,8 @@ export class TractorFile extends SourceFile {
             if (statementType.isBlockEnd) {
                 statementsStack.pop();
                 if (statementsStack.length <= 0) {
-                    throw new CompilerError(
+                    throw statement.createError(
                         `Unexpected "${statementType.directive}" statement.`,
-                        statement.pos,
                     );
                 }
                 if (!statementType.isBlockStart) {

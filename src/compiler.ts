@@ -103,14 +103,7 @@ export class Compiler {
             }
         });
         importStatements.forEach((statement) => {
-            try {
-                statement.importFiles();
-            } catch (error) {
-                if (error instanceof CompilerError) {
-                    error.setPosIfMissing(statement.pos);
-                }
-                throw error;
-            }
+            statement.importFiles();
         });
     }
     

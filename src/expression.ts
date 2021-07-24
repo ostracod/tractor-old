@@ -1,11 +1,28 @@
 
+import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
 
 export abstract class Expression {
+    pos: Pos;
     
     abstract toString(): string;
+    
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        // Do nothing.
+    }
+    
+    setPos(pos: Pos) {
+        this.pos = pos;
+        this.iterateOverNestedExpressions((expression) => {
+            expression.setPos(pos);
+        });
+    }
+    
+    createError(message: string): CompilerError {
+        return new CompilerError(message, this.pos);
+    }
     
     evaluateToConstantOrNull(): Constant {
         return null;
@@ -18,7 +35,7 @@ export abstract class Expression {
     evaluateToString(): string {
         const constant = this.evaluateToConstantOrNull();
         if (constant === null || !(constant instanceof StringConstant)) {
-            throw new CompilerError("Expected string.");
+            throw this.createError("Expected string.");
         }
         return (constant as StringConstant).value;
     }
@@ -26,7 +43,7 @@ export abstract class Expression {
     evaluateToIdentifierName(): string {
         const output = this.evaluateToIdentifierNameOrNull();
         if (output === null) {
-            throw new CompilerError("Expected identifier name.");
+            throw this.createError("Expected identifier name.");
         }
         return output;
     }
@@ -76,6 +93,10 @@ export class UnaryExpression extends Expression {
         this.operand = operand;
     }
     
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        handle(this.operand);
+    }
+    
     toString(): string {
         return `${this.operator.text}(${this.operand.toString()})`;
     }
@@ -93,6 +114,11 @@ export class BinaryExpression extends Expression {
         this.operand2 = operand2;
     }
     
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        handle(this.operand1);
+        handle(this.operand2);
+    }
+    
     toString(): string {
         return `(${this.operand1.toString()} ${this.operator.text} ${this.operand2.toString()})`;
     }
@@ -106,6 +132,11 @@ export class SubscriptExpression extends Expression {
         super();
         this.arrayExpression = arrayExpression;
         this.indexExpression = indexExpression;
+    }
+    
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        handle(this.arrayExpression);
+        handle(this.indexExpression);
     }
     
     toString(): string {
@@ -123,6 +154,11 @@ export class InvocationExpression extends Expression {
         this.argExpressions = argExpressions;
     }
     
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        handle(this.functionExpression);
+        this.argExpressions.forEach(handle);
+    }
+    
     toString(): string {
         const textList = this.argExpressions.map((element) => element.toString());
         return `${this.functionExpression.toString()}(${textList.join(", ")})`;
@@ -135,6 +171,10 @@ export class ListExpression extends Expression {
     constructor(elements: Expression[]) {
         super();
         this.elements = elements;
+    }
+    
+    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+        this.elements.forEach(handle);
     }
     
     toString(): string {

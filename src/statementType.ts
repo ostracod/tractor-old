@@ -16,24 +16,30 @@ interface StatementTypeOptions {
     argAmount?: number;
     isBlockStart?: boolean;
     isBlockEnd?: boolean;
+    canRequire?: boolean;
+    canInline?: boolean;
 }
 
 export const directiveStatementTypeMap: { [directive: string]: StatementType } = {};
 
 export class StatementType {
     directive: string;
+    statementConstructor: StatementConstructor;
     minimumArgAmount: number;
     maximumArgAmount: number;
     isBlockStart: boolean;
     isBlockEnd: boolean;
-    statementConstructor: StatementConstructor;
+    canRequire: boolean;
+    canInline: boolean;
+    allowedModifiers: string[];
     
     constructor(
         directive: string,
-        options: StatementTypeOptions = {},
-        statementConstructor: StatementConstructor = Statement,
+        statementConstructor: StatementConstructor,
+        options: StatementTypeOptions,
     ) {
         this.directive = directive;
+        this.statementConstructor = statementConstructor;
         const { argAmount } = options;
         if (typeof argAmount !== "undefined") {
             this.minimumArgAmount = argAmount;
@@ -44,7 +50,15 @@ export class StatementType {
         }
         this.isBlockStart = niceUtils.getWithDefault(options, "isBlockStart", false);
         this.isBlockEnd = niceUtils.getWithDefault(options, "isBlockEnd", false);
-        this.statementConstructor = statementConstructor;
+        this.canRequire = niceUtils.getWithDefault(options, "canRequire", false);
+        this.canInline = niceUtils.getWithDefault(options, "canInline", false);
+        this.allowedModifiers = [];
+        if (this.canRequire) {
+            niceUtils.extendList(this.allowedModifiers, ["REQUIRE", "FOREIGN"]);
+        }
+        if (this.canInline) {
+            niceUtils.extendList(this.allowedModifiers, ["INLINE", "MAYBE_INLINE"]);
+        }
         if (this.directive !== null) {
             directiveStatementTypeMap[this.directive] = this;
         }
@@ -52,6 +66,14 @@ export class StatementType {
     
     createStatement(modifiers: string[], args: Expression[]): Statement {
         return new this.statementConstructor(this, modifiers, args);
+    }
+    
+    validateModifiers(modifiers: string[]): void {
+        modifiers.forEach((modifier) => {
+            if (!this.allowedModifiers.includes(modifier)) {
+                throw new CompilerError(`Unexpected ${modifier} modifier.`);
+            }
+        });
     }
     
     validateArgCount(argCount: number): void {
@@ -65,33 +87,55 @@ export class StatementType {
     }
 }
 
-export const expressionStatementType = new StatementType(null, { argAmount: 1 });
-new StatementType("VAR", { minimumArgAmount: 2, maximumArgAmount: 3 });
-new StatementType("COMP", { argAmount: 3 });
-new StatementType("FIXED", { argAmount: 3 });
-new StatementType("LABEL", { argAmount: 1 });
-new StatementType("JUMP", { argAmount: 1 });
-new StatementType("JUMP_IF", { argAmount: 2 });
-new StatementType("SCOPE", { isBlockStart: true });
-new StatementType("END", { isBlockEnd: true });
-new StatementType("IF", { argAmount: 1, isBlockStart: true });
-new StatementType("ELSE_IF", { argAmount: 1, isBlockStart: true, isBlockEnd: true })
-new StatementType("ELSE", { isBlockStart: true, isBlockEnd: true });
-new StatementType("WHILE", { argAmount: 1, isBlockStart: true });
-new StatementType("BREAK");
-new StatementType("CONTINUE");
-new StatementType("FIELD", { argAmount: 2 });
-new StatementType("TYPE_FIELD", { argAmount: 2 });
-new StatementType("STRUCT", { argAmount: 1, isBlockStart: true });
-new StatementType("UNION", { argAmount: 1, isBlockStart: true });
-new StatementType("ARG", { argAmount: 2 });
-new StatementType("RET_TYPE", { argAmount: 1 });
-new StatementType("RET", { maximumArgAmount: 1 });
-new StatementType("FUNC_TYPE", { argAmount: 1, isBlockStart: true });
-new StatementType("FUNC", { argAmount: 1, isBlockStart: true }, NamedFunctionStatement);
-new StatementType("INIT_FUNC", { isBlockStart: true }, InitFunctionStatement);
-new StatementType("IMPORT", { argAmount: 1 }, PathImportStatement);
-new StatementType("CONFIG_IMPORT", { argAmount: 1 }, ConfigImportStatement);
-new StatementType("FOREIGN_IMPORT", { argAmount: 1 }, ForeignImportStatement);
+export const expressionStatementType = new StatementType(null, Statement, { argAmount: 1 });
+new StatementType("VAR", Statement, {
+    minimumArgAmount: 2,
+    maximumArgAmount: 3,
+    canRequire: true,
+});
+new StatementType("COMP", Statement, { argAmount: 3, canRequire: true });
+new StatementType("FIXED", Statement, { argAmount: 3, canRequire: true });
+new StatementType("LABEL", Statement, { argAmount: 1 });
+new StatementType("JUMP", Statement, { argAmount: 1 });
+new StatementType("JUMP_IF", Statement, { argAmount: 2 });
+new StatementType("SCOPE", Statement, { isBlockStart: true });
+new StatementType("END", Statement, { isBlockEnd: true });
+new StatementType("IF", Statement, { argAmount: 1, isBlockStart: true });
+new StatementType("ELSE_IF", Statement, {
+    argAmount: 1,
+    isBlockStart: true,
+    isBlockEnd: true,
+});
+new StatementType("ELSE", Statement, { isBlockStart: true, isBlockEnd: true });
+new StatementType("WHILE", Statement, { argAmount: 1, isBlockStart: true });
+new StatementType("BREAK", Statement, {});
+new StatementType("CONTINUE", Statement, {});
+new StatementType("FIELD", Statement, { argAmount: 2 });
+new StatementType("TYPE_FIELD", Statement, { argAmount: 2 });
+new StatementType("STRUCT", Statement, {
+    argAmount: 1,
+    isBlockStart: true,
+    canRequire: true,
+});
+new StatementType("UNION", Statement, { argAmount: 1, isBlockStart: true, canRequire: true });
+new StatementType("ARG", Statement, { argAmount: 2 });
+new StatementType("RET_TYPE", Statement, { argAmount: 1 });
+new StatementType("RET", Statement, { maximumArgAmount: 1 });
+new StatementType("FUNC_TYPE", Statement, {
+    argAmount: 1,
+    isBlockStart: true,
+    canRequire: true,
+    canInline: true,
+});
+new StatementType("FUNC", NamedFunctionStatement, {
+    argAmount: 1,
+    isBlockStart: true,
+    canRequire: true,
+    canInline: true,
+});
+new StatementType("INIT_FUNC", InitFunctionStatement, { isBlockStart: true });
+new StatementType("IMPORT", PathImportStatement, { argAmount: 1 });
+new StatementType("CONFIG_IMPORT", ConfigImportStatement, { argAmount: 1 });
+new StatementType("FOREIGN_IMPORT", ForeignImportStatement, { argAmount: 1 });
 
 

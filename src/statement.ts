@@ -20,7 +20,15 @@ export class Statement {
         this.args = args;
         this.pos = null;
         this.nestedStatements = [];
+        this.type.validateModifiers(this.modifiers);
         this.type.validateArgCount(this.args.length);
+    }
+    
+    setPos(pos: Pos) {
+        this.pos = pos;
+        this.args.forEach((expression) => {
+            expression.setPos(this.pos);
+        });
     }
     
     getCompiler(): Compiler {
@@ -52,12 +60,23 @@ export class Statement {
 
 export abstract class ImportStatement extends Statement {
     
-    abstract importFiles(): void;
+    abstract importFilesHelper(): void;
+    
+    importFiles(): void {
+        try {
+            this.importFilesHelper();
+        } catch (error) {
+            if (error instanceof CompilerError) {
+                error.setPosIfMissing(this.pos);
+            }
+            throw error;
+        }
+    }
 }
 
 export class PathImportStatement extends ImportStatement {
     
-    importFiles(): void {
+    importFilesHelper(): void {
         const path = this.args[0].evaluateToString();
         this.getCompiler().importTractorFile(path);
     }
@@ -65,7 +84,7 @@ export class PathImportStatement extends ImportStatement {
 
 export class ConfigImportStatement extends ImportStatement {
     
-    importFiles(): void {
+    importFilesHelper(): void {
         const name = this.args[0].evaluateToString();
         const compiler = this.getCompiler();
         const path = compiler.configImportMap[name];
@@ -75,7 +94,7 @@ export class ConfigImportStatement extends ImportStatement {
 
 export class ForeignImportStatement extends ImportStatement {
     
-    importFiles(): void {
+    importFilesHelper(): void {
         const path = this.args[0].evaluateToString();
         this.getCompiler().importForeignFile(path);
     }
