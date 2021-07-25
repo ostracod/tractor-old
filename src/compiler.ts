@@ -6,6 +6,7 @@ import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
+import { StatementBlock } from "./statementBlock.js";
 import { IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { IdentifierMap } from "./identifier.js";
 
@@ -16,7 +17,7 @@ export class Compiler {
     configImportMap: { [name: string]: string };
     targetLanguage: string;
     buildFileName: string;
-    rootStatements: Statement[];
+    rootBlock: StatementBlock;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
     identifierFunctionDefinitions: IdentifierMap<IdentifierFunctionDefinition>;
@@ -95,13 +96,13 @@ export class Compiler {
             return;
         }
         const tractorFile = new TractorFile(this, absolutePath);
-        const { statements } = tractorFile;
+        const { statements } = tractorFile.block;
         const importStatements: ImportStatement[] = [];
         statements.forEach((statement) => {
             if (statement instanceof ImportStatement) {
                 importStatements.push(statement);
             } else {
-                this.rootStatements.push(statement);
+                this.rootBlock.addStatement(statement);
             }
         });
         importStatements.forEach((statement) => {
@@ -119,12 +120,12 @@ export class Compiler {
     }
     
     extractFunctionDefinitions(): void {
-        this.rootStatements = this.rootStatements.filter((statement) => {
+        this.rootBlock.processStatements((statement) => {
             if (statement instanceof FunctionStatement) {
                 statement.createFunctionDefinition();
-                return false;
+                return [];
             }
-            return true;
+            return null;
         });
         if (this.initFunctionDefinition === null) {
             throw new CompilerError("Missing INIT_FUNC statement.");
@@ -132,7 +133,7 @@ export class Compiler {
     }
     
     compile(): void {
-        this.rootStatements = [];
+        this.rootBlock = new StatementBlock();
         this.importedPaths = new Set();
         this.foreignFiles = [];
         this.identifierFunctionDefinitions = new IdentifierMap();
@@ -144,8 +145,8 @@ export class Compiler {
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
             // TODO: Finish this method.
-            niceUtils.printDisplayables("Root Lines", this.rootStatements);
-            niceUtils.printDisplayables("Root Lines", [
+            niceUtils.printDisplayables("Root Block", [this.rootBlock]);
+            niceUtils.printDisplayables("Function Definition", [
                 this.initFunctionDefinition,
                 ...this.identifierFunctionDefinitions.getValues(),
             ]);

@@ -1,13 +1,13 @@
 
 import { Displayable } from "./interfaces.js";
-import { Statement } from "./statement.js";
+import { StatementBlock } from "./statementBlock.js";
 import { Identifier } from "./identifier.js";
 
 export abstract class FunctionDefinition implements Displayable {
-    statements: Statement[];
+    block: StatementBlock;
     
-    constructor(statements: Statement[]) {
-        this.statements = statements;
+    constructor(block: StatementBlock) {
+        this.block = block;
     }
     
     abstract getDisplayStringHelper(): string;
@@ -15,7 +15,7 @@ export abstract class FunctionDefinition implements Displayable {
     getDisplayString(): string {
         return [
             this.getDisplayStringHelper(),
-            ...this.statements.map((statement) => statement.getDisplayString(1)),
+            this.block.getDisplayString(1),
         ].join("\n")
     }
 }
@@ -23,8 +23,8 @@ export abstract class FunctionDefinition implements Displayable {
 export class IdentifierFunctionDefinition extends FunctionDefinition {
     identifier: Identifier;
     
-    constructor(identifier: Identifier, statements: Statement[]) {
-        super(statements);
+    constructor(identifier: Identifier, block: StatementBlock) {
+        super(block);
         this.identifier = identifier;
     }
     
