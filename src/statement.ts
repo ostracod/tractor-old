@@ -6,7 +6,7 @@ import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { Compiler } from "./compiler.js";
 import { Expression } from "./expression.js";
-import { FunctionDefinition, NamedFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export class Statement implements Displayable {
     type: StatementType;
@@ -40,6 +40,13 @@ export class Statement implements Displayable {
         return new CompilerError(message, this.pos);
     }
     
+    handleError(error: Error): void {
+        if (error instanceof CompilerError && error.pos === null) {
+            error.pos = this.pos;
+        }
+        throw error;
+    }
+    
     getDisplayString(indentationLevel = 0): string {
         const indentation = niceUtils.getIndentation(indentationLevel);
         const textList = this.modifiers.slice();
@@ -67,10 +74,7 @@ export abstract class ImportStatement extends Statement {
         try {
             this.importFilesHelper();
         } catch (error) {
-            if (error instanceof CompilerError) {
-                error.setPosIfMissing(this.pos);
-            }
-            throw error;
+            this.handleError(error);
         }
     }
 }
@@ -106,12 +110,20 @@ export abstract class FunctionStatement extends Statement {
     abstract createFunctionDefinition(): void;
 }
 
-export class NamedFunctionStatement extends FunctionStatement {
+export class IdentifierFunctionStatement extends FunctionStatement {
     
     createFunctionDefinition(): void {
-        const name = this.args[0].evaluateToIdentifierName();
-        const definition = new NamedFunctionDefinition(name, this.nestedStatements);
-        this.getCompiler().namedFunctionDefinitions.push(definition);
+        try {
+            const identifier = this.args[0].evaluateToIdentifier();
+            const definition = new IdentifierFunctionDefinition(
+                identifier,
+                this.nestedStatements,
+            );
+            const identifierMap = this.getCompiler().identifierFunctionDefinitions;
+            identifierMap.set(definition.identifier, definition);
+        } catch (error) {
+            this.handleError(error);
+        }
     }
 }
 

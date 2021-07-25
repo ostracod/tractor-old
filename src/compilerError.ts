@@ -12,12 +12,6 @@ export class CompilerError extends Error implements Displayable {
         this.pos = pos;
     }
     
-    setPosIfMissing(pos: Pos) {
-        if (this.pos === null) {
-            this.pos = pos;
-        }
-    }
-    
     getDisplayString(): string {
         let header = "ERROR";
         if (this.pos !== null) {

@@ -1,6 +1,7 @@
 
 import { Displayable } from "./interfaces.js";
 import { Statement } from "./statement.js";
+import { Identifier } from "./identifier.js";
 
 export abstract class FunctionDefinition implements Displayable {
     statements: Statement[];
@@ -19,16 +20,16 @@ export abstract class FunctionDefinition implements Displayable {
     }
 }
 
-export class NamedFunctionDefinition extends FunctionDefinition {
-    name: string;
+export class IdentifierFunctionDefinition extends FunctionDefinition {
+    identifier: Identifier;
     
-    constructor(name: string, statements: Statement[]) {
+    constructor(identifier: Identifier, statements: Statement[]) {
         super(statements);
-        this.name = name;
+        this.identifier = identifier;
     }
     
     getDisplayStringHelper(): string {
-        return `Named function ${this.name}`;
+        return `Function ${this.identifier.getDisplayString()}`;
     }
 }
 

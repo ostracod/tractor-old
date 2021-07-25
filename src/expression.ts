@@ -4,6 +4,7 @@ import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
+import { Identifier } from "./identifier.js";
 
 export abstract class Expression implements Displayable {
     pos: Pos;
@@ -29,7 +30,7 @@ export abstract class Expression implements Displayable {
         return null;
     }
     
-    evaluateToIdentifierNameOrNull(): string {
+    evaluateToIdentifierOrNull(): Identifier {
         return null;
     }
     
@@ -41,10 +42,10 @@ export abstract class Expression implements Displayable {
         return (constant as StringConstant).value;
     }
     
-    evaluateToIdentifierName(): string {
-        const output = this.evaluateToIdentifierNameOrNull();
+    evaluateToIdentifier(): Identifier {
+        const output = this.evaluateToIdentifierOrNull();
         if (output === null) {
-            throw this.createError("Expected identifier name.");
+            throw this.createError("Expected identifier.");
         }
         return output;
     }
@@ -68,19 +69,19 @@ export class ConstantExpression extends Expression {
 }
 
 export class IdentifierExpression extends Expression  {
-    text: string;
+    identifier: Identifier;
     
-    constructor(text: string) {
+    constructor(identifier: Identifier) {
         super();
-        this.text = text;
+        this.identifier = identifier;
     }
     
     getDisplayString(): string {
-        return this.text;
+        return this.identifier.getDisplayString();
     }
     
-    evaluateToIdentifierNameOrNull(): string {
-        return this.text;
+    evaluateToIdentifierOrNull(): Identifier {
+        return this.identifier;
     }
 }
 

@@ -6,6 +6,7 @@ import { Statement } from "./statement.js";
 import { NumberConstant, StringConstant } from "./constant.js";
 import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
+import { NameIdentifier } from "./identifier.js";
 
 interface TokenResult {
     token: Token;
@@ -255,8 +256,9 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
         };
     }
     if (token instanceof WordToken) {
+        const identifier = new NameIdentifier(token.text);
         return {
-            expression: new IdentifierExpression(token.text),
+            expression: new IdentifierExpression(identifier),
             index,
         };
     }

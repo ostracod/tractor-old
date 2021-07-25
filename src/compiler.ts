@@ -6,7 +6,8 @@ import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
-import { NamedFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { IdentifierMap } from "./identifier.js";
 
 export class Compiler {
     projectPath: string;
@@ -18,7 +19,7 @@ export class Compiler {
     rootStatements: Statement[];
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
-    namedFunctionDefinitions: NamedFunctionDefinition[];
+    identifierFunctionDefinitions: IdentifierMap<IdentifierFunctionDefinition>;
     initFunctionDefinition: InitFunctionDefinition;
     
     constructor(projectPath: string, configNames: string[]) {
@@ -134,7 +135,7 @@ export class Compiler {
         this.rootStatements = [];
         this.importedPaths = new Set();
         this.foreignFiles = [];
-        this.namedFunctionDefinitions = [];
+        this.identifierFunctionDefinitions = new IdentifierMap();
         this.initFunctionDefinition = null;
         try {
             console.log("Reading config...");
@@ -146,7 +147,7 @@ export class Compiler {
             niceUtils.printDisplayables("Root Lines", this.rootStatements);
             niceUtils.printDisplayables("Root Lines", [
                 this.initFunctionDefinition,
-                ...this.namedFunctionDefinitions,
+                ...this.identifierFunctionDefinitions.getValues(),
             ]);
         } catch (error) {
             if (error instanceof CompilerError) {

@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, NamedFunctionStatement, InitFunctionStatement } from "./statement.js";
+import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 
 type StatementConstructor = new (
@@ -127,7 +127,7 @@ new StatementType("FUNC_TYPE", Statement, {
     canRequire: true,
     canInline: true,
 });
-new StatementType("FUNC", NamedFunctionStatement, {
+new StatementType("FUNC", IdentifierFunctionStatement, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
