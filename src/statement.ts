@@ -5,6 +5,7 @@ import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
+import { StatementGenerator } from "./statementGenerator.js";
 import { Compiler } from "./compiler.js";
 import { Expression } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
@@ -42,7 +43,7 @@ export class Statement implements Displayable {
         }
     }
     
-    setPos(pos: Pos) {
+    setPos(pos: Pos): void {
         this.pos = pos;
         this.args.forEach((expression) => {
             expression.setPos(this.pos);
@@ -62,6 +63,10 @@ export class Statement implements Displayable {
             error.pos = this.pos;
         }
         throw error;
+    }
+    
+    createStatementGenerator(block: StatementBlock): StatementGenerator {
+        return new StatementGenerator(block, this.pos);
     }
     
     getDisplayString(indentationLevel = 0): string {
@@ -125,32 +130,39 @@ export class ForeignImportStatement extends ImportStatement {
 
 export abstract class FunctionStatement extends Statement {
     
-    abstract createFunctionDefinition(): void;
-}
-
-export class IdentifierFunctionStatement extends FunctionStatement {
+    abstract createFunctionDefinitionHelper(): FunctionDefinition;
     
     createFunctionDefinition(): void {
         try {
-            const identifier = this.args[0].evaluateToIdentifier();
-            const definition = new IdentifierFunctionDefinition(identifier, this.nestedBlock);
-            const identifierMap = this.getCompiler().identifierFunctionDefinitions;
-            identifierMap.set(definition.identifier, definition);
+            const definition = this.createFunctionDefinitionHelper();
+            this.getCompiler().functionDefinitions.push(definition);
         } catch (error) {
             this.handleError(error);
         }
     }
 }
 
+export class IdentifierFunctionStatement extends FunctionStatement {
+    
+    createFunctionDefinitionHelper(): FunctionDefinition {
+        const identifier = this.args[0].evaluateToIdentifier();
+        const definition = new IdentifierFunctionDefinition(identifier, this.nestedBlock);
+        const identifierMap = this.getCompiler().identifierFunctionDefinitions;
+        identifierMap.set(definition.identifier, definition);
+        return definition;
+    }
+}
+
 export class InitFunctionStatement extends FunctionStatement {
     
-    createFunctionDefinition(): void {
+    createFunctionDefinitionHelper(): FunctionDefinition {
         const compiler = this.getCompiler();
         if (compiler.initFunctionDefinition !== null) {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }
         const definition = new InitFunctionDefinition(this.nestedBlock);
         compiler.initFunctionDefinition = definition;
+        return definition;
     }
 }
 

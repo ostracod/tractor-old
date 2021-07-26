@@ -7,7 +7,7 @@ import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
-import { IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { IdentifierMap } from "./identifier.js";
 
 export class Compiler {
@@ -20,6 +20,7 @@ export class Compiler {
     rootBlock: StatementBlock;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
+    functionDefinitions: FunctionDefinition[];
     identifierFunctionDefinitions: IdentifierMap<IdentifierFunctionDefinition>;
     initFunctionDefinition: InitFunctionDefinition;
     
@@ -132,10 +133,18 @@ export class Compiler {
         }
     }
     
+    transformControlFlow(): void {
+        this.rootBlock.transformControlFlow();
+        this.functionDefinitions.forEach((definition) => {
+            definition.block.transformControlFlow();
+        });
+    }
+    
     compile(): void {
         this.rootBlock = new StatementBlock();
         this.importedPaths = new Set();
         this.foreignFiles = [];
+        this.functionDefinitions = [];
         this.identifierFunctionDefinitions = new IdentifierMap();
         this.initFunctionDefinition = null;
         try {
@@ -144,6 +153,7 @@ export class Compiler {
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
+            this.transformControlFlow();
             // TODO: Finish this method.
             niceUtils.printDisplayables("Root Block", [this.rootBlock]);
             niceUtils.printDisplayables("Function Definition", [

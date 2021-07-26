@@ -3,7 +3,7 @@ import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
-import { UnaryOperator, BinaryOperator } from "./operator.js";
+import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 
 export abstract class Expression implements Displayable {
@@ -48,6 +48,10 @@ export abstract class Expression implements Displayable {
             throw this.createError("Expected identifier.");
         }
         return output;
+    }
+    
+    invertBooleanValue(): Expression {
+        return new UnaryExpression(unaryOperatorMap["!"], this);
     }
 }
 

@@ -2,6 +2,7 @@
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { Statement } from "./statement.js";
+import { NumberIdentifier } from "./identifier.js";
 
 export class StatementBlock implements Displayable {
     statements: Statement[];
@@ -20,17 +21,18 @@ export class StatementBlock implements Displayable {
         statement.setParentBlock(this);
     }
     
-    clearStatements(): void {
+    clearStatements(): Statement[] {
         this.statements.forEach((statement) => {
             statement.clearParentBlock();
         });
+        const output = this.statements;
         this.statements = [];
+        return output;
     }
     
     collapse(): void {
         const blockStack: StatementBlock[] = [this];
-        const { statements } = this;
-        this.clearStatements();
+        const statements = this.clearStatements();
         statements.forEach((statement) => {
             const statementType = statement.type;
             if (statementType.isBlockEnd) {
@@ -61,8 +63,7 @@ export class StatementBlock implements Displayable {
         processStatement: (statement: Statement) => Statement[],
         shouldProcessNestedBlocks = false,
     ): void {
-        const { statements } = this;
-        this.clearStatements();
+        const statements = this.clearStatements();
         statements.forEach((statement) => {
             const result = processStatement(statement);
             if (result === null) {
@@ -73,6 +74,65 @@ export class StatementBlock implements Displayable {
                 });
             }
         });
+    }
+    
+    transformIfStatement(
+        statements: Statement[],
+        ifStatement: Statement,
+        index: number,
+    ): number {
+        const elseIfStatements: Statement[] = [];
+        let elseStatement = null;
+        while (index < statements.length) {
+            const statement = statements[index];
+            const { directive } = statement.type;
+            if (directive === "ELSE_IF") {
+                elseIfStatements.push(statement);
+                index += 1;
+            } else if (directive === "ELSE") {
+                elseStatement = statement;
+                index += 1;
+                break;
+            } else {
+                break;
+            }
+        }
+        const { pos } = ifStatement;
+        const condition = ifStatement.args[0];
+        const identifier = new NumberIdentifier();
+        const generator = ifStatement.createStatementGenerator(this);
+        generator.addJumpIfStatement(identifier, condition.invertBooleanValue());
+        generator.addScopeStatement(ifStatement.nestedBlock);
+        generator.addLabelStatement(identifier);
+        // TODO: Handle elseIfStatements and elseStatement.
+        
+        return index;
+    }
+    
+    transformWhileStatement(statements: Statement[], whileStatement: Statement): void {
+        // TODO: Implement.
+        
+    }
+    
+    transformControlFlow(): void {
+        const statements = this.clearStatements();
+        let index = 0;
+        while (index < statements.length) {
+            const statement = statements[index];
+            index += 1;
+            const { nestedBlock } = statement;
+            if (nestedBlock !== null) {
+                nestedBlock.transformControlFlow();
+            }
+            const { directive } = statement.type;
+            if (directive === "IF") {
+                index = this.transformIfStatement(statements, statement, index);
+            } else if (directive === "WHILE") {
+                this.transformWhileStatement(statements, statement);
+            } else {
+                this.addStatement(statement);
+            }
+        }
     }
     
     getDisplayString(indentationLevel = 0): string {
