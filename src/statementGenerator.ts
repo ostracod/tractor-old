@@ -20,6 +20,13 @@ export class StatementGenerator {
         this.block.addStatement(statement);
     }
     
+    addJumpStatement(identifier: Identifier): void {
+        const statement = statementTypes.JUMP.createStatement([], [
+            new IdentifierExpression(identifier),
+        ]);
+        this.addStatement(statement);
+    }
+    
     addJumpIfStatement(identifier: Identifier, condition: Expression): void {
         const statement = statementTypes.JUMP_IF.createStatement([], [
             new IdentifierExpression(identifier),
