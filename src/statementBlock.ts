@@ -1,6 +1,8 @@
 
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
+import { CompilerError } from "./compilerError.js";
+import { Pos } from "./pos.js";
 import { Statement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
@@ -71,15 +73,21 @@ class IfClause {
 }
 
 export class StatementBlock implements Displayable {
+    pos: Pos;
     statements: Statement[];
     parentBlock: StatementBlock;
     
-    constructor(statements: Statement[] = []) {
+    constructor(pos: Pos = null, statements: Statement[] = []) {
+        this.pos = pos;
         this.statements = [];
         statements.forEach((statement) => {
             this.addStatement(statement);
         });
         this.parentBlock = null;
+    }
+    
+    createError(message: string): CompilerError {
+        return new CompilerError(message, this.pos);
     }
     
     addStatement(statement: Statement): void {
@@ -114,12 +122,16 @@ export class StatementBlock implements Displayable {
             }
             const lastBlock = blockStack[blockStack.length - 1];
             if (statementType.isBlockStart) {
-                const block = new StatementBlock();
+                const block = new StatementBlock(statement.pos);
                 statement.nestedBlock = block;
                 blockStack.push(block);
             }
             lastBlock.addStatement(statement);
         });
+        if (blockStack.length > 1) {
+            const lastBlock = blockStack[blockStack.length - 1];
+            throw lastBlock.createError("Missing END statement.");
+        }
     }
     
     // If processStatement returns a list of statements, then the
@@ -133,6 +145,12 @@ export class StatementBlock implements Displayable {
         statements.forEach((statement) => {
             const result = processStatement(statement);
             if (result === null) {
+                if (shouldProcessNestedBlocks && statement.nestedBlock !== null) {
+                    statement.nestedBlock.processStatements(
+                        processStatement,
+                        shouldProcessNestedBlocks,
+                    );
+                }
                 this.addStatement(statement);
             } else {
                 result.forEach((resultStatement) => {
@@ -187,9 +205,37 @@ export class StatementBlock implements Displayable {
         return index;
     }
     
+    transformBreakAndContinueStatements(
+        startIdentifier: Identifier,
+        endIdentifier: Identifier,
+    ): void {
+        this.processStatements((statement) => {
+            const { directive } = statement.type;
+            let identifier: Identifier = null;
+            if (directive === "BREAK") {
+                identifier = endIdentifier;
+            } else if (directive === "CONTINUE") {
+                identifier = startIdentifier;
+            } else {
+                return null;
+            }
+            const generator = statement.createStatementGenerator();
+            return [generator.createJumpStatement(identifier)];
+        }, true);
+    }
+    
     transformWhileStatement(statements: Statement[], whileStatement: Statement): void {
-        // TODO: Implement.
-        
+        const generator = whileStatement.createStatementGenerator(this);
+        const startIdentifier = new NumberIdentifier();
+        const endIdentifier = new NumberIdentifier();
+        const condition = whileStatement.args[0].invertBooleanValue();
+        const { nestedBlock } = whileStatement;
+        nestedBlock.transformBreakAndContinueStatements(startIdentifier, endIdentifier);
+        generator.addLabelStatement(startIdentifier);
+        generator.addJumpIfStatement(endIdentifier, condition);
+        generator.addScopeStatement(nestedBlock);
+        generator.addJumpStatement(startIdentifier);
+        generator.addLabelStatement(endIdentifier);
     }
     
     transformControlFlow(): void {

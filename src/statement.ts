@@ -65,8 +65,8 @@ export class Statement implements Displayable {
         throw error;
     }
     
-    createStatementGenerator(block: StatementBlock): StatementGenerator {
-        return new StatementGenerator(block, this.pos);
+    createStatementGenerator(block: StatementBlock = null): StatementGenerator {
+        return new StatementGenerator(this.pos, block);
     }
     
     getDisplayString(indentationLevel = 0): string {
