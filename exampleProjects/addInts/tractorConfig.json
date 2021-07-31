@@ -8,7 +8,7 @@
             "importMap": {
                 "print": "./unixPrint.c"
             },
-            "targetLanguage": "c",
+            "targetLanguage": "unixC",
             "buildFileName": "unixAddInts.c"
         }
     ]

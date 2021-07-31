@@ -60,7 +60,7 @@ Tractor has the following design goals:
 
 Tractor has the following built-in storage types:
 
-* `constT` is an immutable value.
+* `constT` is an immutable value. A variable whose type conforms to `constT` can only be assigned a value once.
 * `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
 * `scopeT` is a value which may be accessed anywhere in the current scope.
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
@@ -82,7 +82,7 @@ Tractor has the following built-in composite types:
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of items with type `<type>` whose length may be unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
-* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer.
+* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT` is a subtype of `compT`.
 
 The following types are subtypes of `concreteT`:
 
@@ -173,30 +173,42 @@ Alternatively, a comment may be placed on its own line:
 
 Evaluates `<expression>`, which should result in some side-effect.
 
-**Frame variable definition:**
+**Variable statements:**
 
 ```
-VAR <name>, <type>, <value?>
+VAR <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`. `<type>` must conform to `concreteT`. If `<value>` is provided, the variable will be initialized with the given value.
-
-**Compile-time variable declaration:**
+Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`.
 
 ```
-COMP <name>, <type>, <item>
+COMP <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT & scopeT`, and will be initialized with item `<item>`.
-
-**Fixed variable declaration:**
+Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT & scopeT`.
 
 ```
-FIXED <name>, <type>, <value>
+FIXED <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`, and will be initialized with value `<value>`. `<type>` must conform to `concreteT`.
+Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`.
 
+```
+SOFT_VAR <name>, <type>, <item?>
+```
+
+Declares a variable with name `<name>` which may or may not be stored in a frame. If an item is assigned to the variable only once, and the item type conforms to `compT`, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
+
+When the `REQUIRE` and `FOREIGN` modifiers are absent:
+
+* `<item>` may be provided as an additional argument.
+* If `<item>` is provided, the variable will be initialized with the given item.
+* In the case of `VAR` and `FIXED` statements, `<type>` must conform to `concreteT`.
+
+When the `REQUIRE` or `FOREIGN` modifiers are present:
+
+* `<item>` cannot be provided as an additional argument.
+* `<type>` may conform to `~concreteT`.
 
 **Label statement:**
 
@@ -337,7 +349,7 @@ FUNC_TYPE <name>
 END
 ```
 
-Declares the type of a function with name `<name>` and signature described by the statements in `<body>`. Note that `FUNC_TYPE` does not define runtime behavior of the function.
+Declares the type of a function handle with name `<name>` and signature described by `<body>`. Note that `<body>` cannot contain statements which are evaluated during runtime.
 
 **Function statements:**
 
@@ -347,7 +359,17 @@ FUNC <name>
 END
 ```
 
-Declares a function with name `<name>`. The statements in `<body>` describe both the signature and runtime behavior of the function. If the function is non-inline, the argument and return types must conform to `concreteT`.
+Declares a function with name `<name>` and signature described by `<body>`.
+
+When the `REQUIRE` and `FOREIGN` modifiers are absent:
+
+* `<body>` may contain statements which are evaluated during runtime.
+* If the function is non-inline, `<type>` of nested `ARG` and `RET_TYPE` statements must conform to `concreteT`.
+
+When the `REQUIRE` or `FOREIGN` modifiers are present:
+
+* `<body>` cannot contain statements which are evaluated during runtime.
+* `<type>` of nested `ARG` and `RET_TYPE` statements may conform to `~concreteT`.
 
 ```
 INIT_FUNC
@@ -395,12 +417,13 @@ FOREIGN <definition>
 
 Specifies that definition `<definition>` has been imported using a `FOREIGN_IMPORT` statement.
 
-When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be one of the following statement types: `VAR`, `COMP`, `FIXED`, `STRUCT`, `UNION`, `FUNC_TYPE`, or `FUNC`.
+When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be one of the following:
 
-* In the case of a `VAR`, `COMP`, or `FIXED` statement, the variable cannot have an initialization item.
-* In the case of a `VAR` or `FIXED` statement, the variable type may conform to `~concreteT`.
-* In the case of a `FUNC` statement, the body cannot define runtime behavior of the function.
-* In the case of a non-inline `FUNC` statement, the argument and return types may conform to `~concreteT`.
+* Variable statement
+* `STRUCT` statement
+* `UNION` statement
+* `FUNC_TYPE` statement
+* `FUNC` statement
 
 **Inline statement modifiers:**
 
@@ -408,13 +431,17 @@ When using `REQUIRE` or `FOREIGN` statement modifiers, `<definition>` must be on
 INLINE <function>
 ```
 
-Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` or `FUNC` statement. Inline function arguments and return items are passed by reference, and may conform to `~concreteT`. However, inline function handles may not be stored in `VAR` or `FIXED` variables, because inline function handles do not conform to `concreteT`.
+Specifies that function `<function>` will be expanded inline for each invocation. `<function>` must be a `FUNC_TYPE` or `FUNC` statement. Inline function arguments and return items are passed by reference, and may conform to `~concreteT`. However, inline function handles cannot be stored in `VAR` or `FIXED` variables, because inline function handles do not conform to `concreteT`.
 
 ```
 MAYBE_INLINE <function>
 ```
 
-Specifies that function `<function>` may be expanded inline for each invocation. `<function>` can only be a `FUNC_TYPE` statement.
+Specifies that function `<function>` may be expanded inline for each invocation. `<function>` must be one of the following:
+
+* `FUNC_TYPE` statement
+* `REQUIRE FUNC` statement
+* `FOREIGN FUNC` statement
 
 ## Project Structure
 
@@ -445,7 +472,7 @@ interface TractorConfig {
 ```
 
 * `importMap` determines which files to import when using the `CONFIG_IMPORT` statement.
-* `targetLanguage` may only be `"c"` for the time being.
+* `targetLanguage` can only be `"unixC"` for the time being.
 * `buildFileName` determines the name of the file to create in `projectDirectory/build`.
 * `configs` defines nested configurations which override their parents.
 

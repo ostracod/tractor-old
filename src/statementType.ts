@@ -88,13 +88,15 @@ export class StatementType {
 }
 
 export const expressionStatementType = new StatementType(null, Statement, { argAmount: 1 });
-new StatementType("VAR", Statement, {
+const variableStatementTypeOptions: StatementTypeOptions = {
     minimumArgAmount: 2,
     maximumArgAmount: 3,
     canRequire: true,
-});
-new StatementType("COMP", Statement, { argAmount: 3, canRequire: true });
-new StatementType("FIXED", Statement, { argAmount: 3, canRequire: true });
+};
+new StatementType("VAR", Statement, variableStatementTypeOptions);
+new StatementType("COMP", Statement, variableStatementTypeOptions);
+new StatementType("FIXED", Statement, variableStatementTypeOptions);
+new StatementType("SOFT_VAR", Statement, variableStatementTypeOptions);
 new StatementType("LABEL", Statement, { argAmount: 1 });
 new StatementType("JUMP", Statement, { argAmount: 1 });
 new StatementType("JUMP_IF", Statement, { argAmount: 2 });
