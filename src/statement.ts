@@ -7,8 +7,8 @@ import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Compiler } from "./compiler.js";
-import { Expression } from "./expression.js";
-import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { Expression, processExpressionList, expandInlineFunctions } from "./expression.js";
+import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export class Statement implements Displayable {
     type: StatementType;
@@ -65,8 +65,32 @@ export class Statement implements Displayable {
         throw error;
     }
     
+    createStatementBlock(statements: Statement[] = []): StatementBlock {
+        return new StatementBlock(this.pos, statements);
+    }
+    
     createStatementGenerator(block: StatementBlock = null): StatementGenerator {
         return new StatementGenerator(this.pos, block);
+    }
+    
+    processArgs(handle: (expression: Expression) => Expression): void {
+        processExpressionList(this.args, handle);
+    }
+    
+    // TODO: SCOPE, STRUCT, and UNION statements should also
+    // expand inline functions in nested block.
+    expandInlineFunctions(): Statement[] {
+        const statements = expandInlineFunctions((handle) => {
+            this.processArgs(handle);
+        });
+        if (statements.length <= 0) {
+            return null;
+        }
+        statements.push(this);
+        const block = this.createStatementBlock(statements);
+        const generator = this.createStatementGenerator();
+        const scopeStatement = generator.createScopeStatement(block);
+        return [scopeStatement];
     }
     
     getDisplayString(indentationLevel = 0): string {
@@ -146,7 +170,13 @@ export class IdentifierFunctionStatement extends FunctionStatement {
     
     createFunctionDefinitionHelper(): FunctionDefinition {
         const identifier = this.args[0].evaluateToIdentifier();
-        const definition = new IdentifierFunctionDefinition(identifier, this.nestedBlock);
+        let definitionConstructor: IdentifierFunctionDefinitionConstructor;
+        if (this.modifiers.includes("INLINE")) {
+            definitionConstructor = InlineFunctionDefinition;
+        } else {
+            definitionConstructor = NonInlineFunctionDefinition;
+        }
+        const definition = new definitionConstructor(identifier, this.nestedBlock);
         const identifierMap = this.getCompiler().identifierFunctionDefinitions;
         identifierMap.set(definition.identifier, definition);
         return definition;

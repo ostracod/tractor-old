@@ -122,7 +122,7 @@ export class StatementBlock implements Displayable {
             }
             const lastBlock = blockStack[blockStack.length - 1];
             if (statementType.isBlockStart) {
-                const block = new StatementBlock(statement.pos);
+                const block = statement.createStatementBlock();
                 statement.nestedBlock = block;
                 blockStack.push(block);
             }
@@ -257,6 +257,10 @@ export class StatementBlock implements Displayable {
                 this.addStatement(statement);
             }
         }
+    }
+    
+    expandInlineFunctions(): void {
+        this.processStatements((statement) => statement.expandInlineFunctions());
     }
     
     getDisplayString(indentationLevel = 0): string {

@@ -69,5 +69,6 @@ new BinaryOperator("<<=", 14);
 new BinaryOperator("&&=", 14);
 new BinaryOperator("^^=", 14);
 new BinaryOperator("||=", 14);
+new BinaryOperator(":=", 14);
 
 

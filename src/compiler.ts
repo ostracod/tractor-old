@@ -133,10 +133,22 @@ export class Compiler {
         }
     }
     
-    transformControlFlow(): void {
-        this.rootBlock.transformControlFlow();
+    processStatementBlocks(handle: (block: StatementBlock) => void): void {
+        handle(this.rootBlock);
         this.functionDefinitions.forEach((definition) => {
-            definition.block.transformControlFlow();
+            handle(definition.block);
+        });
+    }
+    
+    transformControlFlow(): void {
+        this.processStatementBlocks((block) => {
+            block.transformControlFlow();
+        });
+    }
+    
+    expandInlineFunctions(): void {
+        this.processStatementBlocks((block) => {
+            block.expandInlineFunctions();
         });
     }
     
@@ -154,6 +166,7 @@ export class Compiler {
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
             this.transformControlFlow();
+            this.expandInlineFunctions();
             // TODO: Finish this method.
             niceUtils.printDisplayables("Root Block", [this.rootBlock]);
             niceUtils.printDisplayables("Function Definition", [

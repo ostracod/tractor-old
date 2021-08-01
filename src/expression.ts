@@ -1,24 +1,54 @@
 
 import { Displayable } from "./interfaces.js";
+import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
+import { Statement } from "./statement.js";
+
+export const processExpressionList = (
+    expressions: Expression[],
+    handle: (expression: Expression) => Expression,
+): void => {
+    expressions.forEach((inputExpression, index) => {
+        const expression = handle(inputExpression);
+        if (expression !== null) {
+            expressions[index] = expression;
+        }
+    });
+}
+
+export const expandInlineFunctions = (
+    process: (handle: (expression: Expression) => Expression) => void,
+): Statement[] => {
+    const output: Statement[] = [];
+    process((expression) => {
+        const result = expression.expandInlineFunctions();
+        niceUtils.extendList(output, result.statements);
+        return result.expression;
+    });
+    return output;
+};
 
 export abstract class Expression implements Displayable {
     pos: Pos;
     
     abstract getDisplayString(): string;
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
+    // If processNestedExpressions returns an expression, then the output
+    // will replace the original expression. If processNestedExpressions
+    // returns null, then no modification occurs.
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
         // Do nothing.
     }
     
     setPos(pos: Pos) {
         this.pos = pos;
-        this.iterateOverNestedExpressions((expression) => {
+        this.processNestedExpressions((expression) => {
             expression.setPos(pos);
+            return null;
         });
     }
     
@@ -52,6 +82,13 @@ export abstract class Expression implements Displayable {
     
     invertBooleanValue(): Expression {
         return new UnaryExpression(unaryOperatorMap["!"], this);
+    }
+    
+    expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
+        const statements = expandInlineFunctions((handle) => {
+            this.processNestedExpressions(handle);
+        });
+        return { expression: null, statements };
     }
 }
 
@@ -99,8 +136,11 @@ export class UnaryExpression extends Expression {
         this.operand = operand;
     }
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
-        handle(this.operand);
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
+        const expression = handle(this.operand);
+        if (expression !== null) {
+            this.operand = expression;
+        }
     }
     
     getDisplayString(): string {
@@ -120,9 +160,16 @@ export class BinaryExpression extends Expression {
         this.operand2 = operand2;
     }
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
-        handle(this.operand1);
-        handle(this.operand2);
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
+        let expression: Expression;
+        expression = handle(this.operand1);
+        if (expression !== null) {
+            this.operand1 = expression;
+        }
+        expression = handle(this.operand2);
+        if (expression !== null) {
+            this.operand2 = expression;
+        }
     }
     
     getDisplayString(): string {
@@ -140,9 +187,16 @@ export class SubscriptExpression extends Expression {
         this.indexExpression = indexExpression;
     }
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
-        handle(this.arrayExpression);
-        handle(this.indexExpression);
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
+        let expression: Expression;
+        expression = handle(this.arrayExpression);
+        if (expression !== null) {
+            this.arrayExpression = expression;
+        }
+        expression = handle(this.indexExpression);
+        if (expression !== null) {
+            this.indexExpression = expression;
+        }
     }
     
     getDisplayString(): string {
@@ -160,10 +214,15 @@ export class InvocationExpression extends Expression {
         this.argExpressions = argExpressions;
     }
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
-        handle(this.functionExpression);
-        this.argExpressions.forEach(handle);
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
+        const expression = handle(this.functionExpression);
+        if (expression !== null) {
+            this.functionExpression = expression;
+        }
+        processExpressionList(this.argExpressions, handle);
     }
+    
+    // TODO: Override expandInlineFunctions.
     
     getDisplayString(): string {
         const textList = this.argExpressions.map((element) => element.getDisplayString());
@@ -179,8 +238,8 @@ export class ListExpression extends Expression {
         this.elements = elements;
     }
     
-    iterateOverNestedExpressions(handle: (expression: Expression) => void): void {
-        this.elements.forEach(handle);
+    processNestedExpressions(handle: (expression: Expression) => Expression): void {
+        processExpressionList(this.elements, handle);
     }
     
     getDisplayString(): string {

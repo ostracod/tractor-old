@@ -45,9 +45,14 @@ export class StatementGenerator {
         this.addStatement(statement);
     }
     
+    createScopeStatement(block: StatementBlock): Statement {
+        const output = this.createStatement("SCOPE", []);
+        output.nestedBlock = block;
+        return output;
+    }
+    
     addScopeStatement(block: StatementBlock): void {
-        const statement = this.createStatement("SCOPE", []);
-        statement.nestedBlock = block;
+        const statement = this.createScopeStatement(block);
         this.addStatement(statement);
     }
     
