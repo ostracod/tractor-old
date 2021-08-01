@@ -62,9 +62,9 @@ Tractor has the following built-in storage types:
 
 * `constT` is an immutable value. A variable whose type conforms to `constT` can only be assigned a value once.
 * `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
-* `scopeT` is a value which may be accessed anywhere in the current scope.
+* `locT` is a value which has a known address in a frame or the fixed data region.
 * `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT` and `scopeT`.
+* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT` and `locT`.
 * `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
 * `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes may be unknown. `concreteT` is a subtype of `valueT`.
 * `itemT` is either a value or a type. Subtypes of `itemT` include `valueT` and `typeT`.
@@ -129,6 +129,7 @@ Tractor has the following assignment operators:
 * `+=`, `-=`, `*=`, `/=`, and `%=` perform assignment with arithmetic manipulation.
 * `&=`, `|=`, `^=`, `>>=`, and `<<=` perform assignment with bitwise manipulation.
 * `&&=`, `||=`, and `^^=` perform assignment with boolean manipulation.
+* `:=` performs variable initialization.
 
 Parentheses manipulate order of operations. For example, the expression `2 * (3 + 4)` performs addition before multiplication, so the result is 14 instead of 10.
 
@@ -148,7 +149,7 @@ Tractor has the following built-in functions:
 * `getSize(<item>)` returns the number of bytes which item `<item>` occupies.
 * `getLen(<array>)` returns the number of elements in array `<array>`.
 * `typeConforms(<item1>, <item2>)` returns whether the type of item `<item1>` conforms to the type of item `<item2>`.
-* `newPtr(<value>)` returns a native pointer to value `<value>`.
+* `newPtr(<value>)` returns a native pointer to value `<value>`. The argument value must conform to `locT`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
 
 ## Statements
@@ -179,13 +180,13 @@ Evaluates `<expression>`, which should result in some side-effect.
 VAR <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & scopeT`.
+Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & locT`.
 
 ```
 COMP <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT & scopeT`.
+Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT`.
 
 ```
 FIXED <name>, <type>, <item?>
@@ -197,7 +198,7 @@ Declares a variable with name `<name>` which will be stored in the fixed data re
 SOFT_VAR <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` which may or may not be stored in a frame. If an item is assigned to the variable only once, and the item type conforms to `compT`, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
+Declares a variable with name `<name>` which may or may not be stored in a frame. If the initialization item conforms to `locT`, every variable reference will be expanded inline. If the initialization item conforms to `compT`, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
 
 When the `REQUIRE` and `FOREIGN` modifiers are absent:
 
@@ -209,6 +210,20 @@ When the `REQUIRE` or `FOREIGN` modifiers are present:
 
 * `<item>` cannot be provided as an additional argument.
 * `<type>` may conform to `~concreteT`.
+
+Variables may be initialized using the initialization operator (`:=`) in a statement separate from declaration. For example, the following fragments of code are equivalent:
+
+```
+# Declares variable x, and initializes x with the value 123.
+COMP x, uInt16T, 123
+```
+
+```
+# Declares variable x.
+COMP x, uInt16T
+# Initializes x with the value 123.
+x := 123
+```
 
 **Label statement:**
 
@@ -323,7 +338,7 @@ ARG <name>, <type>
 Declares an argument of a function with name `<name>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
 
 * When referenced in the body of an inline function, the argument will have the same type as the item passed during invocation. The argument must conform to type `<type>`.
-* When referenced in the body of a non-inline function, the argument will have type `<type> & frameT & scopeT`.
+* When referenced in the body of a non-inline function, the argument will have type `<type> & frameT & locT`.
 
 **Return type statement:**
 
