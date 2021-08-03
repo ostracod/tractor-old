@@ -1,9 +1,9 @@
 
-import { Displayable } from "./interfaces.js";
+import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 
-export abstract class VariableDefinition implements Displayable {
+export abstract class VariableDefinition implements Displayable, IdentifierDefinition {
     identifier: Identifier;
     typeExpression: Expression;
     

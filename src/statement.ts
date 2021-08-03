@@ -22,6 +22,9 @@ export class Statement implements Displayable {
         this.type = type;
         this.modifiers = modifiers;
         this.args = args;
+        this.args.forEach((expression) => {
+            expression.setParentStatement(this);
+        });
         this.pos = null;
         this.nestedBlock = null;
         this.parentBlock = null;
@@ -41,13 +44,6 @@ export class Statement implements Displayable {
         if (this.nestedBlock !== null) {
             this.nestedBlock.parentBlock = null;
         }
-    }
-    
-    setPos(pos: Pos): void {
-        this.pos = pos;
-        this.args.forEach((expression) => {
-            expression.setPos(this.pos);
-        });
     }
     
     getCompiler(): Compiler {
@@ -177,8 +173,8 @@ export class IdentifierFunctionStatement extends FunctionStatement {
             definitionConstructor = NonInlineFunctionDefinition;
         }
         const definition = new definitionConstructor(identifier, this.nestedBlock);
-        const identifierMap = this.getCompiler().identifierFunctionDefinitions;
-        identifierMap.set(definition.identifier, definition);
+        const { rootBlock } = this.getCompiler();
+        rootBlock.addIdentifierDefinition(definition)
         return definition;
     }
 }

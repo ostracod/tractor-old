@@ -71,7 +71,7 @@ export class TractorFile extends SourceFile {
                 }
                 throw error;
             }
-            statement.setPos(pos);
+            statement.pos = pos;
             return statement;
         });
         this.block = new StatementBlock(new Pos(this), statements);

@@ -1,12 +1,12 @@
 
-import { Displayable } from "./interfaces.js";
+import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { Pos } from "./pos.js";
 import { Statement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier } from "./identifier.js";
+import { Identifier, NumberIdentifier, IdentifierDefinitionMap } from "./identifier.js";
 
 class IfClause {
     condition: Expression;
@@ -76,6 +76,7 @@ export class StatementBlock implements Displayable {
     pos: Pos;
     statements: Statement[];
     parentBlock: StatementBlock;
+    identifierDefinitions: IdentifierDefinitionMap;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         this.pos = pos;
@@ -84,6 +85,7 @@ export class StatementBlock implements Displayable {
             this.addStatement(statement);
         });
         this.parentBlock = null;
+        this.identifierDefinitions = new IdentifierDefinitionMap();
     }
     
     createError(message: string): CompilerError {
@@ -102,6 +104,21 @@ export class StatementBlock implements Displayable {
         const output = this.statements;
         this.statements = [];
         return output;
+    }
+    
+    getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
+        const definition = this.identifierDefinitions.get(identifier);
+        if (definition !== null) {
+            return definition;
+        }
+        if (this.parentBlock !== null) {
+            return this.parentBlock.getIdentifierDefinition(identifier);
+        }
+        return null;
+    }
+    
+    addIdentifierDefinition(definition: IdentifierDefinition): void {
+        this.identifierDefinitions.add(definition);
     }
     
     collapse(): void {

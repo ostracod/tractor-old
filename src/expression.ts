@@ -1,7 +1,6 @@
 
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
-import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { Constant, StringConstant } from "./constant.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
@@ -33,7 +32,7 @@ export const expandInlineFunctions = (
 };
 
 export abstract class Expression implements Displayable {
-    pos: Pos;
+    parentStatement: Statement;
     
     abstract getDisplayString(): string;
     
@@ -44,16 +43,16 @@ export abstract class Expression implements Displayable {
         // Do nothing.
     }
     
-    setPos(pos: Pos) {
-        this.pos = pos;
+    setParentStatement(statement: Statement) {
+        this.parentStatement = statement;
         this.processNestedExpressions((expression) => {
-            expression.setPos(pos);
+            expression.setParentStatement(statement);
             return null;
         });
     }
     
     createError(message: string): CompilerError {
-        return new CompilerError(message, this.pos);
+        return new CompilerError(message, this.parentStatement.pos);
     }
     
     evaluateToConstantOrNull(): Constant {

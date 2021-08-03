@@ -1,5 +1,5 @@
 
-import { Displayable } from "./interfaces.js";
+import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import { CompilerError } from "./compilerError.js";
 
 let nextIdentifierNumber = 0;
@@ -62,7 +62,7 @@ export class NumberIdentifier extends Identifier {
     }
 }
 
-export class IdentifierMap<T> {
+export class IdentifierDefinitionMap<T extends IdentifierDefinition = IdentifierDefinition> {
     map: { [key: string]: T };
     keys: string[]; // Ensures correct order for iteration.
     
@@ -80,25 +80,25 @@ export class IdentifierMap<T> {
         }
     }
     
-    set(identifier: Identifier, value: T): void {
-        const key = identifier.getKey();
+    add(definition: T): void {
+        const key = definition.identifier.getKey();
         if (key in this.map) {
             throw new CompilerError("Duplicate identifier.");
         }
-        this.map[key] = value;
+        this.map[key] = definition;
         this.keys.push(key);
     }
     
-    iterate(handle: (value: T) => void): void {
+    iterate(handle: (definition: T) => void): void {
         for (const key of this.keys) {
             handle(this.map[key]);
         }
     }
     
-    getValues(): T[] {
+    getAll(): T[] {
         const output: T[] = [];
-        this.iterate((value) => {
-            output.push(value);
+        this.iterate((definition) => {
+            output.push(definition);
         });
         return output;
     }

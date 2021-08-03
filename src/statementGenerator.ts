@@ -18,7 +18,7 @@ export class StatementGenerator {
     createStatement(directive: string, args: Expression[]): Statement {
         const statementType = directiveStatementTypeMap[directive];
         const output = statementType.createStatement([], args);
-        output.setPos(this.pos);
+        output.pos = this.pos;
         return output;
     }
     

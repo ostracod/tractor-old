@@ -1,4 +1,6 @@
 
+import { Identifier } from "./identifier.js";
+
 export interface Config {
     name: string;
     description: string;
@@ -11,6 +13,10 @@ export interface Config {
 
 export interface Displayable {
     getDisplayString(): string;
+}
+
+export interface IdentifierDefinition {
+    identifier: Identifier;
 }
 
 

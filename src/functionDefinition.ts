@@ -1,5 +1,5 @@
 
-import { Displayable } from "./interfaces.js";
+import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
@@ -27,7 +27,7 @@ export type IdentifierFunctionDefinitionConstructor = new (
     block: StatementBlock,
 ) => InlineFunctionDefinition;
 
-export abstract class IdentifierFunctionDefinition extends FunctionDefinition {
+export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
     identifier: Identifier;
     argVariableDefinitions: ArgVariableDefinition[];
     returnTypeExpression: Expression;
