@@ -39,13 +39,6 @@ export class Statement implements Displayable {
         }
     }
     
-    clearParentBlock(): void {
-        this.parentBlock = null;
-        if (this.nestedBlock !== null) {
-            this.nestedBlock.parentBlock = null;
-        }
-    }
-    
     getCompiler(): Compiler {
         return this.pos.sourceFile.compiler;
     }
@@ -71,6 +64,10 @@ export class Statement implements Displayable {
     
     processArgs(handle: (expression: Expression) => Expression): void {
         processExpressionList(this.args, handle);
+    }
+    
+    resolveCompItems(): void {
+        this.processArgs((expression) => expression.resolveCompItems());
     }
     
     // TODO: SCOPE, STRUCT, and UNION statements should also

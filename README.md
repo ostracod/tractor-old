@@ -198,7 +198,7 @@ Declares a variable with name `<name>` which will be stored in the fixed data re
 SOFT_VAR <name>, <type>, <item?>
 ```
 
-Declares a variable with name `<name>` which may or may not be stored in a frame. If the initialization item conforms to `locT`, every variable reference will be expanded inline. If the initialization item conforms to `compT`, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
+Declares a variable with name `<name>` which may or may not be stored in a frame. If the initialization item conforms to `locT`, every variable reference will be expanded inline. If the initialization item conforms to `compT`, and the variable is never assigned another value, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
 
 When the `REQUIRE` and `FOREIGN` modifiers are absent:
 

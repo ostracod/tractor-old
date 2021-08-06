@@ -7,7 +7,7 @@ import { CompilerError } from "./compilerError.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
-import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 
 export class Compiler {
     projectPath: string;
@@ -134,13 +134,21 @@ export class Compiler {
     processStatementBlocks(handle: (block: StatementBlock) => void): void {
         handle(this.rootBlock);
         this.functionDefinitions.forEach((definition) => {
-            handle(definition.block);
+            if (!(definition instanceof InlineFunctionDefinition)) {
+                handle(definition.block);
+            }
         });
     }
     
     transformControlFlow(): void {
         this.processStatementBlocks((block) => {
             block.transformControlFlow();
+        });
+    }
+    
+    resolveCompItems(): void {
+        this.processStatementBlocks((block) => {
+            block.resolveCompItems();
         });
     }
     
@@ -163,6 +171,7 @@ export class Compiler {
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
             this.transformControlFlow();
+            this.resolveCompItems();
             this.expandInlineFunctions();
             // TODO: Finish this method.
             niceUtils.printDisplayables("Root Block", [this.rootBlock]);

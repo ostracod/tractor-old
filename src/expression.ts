@@ -2,10 +2,11 @@
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { Constant, StringConstant } from "./constant.js";
+import { CompItem, CompString, CompFunctionHandle } from "./compItem.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
+import { IdentifierFunctionDefinition } from "./functionDefinition.js";
 
 export const processExpressionList = (
     expressions: Expression[],
@@ -14,6 +15,7 @@ export const processExpressionList = (
     expressions.forEach((inputExpression, index) => {
         const expression = handle(inputExpression);
         if (expression !== null) {
+            expression.copyParentStatement(inputExpression);
             expressions[index] = expression;
         }
     });
@@ -43,6 +45,21 @@ export abstract class Expression implements Displayable {
         // Do nothing.
     }
     
+    processMemberExpression (
+        // name must be the name of a member variable which
+        // contains an Expression.
+        name: string,
+        handle: (expression: Expression) => Expression,
+    ): void {
+        const parentExpression = this as unknown as { [name: string]: Expression };
+        const inputExpression = parentExpression[name];
+        const expression = handle(inputExpression);
+        if (expression !== null) {
+            expression.copyParentStatement(inputExpression);
+            parentExpression[name] = expression;
+        }
+    };
+    
     setParentStatement(statement: Statement) {
         this.parentStatement = statement;
         this.processNestedExpressions((expression) => {
@@ -51,11 +68,15 @@ export abstract class Expression implements Displayable {
         });
     }
     
+    copyParentStatement(expression: Expression) {
+        this.setParentStatement(expression.parentStatement);
+    }
+    
     createError(message: string): CompilerError {
         return new CompilerError(message, this.parentStatement.pos);
     }
     
-    evaluateToConstantOrNull(): Constant {
+    evaluateToCompItemOrNull(): CompItem {
         return null;
     }
     
@@ -64,11 +85,11 @@ export abstract class Expression implements Displayable {
     }
     
     evaluateToString(): string {
-        const constant = this.evaluateToConstantOrNull();
-        if (constant === null || !(constant instanceof StringConstant)) {
+        const constant = this.evaluateToCompItemOrNull();
+        if (constant === null || !(constant instanceof CompString)) {
             throw this.createError("Expected string.");
         }
-        return (constant as StringConstant).value;
+        return (constant as CompString).value;
     }
     
     evaluateToIdentifier(): Identifier {
@@ -83,6 +104,11 @@ export abstract class Expression implements Displayable {
         return new UnaryExpression(unaryOperatorMap["!"], this);
     }
     
+    resolveCompItems(): Expression {
+        this.processNestedExpressions((expression) => expression.resolveCompItems());
+        return null;
+    }
+    
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
         const statements = expandInlineFunctions((handle) => {
             this.processNestedExpressions(handle);
@@ -91,20 +117,20 @@ export abstract class Expression implements Displayable {
     }
 }
 
-export class ConstantExpression extends Expression {
-    constant: Constant;
+export class CompItemExpression extends Expression {
+    item: CompItem;
     
-    constructor(constant: Constant) {
+    constructor(item: CompItem) {
         super();
-        this.constant = constant;
+        this.item = item;
     }
     
     getDisplayString(): string {
-        return this.constant.getDisplayString();
+        return this.item.getDisplayString();
     }
     
-    evaluateToConstantOrNull(): Constant {
-        return this.constant;
+    evaluateToCompItemOrNull(): CompItem {
+        return this.item;
     }
 }
 
@@ -123,6 +149,17 @@ export class IdentifierExpression extends Expression  {
     evaluateToIdentifierOrNull(): Identifier {
         return this.identifier;
     }
+    
+    resolveCompItems(): Expression {
+        const parentBlock = this.parentStatement.parentBlock;
+        const definition = parentBlock.getIdentifierDefinition(this.identifier);
+        if (definition instanceof IdentifierFunctionDefinition) {
+            const compItem = new CompFunctionHandle(definition);
+            return new CompItemExpression(compItem);
+        }
+        super.resolveCompItems();
+        return null;
+    }
 }
 
 export class UnaryExpression extends Expression {
@@ -136,10 +173,7 @@ export class UnaryExpression extends Expression {
     }
     
     processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        const expression = handle(this.operand);
-        if (expression !== null) {
-            this.operand = expression;
-        }
+        this.processMemberExpression("operand", handle);
     }
     
     getDisplayString(): string {
@@ -160,15 +194,8 @@ export class BinaryExpression extends Expression {
     }
     
     processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        let expression: Expression;
-        expression = handle(this.operand1);
-        if (expression !== null) {
-            this.operand1 = expression;
-        }
-        expression = handle(this.operand2);
-        if (expression !== null) {
-            this.operand2 = expression;
-        }
+        this.processMemberExpression("operand1", handle);
+        this.processMemberExpression("operand2", handle);
     }
     
     getDisplayString(): string {
@@ -187,15 +214,8 @@ export class SubscriptExpression extends Expression {
     }
     
     processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        let expression: Expression;
-        expression = handle(this.arrayExpression);
-        if (expression !== null) {
-            this.arrayExpression = expression;
-        }
-        expression = handle(this.indexExpression);
-        if (expression !== null) {
-            this.indexExpression = expression;
-        }
+        this.processMemberExpression("arrayExpression", handle);
+        this.processMemberExpression("indexExpression", handle);
     }
     
     getDisplayString(): string {
@@ -214,10 +234,7 @@ export class InvocationExpression extends Expression {
     }
     
     processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        const expression = handle(this.functionExpression);
-        if (expression !== null) {
-            this.functionExpression = expression;
-        }
+        this.processMemberExpression("functionExpression", handle);
         processExpressionList(this.argExpressions, handle);
     }
     

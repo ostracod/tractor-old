@@ -97,15 +97,6 @@ export class StatementBlock implements Displayable {
         statement.setParentBlock(this);
     }
     
-    clearStatements(): Statement[] {
-        this.statements.forEach((statement) => {
-            statement.clearParentBlock();
-        });
-        const output = this.statements;
-        this.statements = [];
-        return output;
-    }
-    
     getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
         const definition = this.identifierDefinitions.get(identifier);
         if (definition !== null) {
@@ -123,7 +114,8 @@ export class StatementBlock implements Displayable {
     
     collapse(): void {
         const blockStack: StatementBlock[] = [this];
-        const statements = this.clearStatements();
+        const statements = this.statements;
+        this.statements = [];
         statements.forEach((statement) => {
             const statementType = statement.type;
             if (statementType.isBlockEnd) {
@@ -158,7 +150,8 @@ export class StatementBlock implements Displayable {
         processStatement: (statement: Statement) => Statement[],
         shouldProcessNestedBlocks = false,
     ): void {
-        const statements = this.clearStatements();
+        const statements = this.statements;
+        this.statements = [];
         statements.forEach((statement) => {
             const result = processStatement(statement);
             if (result === null) {
@@ -256,7 +249,8 @@ export class StatementBlock implements Displayable {
     }
     
     transformControlFlow(): void {
-        const statements = this.clearStatements();
+        const statements = this.statements;
+        this.statements = [];
         let index = 0;
         while (index < statements.length) {
             const statement = statements[index];
@@ -276,8 +270,15 @@ export class StatementBlock implements Displayable {
         }
     }
     
+    resolveCompItems(): void {
+        this.processStatements((statement) => {
+            statement.resolveCompItems();
+            return null;
+        }, true);
+    }
+    
     expandInlineFunctions(): void {
-        this.processStatements((statement) => statement.expandInlineFunctions());
+        this.processStatements((statement) => statement.expandInlineFunctions(), true);
     }
     
     getDisplayString(indentationLevel = 0): string {

@@ -43,6 +43,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
                 const identifier = statement.args[0].evaluateToIdentifier();
                 const definition = new ArgVariableDefinition(identifier, statement.args[1]);
                 this.argVariableDefinitions.push(definition);
+                this.block.addIdentifierDefinition(definition);
                 return [];
             } else if (directive === "RET_TYPE") {
                 if (this.returnTypeExpression !== null) {

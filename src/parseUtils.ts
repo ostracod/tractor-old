@@ -3,8 +3,8 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import { CompilerError } from "./compilerError.js";
 import { expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
 import { Statement } from "./statement.js";
-import { NumberConstant, StringConstant } from "./constant.js";
-import { Expression, ConstantExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
+import { CompNumber, CompString } from "./compItem.js";
+import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 import { NameIdentifier } from "./identifier.js";
 
@@ -234,24 +234,24 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
     }
     if (token instanceof NumberToken) {
         const value = BigInt(token.text);
-        const constant = new NumberConstant(value);
+        const constant = new CompNumber(value);
         return {
-            expression: new ConstantExpression(constant),
+            expression: new CompItemExpression(constant),
             index,
         };
     }
     if (token instanceof StringToken) {
-        const constant = new StringConstant(token.text);
+        const constant = new CompString(token.text);
         return {
-            expression: new ConstantExpression(constant),
+            expression: new CompItemExpression(constant),
             index,
         };
     }
     if (token instanceof CharacterToken) {
         const value = BigInt(token.text.charCodeAt(0));
-        const constant = new NumberConstant(value);
+        const constant = new CompNumber(value);
         return {
-            expression: new ConstantExpression(constant),
+            expression: new CompItemExpression(constant),
             index,
         };
     }
