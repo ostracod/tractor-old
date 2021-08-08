@@ -1,21 +1,23 @@
 
 import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 
-export abstract class VariableDefinition implements Displayable, IdentifierDefinition {
+export abstract class VariableDefinition extends Node implements Displayable, IdentifierDefinition {
     identifier: Identifier;
-    typeExpression: Expression;
+    typeExpression: NodeSlot<Expression>;
     
     constructor(identifier: Identifier, typeExpression: Expression) {
+        super();
         this.identifier = identifier;
-        this.typeExpression = typeExpression;
+        this.typeExpression = this.addSlot(typeExpression);
     }
     
     abstract getDisplayStringHelper(): string;
     
     getDisplayString(): string {
-        return `${this.getDisplayStringHelper()} ${this.identifier.getDisplayString()}, ${this.typeExpression.getDisplayString()}`;
+        return `${this.getDisplayStringHelper()} ${this.identifier.getDisplayString()}, ${this.typeExpression.get().getDisplayString()}`;
     }
 }
 

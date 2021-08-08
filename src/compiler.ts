@@ -4,28 +4,35 @@ import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
+import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 
-export class Compiler {
+export class Compiler extends Node {
     projectPath: string;
     srcPath: string;
     configNames: string[];
     configImportMap: { [name: string]: string };
     targetLanguage: string;
     buildFileName: string;
-    rootBlock: StatementBlock;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
-    functionDefinitions: FunctionDefinition[];
     initFunctionDefinition: InitFunctionDefinition;
+    functionDefinitions: FunctionDefinition[];
+    rootBlock: NodeSlot<StatementBlock>;
     
     constructor(projectPath: string, configNames: string[]) {
+        super();
         this.projectPath = projectPath;
         this.srcPath = pathUtils.join(this.projectPath, "src");
         this.configNames = configNames;
+        this.importedPaths = new Set();
+        this.foreignFiles = [];
+        this.initFunctionDefinition = null;
+        this.functionDefinitions = [];
+        this.rootBlock = this.addSlot(new StatementBlock());
     }
     
     readConfig(): void {
@@ -95,13 +102,13 @@ export class Compiler {
             return;
         }
         const tractorFile = new TractorFile(this, absolutePath);
-        const { statements } = tractorFile.block;
+        const statements = tractorFile.block.statements.map((slot) => slot.get());
         const importStatements: ImportStatement[] = [];
         statements.forEach((statement) => {
             if (statement instanceof ImportStatement) {
                 importStatements.push(statement);
             } else {
-                this.rootBlock.addStatement(statement);
+                this.rootBlock.get().addStatement(statement);
             }
         });
         importStatements.forEach((statement) => {
@@ -119,7 +126,7 @@ export class Compiler {
     }
     
     extractFunctionDefinitions(): void {
-        this.rootBlock.processStatements((statement) => {
+        this.rootBlock.get().processStatements((statement) => {
             if (statement instanceof FunctionStatement) {
                 statement.createFunctionDefinition();
                 return [];
@@ -131,11 +138,12 @@ export class Compiler {
         }
     }
     
+    // Does not process inline function definitions.
     processStatementBlocks(handle: (block: StatementBlock) => void): void {
-        handle(this.rootBlock);
+        handle(this.rootBlock.get());
         this.functionDefinitions.forEach((definition) => {
             if (!(definition instanceof InlineFunctionDefinition)) {
-                handle(definition.block);
+                handle(definition.block.get());
             }
         });
     }
@@ -159,11 +167,6 @@ export class Compiler {
     }
     
     compile(): void {
-        this.rootBlock = new StatementBlock();
-        this.importedPaths = new Set();
-        this.foreignFiles = [];
-        this.functionDefinitions = [];
-        this.initFunctionDefinition = null;
         try {
             console.log("Reading config...");
             this.readConfig();
@@ -174,7 +177,7 @@ export class Compiler {
             this.resolveCompItems();
             this.expandInlineFunctions();
             // TODO: Finish this method.
-            niceUtils.printDisplayables("Root Block", [this.rootBlock]);
+            niceUtils.printDisplayables("Root Block", [this.rootBlock.get()]);
             niceUtils.printDisplayables("Function Definitions", this.functionDefinitions);
         } catch (error) {
             if (error instanceof CompilerError) {

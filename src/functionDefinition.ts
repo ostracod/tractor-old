@@ -1,15 +1,17 @@
 
 import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { Node, NodeSlot } from "./node.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 
-export abstract class FunctionDefinition implements Displayable {
-    block: StatementBlock;
+export abstract class FunctionDefinition extends Node implements Displayable {
+    block: NodeSlot<StatementBlock>;
     
     constructor(block: StatementBlock) {
-        this.block = block;
+        super();
+        this.block = this.addSlot(block);
     }
     
     abstract getDisplayStringHelper(): string;
@@ -17,7 +19,7 @@ export abstract class FunctionDefinition implements Displayable {
     getDisplayString(): string {
         return [
             this.getDisplayStringHelper(),
-            this.block.getDisplayString(1),
+            this.block.get().getDisplayString(1),
         ].join("\n")
     }
 }
@@ -30,26 +32,28 @@ export type IdentifierFunctionDefinitionConstructor = new (
 export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
     identifier: Identifier;
     argVariableDefinitions: ArgVariableDefinition[];
-    returnTypeExpression: Expression;
+    returnTypeExpression: NodeSlot<Expression>;
     
     constructor(identifier: Identifier, block: StatementBlock) {
         super(block);
         this.identifier = identifier;
         this.argVariableDefinitions = [];
-        this.returnTypeExpression = null;
-        this.block.processStatements((statement) => {
+        this.returnTypeExpression = this.addSlot();
+        this.block.get().processStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
-                const identifier = statement.args[0].evaluateToIdentifier();
-                const definition = new ArgVariableDefinition(identifier, statement.args[1]);
+                const identifier = statement.args[0].get().evaluateToIdentifier();
+                const typeExpression = statement.args[1].get();
+                const definition = new ArgVariableDefinition(identifier, typeExpression);
                 this.argVariableDefinitions.push(definition);
-                this.block.addIdentifierDefinition(definition);
+                this.block.get().addIdentifierDefinition(definition);
                 return [];
             } else if (directive === "RET_TYPE") {
-                if (this.returnTypeExpression !== null) {
+                if (this.returnTypeExpression.get() !== null) {
                     throw statement.createError("Extra RET_TYPE statement.");
                 }
-                this.returnTypeExpression = statement.args[0];
+                const typeExpression = statement.args[0].get();
+                this.returnTypeExpression.set(typeExpression);
                 return [];
             }
             return null;
@@ -66,7 +70,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
             output.push(definition.getDisplayString());
         });
         if (this.returnTypeExpression !== null) {
-            output.push("Return type: " + this.returnTypeExpression.getDisplayString());
+            output.push("Return type: " + this.returnTypeExpression.get().getDisplayString());
         }
         return output.join("\n");
     }

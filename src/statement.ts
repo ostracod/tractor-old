@@ -1,6 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { Displayable } from "./interfaces.js";
+import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
@@ -10,33 +11,28 @@ import { Compiler } from "./compiler.js";
 import { Expression, processExpressionList, expandInlineFunctions } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
-export class Statement implements Displayable {
+export class Statement extends Node implements Displayable {
     type: StatementType;
     modifiers: string[];
-    args: Expression[];
     pos: Pos;
-    nestedBlock: StatementBlock;
-    parentBlock: StatementBlock;
+    args: NodeSlot<Expression>[];
+    block: NodeSlot<StatementBlock>;
     
     constructor(type: StatementType, modifiers: string[], args: Expression[]) {
+        super();
         this.type = type;
         this.modifiers = modifiers;
-        this.args = args;
-        this.args.forEach((expression) => {
-            expression.setParentStatement(this);
-        });
         this.pos = null;
-        this.nestedBlock = null;
-        this.parentBlock = null;
+        this.args = this.addSlots(args);
+        this.block = this.addSlot();
         this.type.validateModifiers(this.modifiers);
         this.type.validateArgCount(this.args.length);
     }
     
-    setParentBlock(block: StatementBlock): void {
-        this.parentBlock = block;
-        if (this.nestedBlock !== null) {
-            this.nestedBlock.parentBlock = block;
-        }
+    getParentBlock(): StatementBlock {
+        return this.getParentByFilter(
+            (node) => node instanceof StatementBlock,
+        ) as StatementBlock;
     }
     
     getCompiler(): Compiler {
@@ -58,8 +54,8 @@ export class Statement implements Displayable {
         return new StatementBlock(this.pos, statements);
     }
     
-    createStatementGenerator(block: StatementBlock = null): StatementGenerator {
-        return new StatementGenerator(this.pos, block);
+    createStatementGenerator(destination: Statement[] = null): StatementGenerator {
+        return new StatementGenerator(this.pos, destination);
     }
     
     processArgs(handle: (expression: Expression) => Expression): void {
@@ -94,13 +90,16 @@ export class Statement implements Displayable {
             textList.push(directive);
         }
         if (this.args.length > 0) {
-            const argsText = this.args.map((arg) => arg.getDisplayString()).join(", ");
+            const argsText = this.args.map((slot) => (
+                slot.get().getDisplayString()
+            )).join(", ");
             textList.push(argsText);
         }
         const line = indentation + textList.join(" ");
         textList = [line];
-        if (this.nestedBlock !== null) {
-            textList.push(this.nestedBlock.getDisplayString(indentationLevel + 1));
+        const nestedBlock = this.block.get();
+        if (nestedBlock !== null) {
+            textList.push(nestedBlock.getDisplayString(indentationLevel + 1));
         }
         return textList.join("\n");
     }
@@ -122,7 +121,7 @@ export abstract class ImportStatement extends Statement {
 export class PathImportStatement extends ImportStatement {
     
     importFilesHelper(): void {
-        const path = this.args[0].evaluateToString();
+        const path = this.args[0].get().evaluateToString();
         this.getCompiler().importTractorFile(path);
     }
 }
@@ -130,7 +129,7 @@ export class PathImportStatement extends ImportStatement {
 export class ConfigImportStatement extends ImportStatement {
     
     importFilesHelper(): void {
-        const name = this.args[0].evaluateToString();
+        const name = this.args[0].get().evaluateToString();
         const compiler = this.getCompiler();
         const path = compiler.configImportMap[name];
         compiler.importTractorFile(path);
@@ -140,7 +139,7 @@ export class ConfigImportStatement extends ImportStatement {
 export class ForeignImportStatement extends ImportStatement {
     
     importFilesHelper(): void {
-        const path = this.args[0].evaluateToString();
+        const path = this.args[0].get().evaluateToString();
         this.getCompiler().importForeignFile(path);
     }
 }
@@ -162,16 +161,16 @@ export abstract class FunctionStatement extends Statement {
 export class IdentifierFunctionStatement extends FunctionStatement {
     
     createFunctionDefinitionHelper(): FunctionDefinition {
-        const identifier = this.args[0].evaluateToIdentifier();
+        const identifier = this.args[0].get().evaluateToIdentifier();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
             definitionConstructor = InlineFunctionDefinition;
         } else {
             definitionConstructor = NonInlineFunctionDefinition;
         }
-        const definition = new definitionConstructor(identifier, this.nestedBlock);
-        const { rootBlock } = this.getCompiler();
-        rootBlock.addIdentifierDefinition(definition)
+        const definition = new definitionConstructor(identifier, this.block.get());
+        const rootBlock = this.getCompiler().rootBlock.get();
+        rootBlock.addIdentifierDefinition(definition);
         return definition;
     }
 }
@@ -183,8 +182,10 @@ export class InitFunctionStatement extends FunctionStatement {
         if (compiler.initFunctionDefinition !== null) {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }
-        const definition = new InitFunctionDefinition(this.nestedBlock);
+        const definition = new InitFunctionDefinition(this.block.get());
         compiler.initFunctionDefinition = definition;
+        const rootBlock = this.getCompiler().rootBlock.get();
+        rootBlock.addSlot(definition);
         return definition;
     }
 }

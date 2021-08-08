@@ -8,11 +8,11 @@ import { Identifier } from "./identifier.js";
 
 export class StatementGenerator {
     pos: Pos;
-    block: StatementBlock;
+    destination: Statement[];
     
-    constructor(pos: Pos, block: StatementBlock = null) {
+    constructor(pos: Pos, destination: Statement[] = null) {
         this.pos = pos;
-        this.block = block;
+        this.destination = destination;
     }
     
     createStatement(directive: string, args: Expression[]): Statement {
@@ -23,7 +23,7 @@ export class StatementGenerator {
     }
     
     addStatement(statement: Statement): void {
-        this.block.addStatement(statement);
+        this.destination.push(statement);
     }
     
     createJumpStatement(identifier: Identifier): Statement {
@@ -47,7 +47,7 @@ export class StatementGenerator {
     
     createScopeStatement(block: StatementBlock): Statement {
         const output = this.createStatement("SCOPE", []);
-        output.nestedBlock = block;
+        output.block.set(block);
         return output;
     }
     

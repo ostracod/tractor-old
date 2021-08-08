@@ -2,6 +2,7 @@
 import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
+import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
 import { Statement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
@@ -9,28 +10,30 @@ import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierDefinitionMap } from "./identifier.js";
 
 class IfClause {
+    destination: Statement[];
     condition: Expression;
-    block: StatementBlock;
     generator: StatementGenerator;
+    block: StatementBlock;
     isFirstClause: boolean;
     isLastClause: boolean;
     startIdentifier: Identifier;
     endIdentifier: Identifier;
     
     constructor(
-        parentBlock: StatementBlock,
+        destination: Statement[],
         statement: Statement,
         isFirstClause: boolean,
         isLastClause: boolean,
-        endIdentifier: Identifier
+        endIdentifier: Identifier,
     ) {
+        this.destination = destination;
         if (statement.type.directive === "ELSE") {
             this.condition = null;
         } else {
-            this.condition = statement.args[0];
+            this.condition = statement.args[0].get();
         }
-        this.block = statement.nestedBlock;
-        this.generator = statement.createStatementGenerator(parentBlock);
+        this.generator = statement.createStatementGenerator(this.destination);
+        this.block = statement.block.get();
         this.isFirstClause = isFirstClause;
         this.isLastClause = isLastClause;
         if (this.isLastClause) {
@@ -72,20 +75,23 @@ class IfClause {
     }
 }
 
-export class StatementBlock implements Displayable {
+export class StatementBlock extends Node implements Displayable {
     pos: Pos;
-    statements: Statement[];
-    parentBlock: StatementBlock;
-    identifierDefinitions: IdentifierDefinitionMap;
+    statements: NodeSlot<Statement>[];
+    identifierDefinitions: NodeSlot<IdentifierDefinitionMap>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
+        super();
         this.pos = pos;
         this.statements = [];
-        statements.forEach((statement) => {
-            this.addStatement(statement);
-        });
-        this.parentBlock = null;
-        this.identifierDefinitions = new IdentifierDefinitionMap();
+        this.setStatements(statements);
+        this.identifierDefinitions = this.addSlot(new IdentifierDefinitionMap());
+    }
+    
+    getParentBlock(): StatementBlock {
+        return this.getParentByFilter(
+            (node) => node instanceof StatementBlock,
+        ) as StatementBlock;
     }
     
     createError(message: string): CompilerError {
@@ -93,29 +99,41 @@ export class StatementBlock implements Displayable {
     }
     
     addStatement(statement: Statement): void {
-        this.statements.push(statement);
-        statement.setParentBlock(this);
+        const slot = this.addSlot(statement);
+        this.statements.push(slot);
+    }
+    
+    setStatements(statements: Statement[]): void {
+        this.statements.forEach((slot) => {
+            this.removeSlot(slot);
+        });
+        this.statements = [];
+        statements.forEach((statement) => {
+            this.addStatement(statement);
+        });
     }
     
     getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
-        const definition = this.identifierDefinitions.get(identifier);
+        const definition = this.identifierDefinitions.get().get(identifier);
         if (definition !== null) {
             return definition;
         }
-        if (this.parentBlock !== null) {
-            return this.parentBlock.getIdentifierDefinition(identifier);
+        const parentBlock = this.getParentBlock();
+        if (parentBlock !== null) {
+            return parentBlock.getIdentifierDefinition(identifier);
         }
         return null;
     }
     
     addIdentifierDefinition(definition: IdentifierDefinition): void {
-        this.identifierDefinitions.add(definition);
+        this.identifierDefinitions.get().add(definition);
     }
     
+    // TODO: Move this logic into parseUtils.
     collapse(): void {
         const blockStack: StatementBlock[] = [this];
-        const statements = this.statements;
-        this.statements = [];
+        const statements = this.statements.map((slot) => slot.get());
+        this.setStatements([]);
         statements.forEach((statement) => {
             const statementType = statement.type;
             if (statementType.isBlockEnd) {
@@ -132,7 +150,7 @@ export class StatementBlock implements Displayable {
             const lastBlock = blockStack[blockStack.length - 1];
             if (statementType.isBlockStart) {
                 const block = statement.createStatementBlock();
-                statement.nestedBlock = block;
+                statement.block.set(block);
                 blockStack.push(block);
             }
             lastBlock.addStatement(statement);
@@ -143,41 +161,40 @@ export class StatementBlock implements Displayable {
         }
     }
     
-    // If processStatement returns a list of statements, then the
-    // list will replace the original statement. If processStatement
+    // If handle returns a list of statements, then the
+    // list will replace the original statement. If handle
     // returns null, then no modification occurs.
     processStatements(
-        processStatement: (statement: Statement) => Statement[],
-        shouldProcessNestedBlocks = false,
+        handle: (statement: Statement) => Statement[],
+        shouldRecur = false,
     ): void {
-        const statements = this.statements;
-        this.statements = [];
-        statements.forEach((statement) => {
-            const result = processStatement(statement);
+        const nextStatements = [];
+        this.statements.forEach((slot) => {
+            const statement = slot.get();
+            const result = handle(statement);
             if (result === null) {
-                if (shouldProcessNestedBlocks && statement.nestedBlock !== null) {
-                    statement.nestedBlock.processStatements(
-                        processStatement,
-                        shouldProcessNestedBlocks,
-                    );
+                if (shouldRecur) {
+                    const nestedBlock = statement.block.get();
+                    if (nestedBlock !== null) {
+                        nestedBlock.processStatements(handle, shouldRecur);
+                    }
                 }
-                this.addStatement(statement);
+                nextStatements.push(statement);
             } else {
-                result.forEach((resultStatement) => {
-                    this.addStatement(resultStatement);
-                });
+                niceUtils.extendList(nextStatements, result);
             }
         });
+        this.setStatements(nextStatements);
     }
     
     transformIfStatement(
-        statements: Statement[],
+        destination: Statement[],
         ifStatement: Statement,
         index: number,
     ): number {
         const clauseStatements: Statement[] = [ifStatement];
-        while (index < statements.length) {
-            const statement = statements[index];
+        while (index < this.statements.length) {
+            const statement = this.statements[index].get();
             const { directive } = statement.type;
             let shouldAddStatement = true;
             let shouldBreak = true;
@@ -197,7 +214,7 @@ export class StatementBlock implements Displayable {
         const endIdentifier = new NumberIdentifier();
         const ifClauses = clauseStatements.map((statement, index) => (
             new IfClause(
-                this,
+                destination,
                 statement,
                 (index <= 0),
                 (index >= clauseStatements.length - 1),
@@ -234,12 +251,12 @@ export class StatementBlock implements Displayable {
         }, true);
     }
     
-    transformWhileStatement(statements: Statement[], whileStatement: Statement): void {
-        const generator = whileStatement.createStatementGenerator(this);
+    transformWhileStatement(destination: Statement[], whileStatement: Statement): void {
+        const generator = whileStatement.createStatementGenerator(destination);
         const startIdentifier = new NumberIdentifier();
         const endIdentifier = new NumberIdentifier();
-        const condition = whileStatement.args[0].invertBooleanValue();
-        const { nestedBlock } = whileStatement;
+        const condition = whileStatement.args[0].get().invertBooleanValue();
+        const nestedBlock = whileStatement.block.get();
         nestedBlock.transformBreakAndContinueStatements(startIdentifier, endIdentifier);
         generator.addLabelStatement(startIdentifier);
         generator.addJumpIfStatement(endIdentifier, condition);
@@ -249,25 +266,25 @@ export class StatementBlock implements Displayable {
     }
     
     transformControlFlow(): void {
-        const statements = this.statements;
-        this.statements = [];
+        const nextStatements = [];
         let index = 0;
-        while (index < statements.length) {
-            const statement = statements[index];
+        while (index < this.statements.length) {
+            const statement = this.statements[index].get();
             index += 1;
-            const { nestedBlock } = statement;
+            const nestedBlock = statement.block.get();
             if (nestedBlock !== null) {
                 nestedBlock.transformControlFlow();
             }
             const { directive } = statement.type;
             if (directive === "IF") {
-                index = this.transformIfStatement(statements, statement, index);
+                index = this.transformIfStatement(nextStatements, statement, index);
             } else if (directive === "WHILE") {
-                this.transformWhileStatement(statements, statement);
+                this.transformWhileStatement(nextStatements, statement);
             } else {
-                this.addStatement(statement);
+                nextStatements.push(statement);
             }
         }
+        this.setStatements(nextStatements);
     }
     
     resolveCompItems(): void {
@@ -282,8 +299,8 @@ export class StatementBlock implements Displayable {
     }
     
     getDisplayString(indentationLevel = 0): string {
-        return this.statements.map((statement) => (
-            statement.getDisplayString(indentationLevel)
+        return this.statements.map((slot) => (
+            slot.get().getDisplayString(indentationLevel)
         )).join("\n");
     }
 }

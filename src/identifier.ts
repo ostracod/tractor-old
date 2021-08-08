@@ -1,5 +1,6 @@
 
 import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { Node, NodeSlot } from "./node.js";
 import { CompilerError } from "./compilerError.js";
 
 let nextIdentifierNumber = 0;
@@ -62,11 +63,12 @@ export class NumberIdentifier extends Identifier {
     }
 }
 
-export class IdentifierDefinitionMap<T extends IdentifierDefinition = IdentifierDefinition> {
-    map: { [key: string]: T };
+export class IdentifierDefinitionMap<T extends IdentifierDefinition = IdentifierDefinition> extends Node {
+    map: { [key: string]: NodeSlot<T> };
     keys: string[]; // Ensures correct order for iteration.
     
     constructor() {
+        super();
         this.map = {};
         this.keys = [];
     }
@@ -74,7 +76,7 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
     get(identifier: Identifier): T {
         const key = identifier.getKey();
         if (key in this.map) {
-            return this.map[key];
+            return this.map[key].get();
         } else {
             return null;
         }
@@ -85,13 +87,13 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
         if (key in this.map) {
             throw new CompilerError("Duplicate identifier.");
         }
-        this.map[key] = definition;
+        this.map[key] = this.addSlot(definition);
         this.keys.push(key);
     }
     
     iterate(handle: (definition: T) => void): void {
         for (const key of this.keys) {
-            handle(this.map[key]);
+            handle(this.map[key].get());
         }
     }
     

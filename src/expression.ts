@@ -2,6 +2,7 @@
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
+import { Node, NodeSlot } from "./node.js";
 import { CompItem, CompString, CompFunctionHandle } from "./compItem.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
@@ -9,14 +10,13 @@ import { Statement } from "./statement.js";
 import { IdentifierFunctionDefinition } from "./functionDefinition.js";
 
 export const processExpressionList = (
-    expressions: Expression[],
+    expressions: NodeSlot<Expression>[],
     handle: (expression: Expression) => Expression,
 ): void => {
-    expressions.forEach((inputExpression, index) => {
-        const expression = handle(inputExpression);
+    expressions.forEach((slot) => {
+        const expression = handle(slot.get());
         if (expression !== null) {
-            expression.copyParentStatement(inputExpression);
-            expressions[index] = expression;
+            slot.set(expression);
         }
     });
 }
@@ -33,47 +33,29 @@ export const expandInlineFunctions = (
     return output;
 };
 
-export abstract class Expression implements Displayable {
-    parentStatement: Statement;
+export abstract class Expression extends Node implements Displayable {
     
     abstract getDisplayString(): string;
     
-    // If processNestedExpressions returns an expression, then the output
-    // will replace the original expression. If processNestedExpressions
+    // If handle returns an expression, then the output
+    // will replace the original expression. If handle
     // returns null, then no modification occurs.
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        // Do nothing.
-    }
-    
-    processMemberExpression (
-        // name must be the name of a member variable which
-        // contains an Expression.
-        name: string,
-        handle: (expression: Expression) => Expression,
-    ): void {
-        const parentExpression = this as unknown as { [name: string]: Expression };
-        const inputExpression = parentExpression[name];
-        const expression = handle(inputExpression);
-        if (expression !== null) {
-            expression.copyParentStatement(inputExpression);
-            parentExpression[name] = expression;
-        }
-    };
-    
-    setParentStatement(statement: Statement) {
-        this.parentStatement = statement;
-        this.processNestedExpressions((expression) => {
-            expression.setParentStatement(statement);
+    processExpressions(handle: (expression: Expression) => Expression): void {
+        this.processNodes((node) => {
+            if (node instanceof Expression) {
+                return handle(node);
+            }
             return null;
-        });
+        }, true);
+        
     }
     
-    copyParentStatement(expression: Expression) {
-        this.setParentStatement(expression.parentStatement);
+    getParentStatement(): Statement {
+        return this.getParentByFilter((node) => node instanceof Statement) as Statement;
     }
     
     createError(message: string): CompilerError {
-        return new CompilerError(message, this.parentStatement.pos);
+        return new CompilerError(message, this.getParentStatement().pos);
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -105,13 +87,13 @@ export abstract class Expression implements Displayable {
     }
     
     resolveCompItems(): Expression {
-        this.processNestedExpressions((expression) => expression.resolveCompItems());
+        this.processExpressions((expression) => expression.resolveCompItems());
         return null;
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
         const statements = expandInlineFunctions((handle) => {
-            this.processNestedExpressions(handle);
+            this.processExpressions(handle);
         });
         return { expression: null, statements };
     }
@@ -151,7 +133,7 @@ export class IdentifierExpression extends Expression  {
     }
     
     resolveCompItems(): Expression {
-        const parentBlock = this.parentStatement.parentBlock;
+        const parentBlock = this.getParentStatement().getParentBlock();
         const definition = parentBlock.getIdentifierDefinition(this.identifier);
         if (definition instanceof IdentifierFunctionDefinition) {
             const compItem = new CompFunctionHandle(definition);
@@ -164,102 +146,79 @@ export class IdentifierExpression extends Expression  {
 
 export class UnaryExpression extends Expression {
     operator: UnaryOperator;
-    operand: Expression;
+    operand: NodeSlot<Expression>;
     
     constructor(operator: UnaryOperator, operand: Expression) {
         super();
         this.operator = operator;
-        this.operand = operand;
-    }
-    
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        this.processMemberExpression("operand", handle);
+        this.operand = this.addSlot(operand);
     }
     
     getDisplayString(): string {
-        return `${this.operator.text}(${this.operand.getDisplayString()})`;
+        return `${this.operator.text}(${this.operand.get().getDisplayString()})`;
     }
 }
 
 export class BinaryExpression extends Expression {
     operator: BinaryOperator;
-    operand1: Expression;
-    operand2: Expression;
+    operand1: NodeSlot<Expression>;
+    operand2: NodeSlot<Expression>;
     
     constructor(operator: BinaryOperator, operand1: Expression, operand2: Expression) {
         super();
         this.operator = operator;
-        this.operand1 = operand1;
-        this.operand2 = operand2;
-    }
-    
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        this.processMemberExpression("operand1", handle);
-        this.processMemberExpression("operand2", handle);
+        this.operand1 = this.addSlot(operand1);
+        this.operand2 = this.addSlot(operand2);
     }
     
     getDisplayString(): string {
-        return `(${this.operand1.getDisplayString()} ${this.operator.text} ${this.operand2.getDisplayString()})`;
+        return `(${this.operand1.get().getDisplayString()} ${this.operator.text} ${this.operand2.get().getDisplayString()})`;
     }
 }
 
 export class SubscriptExpression extends Expression {
-    arrayExpression: Expression;
-    indexExpression: Expression;
+    arrayExpression: NodeSlot<Expression>;
+    indexExpression: NodeSlot<Expression>;
     
     constructor(arrayExpression: Expression, indexExpression: Expression) {
         super();
-        this.arrayExpression = arrayExpression;
-        this.indexExpression = indexExpression;
-    }
-    
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        this.processMemberExpression("arrayExpression", handle);
-        this.processMemberExpression("indexExpression", handle);
+        this.arrayExpression = this.addSlot(arrayExpression);
+        this.indexExpression = this.addSlot(indexExpression);
     }
     
     getDisplayString(): string {
-        return `${this.arrayExpression.getDisplayString()}[${this.indexExpression.getDisplayString()}]`;
+        return `${this.arrayExpression.get().getDisplayString()}[${this.indexExpression.get().getDisplayString()}]`;
     }
 }
 
 export class InvocationExpression extends Expression {
-    functionExpression: Expression;
-    argExpressions: Expression[];
+    functionExpression: NodeSlot<Expression>;
+    argExpressions: NodeSlot<Expression>[];
     
     constructor(functionExpression: Expression, argExpressions: Expression[]) {
         super();
-        this.functionExpression = functionExpression;
-        this.argExpressions = argExpressions;
-    }
-    
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        this.processMemberExpression("functionExpression", handle);
-        processExpressionList(this.argExpressions, handle);
+        this.functionExpression = this.addSlot(functionExpression);
+        this.argExpressions = this.addSlots(argExpressions);
     }
     
     // TODO: Override expandInlineFunctions.
     
     getDisplayString(): string {
-        const textList = this.argExpressions.map((element) => element.getDisplayString());
-        return `${this.functionExpression.getDisplayString()}(${textList.join(", ")})`;
+        const textList = this.argExpressions.map((slot) => slot.get().getDisplayString());
+        return `${this.functionExpression.get().getDisplayString()}(${textList.join(", ")})`;
     }
 }
 
 export class ListExpression extends Expression {
-    elements: Expression[];
+    elements: NodeSlot<Expression>[];
     
     constructor(elements: Expression[]) {
         super();
-        this.elements = elements;
-    }
-    
-    processNestedExpressions(handle: (expression: Expression) => Expression): void {
-        processExpressionList(this.elements, handle);
+        this.elements = this.addSlots(elements);
     }
     
     getDisplayString(): string {
-        const textList = this.elements.map((element) => element.getDisplayString());
+        const textList = this.elements.map((slot) => slot.get().getDisplayString());
         return `{${textList.join(", ")}}`;
     }
 }
