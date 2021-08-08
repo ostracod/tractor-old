@@ -1,4 +1,5 @@
 
+import { constructors } from "./constructors.js";
 import { Pos } from "./pos.js";
 import { directiveStatementTypeMap } from "./statementType.js";
 import { Statement } from "./statement.js";
@@ -63,5 +64,7 @@ export class StatementGenerator {
         this.addStatement(statement);
     }
 }
+
+constructors.StatementGenerator = StatementGenerator;
 
 

@@ -34,11 +34,12 @@ export const getIndentation = (indentationLevel: number): string => {
     return textList.join("");
 };
 
-export const printDisplayables = (title: string, displayables: Displayable[]): void => {
-    console.log(`\n= = = ${title} = = =\n`);
+export const getDisplayStrings = (title: string, displayables: Displayable[]): string => {
+    const lines = [`\n= = = ${title} = = =\n`];
     displayables.forEach((displayable) => {
-        console.log(displayable.getDisplayString());
+        lines.push(displayable.getDisplayString());
     });
+    return lines.join("\n");
 };
 
 

@@ -19,8 +19,8 @@ export class Compiler extends Node {
     buildFileName: string;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
-    initFunctionDefinition: InitFunctionDefinition;
-    functionDefinitions: FunctionDefinition[];
+    initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
+    functionDefinitions: NodeSlot<FunctionDefinition>[];
     rootBlock: NodeSlot<StatementBlock>;
     
     constructor(projectPath: string, configNames: string[]) {
@@ -141,7 +141,8 @@ export class Compiler extends Node {
     // Does not process inline function definitions.
     processStatementBlocks(handle: (block: StatementBlock) => void): void {
         handle(this.rootBlock.get());
-        this.functionDefinitions.forEach((definition) => {
+        this.functionDefinitions.forEach((slot) => {
+            const definition = slot.get();
             if (!(definition instanceof InlineFunctionDefinition)) {
                 handle(definition.block.get());
             }
@@ -166,6 +167,16 @@ export class Compiler extends Node {
         });
     }
     
+    getDisplayString(): string {
+        return [
+            niceUtils.getDisplayStrings("Root Block", [this.rootBlock.get()]),
+            niceUtils.getDisplayStrings(
+                "Function Definitions",
+                this.functionDefinitions.map((slot) => slot.get()),
+            ),
+        ].join("\n");
+    }
+    
     compile(): void {
         try {
             console.log("Reading config...");
@@ -177,8 +188,8 @@ export class Compiler extends Node {
             this.resolveCompItems();
             this.expandInlineFunctions();
             // TODO: Finish this method.
-            niceUtils.printDisplayables("Root Block", [this.rootBlock.get()]);
-            niceUtils.printDisplayables("Function Definitions", this.functionDefinitions);
+            
+            console.log(this.getDisplayString());
         } catch (error) {
             if (error instanceof CompilerError) {
                 console.log(error.getDisplayString());

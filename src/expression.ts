@@ -33,9 +33,7 @@ export const expandInlineFunctions = (
     return output;
 };
 
-export abstract class Expression extends Node implements Displayable {
-    
-    abstract getDisplayString(): string;
+export abstract class Expression extends Node {
     
     // If handle returns an expression, then the output
     // will replace the original expression. If handle
@@ -52,10 +50,6 @@ export abstract class Expression extends Node implements Displayable {
     
     getParentStatement(): Statement {
         return this.getParentByFilter((node) => node instanceof Statement) as Statement;
-    }
-    
-    createError(message: string): CompilerError {
-        return new CompilerError(message, this.getParentStatement().pos);
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -139,8 +133,7 @@ export class IdentifierExpression extends Expression  {
             const compItem = new CompFunctionHandle(definition);
             return new CompItemExpression(compItem);
         }
-        super.resolveCompItems();
-        return null;
+        return super.resolveCompItems();
     }
 }
 

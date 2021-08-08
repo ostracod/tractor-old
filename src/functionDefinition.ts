@@ -6,7 +6,7 @@ import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 
-export abstract class FunctionDefinition extends Node implements Displayable {
+export abstract class FunctionDefinition extends Node {
     block: NodeSlot<StatementBlock>;
     
     constructor(block: StatementBlock) {
@@ -31,7 +31,7 @@ export type IdentifierFunctionDefinitionConstructor = new (
 
 export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
     identifier: Identifier;
-    argVariableDefinitions: ArgVariableDefinition[];
+    argVariableDefinitions: NodeSlot<ArgVariableDefinition>[];
     returnTypeExpression: NodeSlot<Expression>;
     
     constructor(identifier: Identifier, block: StatementBlock) {
@@ -45,8 +45,8 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
                 const identifier = statement.args[0].get().evaluateToIdentifier();
                 const typeExpression = statement.args[1].get();
                 const definition = new ArgVariableDefinition(identifier, typeExpression);
-                this.argVariableDefinitions.push(definition);
-                this.block.get().addIdentifierDefinition(definition);
+                const slot = this.block.get().addIdentifierDefinition(definition);
+                this.argVariableDefinitions.push(slot);
                 return [];
             } else if (directive === "RET_TYPE") {
                 if (this.returnTypeExpression.get() !== null) {
@@ -66,8 +66,8 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifier.getDisplayString();
         const output = [`${typeText} ${identifierText}`];
-        this.argVariableDefinitions.forEach((definition) => {
-            output.push(definition.getDisplayString());
+        this.argVariableDefinitions.forEach((slot) => {
+            output.push(slot.get().getDisplayString());
         });
         if (this.returnTypeExpression !== null) {
             output.push("Return type: " + this.returnTypeExpression.get().getDisplayString());

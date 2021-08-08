@@ -1,7 +1,7 @@
 
 import { Displayable, IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
-import { CompilerError } from "./compilerError.js";
+import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
 import { Statement } from "./statement.js";
@@ -75,8 +75,7 @@ class IfClause {
     }
 }
 
-export class StatementBlock extends Node implements Displayable {
-    pos: Pos;
+export class StatementBlock extends Node {
     statements: NodeSlot<Statement>[];
     identifierDefinitions: NodeSlot<IdentifierDefinitionMap>;
     
@@ -92,10 +91,6 @@ export class StatementBlock extends Node implements Displayable {
         return this.getParentByFilter(
             (node) => node instanceof StatementBlock,
         ) as StatementBlock;
-    }
-    
-    createError(message: string): CompilerError {
-        return new CompilerError(message, this.pos);
     }
     
     addStatement(statement: Statement): void {
@@ -125,8 +120,8 @@ export class StatementBlock extends Node implements Displayable {
         return null;
     }
     
-    addIdentifierDefinition(definition: IdentifierDefinition): void {
-        this.identifierDefinitions.get().add(definition);
+    addIdentifierDefinition<T extends IdentifierDefinition>(definition: T): NodeSlot<T> {
+        return this.identifierDefinitions.get().add(definition);
     }
     
     // TODO: Move this logic into parseUtils.
@@ -304,5 +299,7 @@ export class StatementBlock extends Node implements Displayable {
         )).join("\n");
     }
 }
+
+constructors.StatementBlock = StatementBlock;
 
 

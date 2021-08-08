@@ -82,13 +82,15 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
         }
     }
     
-    add(definition: T): void {
+    add<T2 extends T>(definition: T2): NodeSlot<T2> {
         const key = definition.identifier.getKey();
         if (key in this.map) {
             throw new CompilerError("Duplicate identifier.");
         }
-        this.map[key] = this.addSlot(definition);
+        const slot = this.addSlot(definition);
+        this.map[key] = slot;
         this.keys.push(key);
+        return slot;
     }
     
     iterate(handle: (definition: T) => void): void {
@@ -107,6 +109,14 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
     
     getSize(): number {
         return this.keys.length;
+    }
+    
+    getDisplayString(): string {
+        const lines: string[] = [];
+        this.iterate((definition) => {
+            lines.push(`${definition.identifier.getDisplayString()}: ${definition.getDisplayString()}`);
+        });
+        return lines.join("\n");
     }
 }
 

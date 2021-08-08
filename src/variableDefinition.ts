@@ -4,7 +4,7 @@ import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 
-export abstract class VariableDefinition extends Node implements Displayable, IdentifierDefinition {
+export abstract class VariableDefinition extends Node implements IdentifierDefinition {
     identifier: Identifier;
     typeExpression: NodeSlot<Expression>;
     

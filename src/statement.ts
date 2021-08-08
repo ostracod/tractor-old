@@ -2,19 +2,16 @@
 import * as niceUtils from "./niceUtils.js";
 import { Displayable } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
-import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
-import { StatementGenerator } from "./statementGenerator.js";
 import { Compiler } from "./compiler.js";
 import { Expression, processExpressionList, expandInlineFunctions } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
-export class Statement extends Node implements Displayable {
+export class Statement extends Node {
     type: StatementType;
     modifiers: string[];
-    pos: Pos;
     args: NodeSlot<Expression>[];
     block: NodeSlot<StatementBlock>;
     
@@ -22,7 +19,6 @@ export class Statement extends Node implements Displayable {
         super();
         this.type = type;
         this.modifiers = modifiers;
-        this.pos = null;
         this.args = this.addSlots(args);
         this.block = this.addSlot();
         this.type.validateModifiers(this.modifiers);
@@ -37,25 +33,6 @@ export class Statement extends Node implements Displayable {
     
     getCompiler(): Compiler {
         return this.pos.sourceFile.compiler;
-    }
-    
-    createError(message: string): CompilerError {
-        return new CompilerError(message, this.pos);
-    }
-    
-    handleError(error: Error): void {
-        if (error instanceof CompilerError && error.pos === null) {
-            error.pos = this.pos;
-        }
-        throw error;
-    }
-    
-    createStatementBlock(statements: Statement[] = []): StatementBlock {
-        return new StatementBlock(this.pos, statements);
-    }
-    
-    createStatementGenerator(destination: Statement[] = null): StatementGenerator {
-        return new StatementGenerator(this.pos, destination);
     }
     
     processArgs(handle: (expression: Expression) => Expression): void {
@@ -110,11 +87,9 @@ export abstract class ImportStatement extends Statement {
     abstract importFilesHelper(): void;
     
     importFiles(): void {
-        try {
+        this.tryOperation(() => {
             this.importFilesHelper();
-        } catch (error) {
-            this.handleError(error);
-        }
+        });
     }
 }
 
@@ -146,21 +121,19 @@ export class ForeignImportStatement extends ImportStatement {
 
 export abstract class FunctionStatement extends Statement {
     
-    abstract createFunctionDefinitionHelper(): FunctionDefinition;
+    abstract createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition>;
     
     createFunctionDefinition(): void {
-        try {
-            const definition = this.createFunctionDefinitionHelper();
-            this.getCompiler().functionDefinitions.push(definition);
-        } catch (error) {
-            this.handleError(error);
-        }
+        this.tryOperation(() => {
+            const slot = this.createFunctionDefinitionHelper();
+            this.getCompiler().functionDefinitions.push(slot);
+        });
     }
 }
 
 export class IdentifierFunctionStatement extends FunctionStatement {
     
-    createFunctionDefinitionHelper(): FunctionDefinition {
+    createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
         const identifier = this.args[0].get().evaluateToIdentifier();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
@@ -170,23 +143,23 @@ export class IdentifierFunctionStatement extends FunctionStatement {
         }
         const definition = new definitionConstructor(identifier, this.block.get());
         const rootBlock = this.getCompiler().rootBlock.get();
-        rootBlock.addIdentifierDefinition(definition);
-        return definition;
+        const slot = rootBlock.addIdentifierDefinition(definition);
+        return slot;
     }
 }
 
 export class InitFunctionStatement extends FunctionStatement {
     
-    createFunctionDefinitionHelper(): FunctionDefinition {
+    createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
         const compiler = this.getCompiler();
         if (compiler.initFunctionDefinition !== null) {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }
         const definition = new InitFunctionDefinition(this.block.get());
-        compiler.initFunctionDefinition = definition;
         const rootBlock = this.getCompiler().rootBlock.get();
-        rootBlock.addSlot(definition);
-        return definition;
+        const slot = rootBlock.addSlot(definition);
+        compiler.initFunctionDefinition = slot;
+        return slot;
     }
 }
 

@@ -1,12 +1,24 @@
 
-export class Node {
+import { Displayable } from "./interfaces.js";
+import { constructors } from "./constructors.js";
+import { CompilerError } from "./compilerError.js";
+import { Pos } from "./pos.js";
+import { Statement } from "./statement.js";
+import { StatementBlock } from "./statementBlock.js";
+import { StatementGenerator } from "./statementGenerator.js";
+
+export abstract class Node implements Displayable {
     parentSlot: NodeSlot;
     slots: { [slotId: string]: NodeSlot };
+    pos: Pos;
     
     constructor() {
         this.parentSlot = null;
         this.slots = {};
+        this.pos = null;
     }
+    
+    abstract getDisplayString(): string;
     
     getParentNode(): Node {
         if (this.parentSlot === null) {
@@ -59,6 +71,41 @@ export class Node {
     removeSlot(slot: NodeSlot): void {
         slot.parentNode = null;
         delete this.slots[slot.id];
+    }
+    
+    getPos(): Pos {
+        let node: Node = this;
+        while (node !== null) {
+            const { pos } = node;
+            if (pos !== null) {
+                return pos;
+            }
+            node = node.getParentNode();
+        }
+        return null;
+    }
+    
+    createError(message: string): CompilerError {
+        return new CompilerError(message, this.getPos());
+    }
+    
+    tryOperation(operation: () => void): void {
+        try {
+            operation();
+        } catch (error) {
+            if (error instanceof CompilerError && error.pos === null) {
+                error.pos = this.getPos();
+            }
+            throw error;
+        }
+    }
+    
+    createStatementBlock(statements: Statement[] = []): StatementBlock {
+        return new constructors.StatementBlock(this.getPos(), statements);
+    }
+    
+    createStatementGenerator(destination: Statement[] = null): StatementGenerator {
+        return new constructors.StatementGenerator(this.getPos(), destination);
     }
 }
 
