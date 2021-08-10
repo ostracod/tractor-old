@@ -1,6 +1,7 @@
 
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
+import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { CompItem, CompString, CompFunctionHandle } from "./compItem.js";
@@ -34,23 +35,6 @@ export const expandInlineFunctions = (
 };
 
 export abstract class Expression extends Node {
-    
-    // If handle returns an expression, then the output
-    // will replace the original expression. If handle
-    // returns null, then no modification occurs.
-    processExpressions(handle: (expression: Expression) => Expression): void {
-        this.processNodes((node) => {
-            if (node instanceof Expression) {
-                return handle(node);
-            }
-            return null;
-        }, true);
-        
-    }
-    
-    getParentStatement(): Statement {
-        return this.getParentByFilter((node) => node instanceof Statement) as Statement;
-    }
     
     evaluateToCompItemOrNull(): CompItem {
         return null;
@@ -127,7 +111,7 @@ export class IdentifierExpression extends Expression  {
     }
     
     resolveCompItems(): Expression {
-        const parentBlock = this.getParentStatement().getParentBlock();
+        const parentBlock = this.getParentBlock();
         const definition = parentBlock.getIdentifierDefinition(this.identifier);
         if (definition instanceof IdentifierFunctionDefinition) {
             const compItem = new CompFunctionHandle(definition);
@@ -215,5 +199,7 @@ export class ListExpression extends Expression {
         return `{${textList.join(", ")}}`;
     }
 }
+
+constructors.Expression = Expression;
 
 

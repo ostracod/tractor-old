@@ -87,12 +87,6 @@ export class StatementBlock extends Node {
         this.identifierDefinitions = this.addSlot(new IdentifierDefinitionMap());
     }
     
-    getParentBlock(): StatementBlock {
-        return this.getParentByFilter(
-            (node) => node instanceof StatementBlock,
-        ) as StatementBlock;
-    }
-    
     addStatement(statement: Statement): void {
         const slot = this.addSlot(statement);
         this.statements.push(slot);
@@ -156,24 +150,13 @@ export class StatementBlock extends Node {
         }
     }
     
-    // If handle returns a list of statements, then the
-    // list will replace the original statement. If handle
-    // returns null, then no modification occurs.
-    processStatements(
-        handle: (statement: Statement) => Statement[],
-        shouldRecur = false,
-    ): void {
+    processBlockStatements(handle: (statement: Statement) => Statement[]): void {
         const nextStatements = [];
         this.statements.forEach((slot) => {
             const statement = slot.get();
             const result = handle(statement);
             if (result === null) {
-                if (shouldRecur) {
-                    const nestedBlock = statement.block.get();
-                    if (nestedBlock !== null) {
-                        nestedBlock.processStatements(handle, shouldRecur);
-                    }
-                }
+                statement.processBlockStatements(handle);
                 nextStatements.push(statement);
             } else {
                 niceUtils.extendList(nextStatements, result);
@@ -231,7 +214,7 @@ export class StatementBlock extends Node {
         startIdentifier: Identifier,
         endIdentifier: Identifier,
     ): void {
-        this.processStatements((statement) => {
+        this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             let identifier: Identifier = null;
             if (directive === "BREAK") {
@@ -243,7 +226,7 @@ export class StatementBlock extends Node {
             }
             const generator = statement.createStatementGenerator();
             return [generator.createJumpStatement(identifier)];
-        }, true);
+        });
     }
     
     transformWhileStatement(destination: Statement[], whileStatement: Statement): void {
@@ -280,17 +263,6 @@ export class StatementBlock extends Node {
             }
         }
         this.setStatements(nextStatements);
-    }
-    
-    resolveCompItems(): void {
-        this.processStatements((statement) => {
-            statement.resolveCompItems();
-            return null;
-        }, true);
-    }
-    
-    expandInlineFunctions(): void {
-        this.processStatements((statement) => statement.expandInlineFunctions(), true);
     }
     
     getDisplayString(indentationLevel = 0): string {

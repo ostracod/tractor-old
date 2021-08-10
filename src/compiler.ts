@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
+import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
@@ -126,44 +127,46 @@ export class Compiler extends Node {
     }
     
     extractFunctionDefinitions(): void {
-        this.rootBlock.get().processStatements((statement) => {
+        this.rootBlock.get().processBlockStatements((statement) => {
             if (statement instanceof FunctionStatement) {
                 statement.createFunctionDefinition();
                 return [];
             }
-            return null;
+            return [statement];
         });
         if (this.initFunctionDefinition === null) {
             throw new CompilerError("Missing INIT_FUNC statement.");
         }
     }
     
-    // Does not process inline function definitions.
-    processStatementBlocks(handle: (block: StatementBlock) => void): void {
+    iterateOverExpandedNodes(handle: (node: Node) => void): void {
         handle(this.rootBlock.get());
         this.functionDefinitions.forEach((slot) => {
             const definition = slot.get();
             if (!(definition instanceof InlineFunctionDefinition)) {
-                handle(definition.block.get());
+                handle(definition);
             }
         });
     }
     
     transformControlFlow(): void {
-        this.processStatementBlocks((block) => {
-            block.transformControlFlow();
+        this.iterateOverExpandedNodes((node) => {
+            node.processBlocks((block) => {
+                block.transformControlFlow();
+                return null;
+            });
         });
     }
     
     resolveCompItems(): void {
-        this.processStatementBlocks((block) => {
-            block.resolveCompItems();
+        this.iterateOverExpandedNodes((node) => {
+            node.processExpressions((expression) => expression.resolveCompItems());
         });
     }
     
     expandInlineFunctions(): void {
-        this.processStatementBlocks((block) => {
-            block.expandInlineFunctions();
+        this.iterateOverExpandedNodes((node) => {
+            node.processBlockStatements((statement) => statement.expandInlineFunctions());
         });
     }
     
@@ -199,5 +202,7 @@ export class Compiler extends Node {
         }
     }
 }
+
+constructors.Compiler = Compiler;
 
 

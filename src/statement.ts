@@ -6,7 +6,7 @@ import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Compiler } from "./compiler.js";
-import { Expression, processExpressionList, expandInlineFunctions } from "./expression.js";
+import { Expression, expandInlineFunctions } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export class Statement extends Node {
@@ -25,29 +25,11 @@ export class Statement extends Node {
         this.type.validateArgCount(this.args.length);
     }
     
-    getParentBlock(): StatementBlock {
-        return this.getParentByFilter(
-            (node) => node instanceof StatementBlock,
-        ) as StatementBlock;
-    }
-    
-    getCompiler(): Compiler {
-        return this.pos.sourceFile.compiler;
-    }
-    
-    processArgs(handle: (expression: Expression) => Expression): void {
-        processExpressionList(this.args, handle);
-    }
-    
-    resolveCompItems(): void {
-        this.processArgs((expression) => expression.resolveCompItems());
-    }
-    
     // TODO: SCOPE, STRUCT, and UNION statements should also
     // expand inline functions in nested block.
     expandInlineFunctions(): Statement[] {
         const statements = expandInlineFunctions((handle) => {
-            this.processArgs(handle);
+            this.processExpressions(handle);
         });
         if (statements.length <= 0) {
             return null;

@@ -3,9 +3,11 @@ import { Displayable } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Pos } from "./pos.js";
+import { Compiler } from "./compiler.js";
 import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
+import { Expression } from "./expression.js";
 
 export abstract class Node implements Displayable {
     parentSlot: NodeSlot;
@@ -38,7 +40,25 @@ export abstract class Node implements Displayable {
         return null;
     }
     
-    processNodes(handle: (node: Node) => Node, shouldRecur: boolean): void {
+    getParentByClass<T extends Node>(constructor: Function & { prototype: T }): T {
+        return this.getParentByFilter((node) => node instanceof constructor) as T;
+    }
+    
+    getParentBlock(): StatementBlock {
+        return this.getParentByClass(constructors.StatementBlock);
+    }
+    
+    getCompiler(): Compiler {
+        return this.getParentByClass(constructors.Compiler);
+    }
+    
+    // If handle returns a node:
+    //   > processNodes will replace the original node
+    //   > processNodes will not recur
+    // If handle returns null:
+    //   > processNodes will not replace the original node
+    //   > processNodes will recur
+    processNodes(handle: (node: Node) => Node): void {
         for (const key in this.slots) {
             const slot = this.slots[key];
             const node = slot.get();
@@ -47,13 +67,38 @@ export abstract class Node implements Displayable {
             }
             const result = handle(node);
             if (result === null) {
-                if (shouldRecur) {
-                    node.processNodes(handle, shouldRecur);
-                }
+                node.processNodes(handle);
             } else {
                 slot.set(result);
             }
         }
+    }
+    
+    processNodesByClass<T extends Node>(
+        constructor: Function & { prototype: T },
+        handle: (node: T) => T,
+    ): void {
+        this.processNodes((node) => {
+            if (node instanceof constructor) {
+                return handle(node as T);
+            }
+            return null;
+        });
+    }
+    
+    processExpressions(handle: (expression: Expression) => Expression): void {
+        this.processNodesByClass(constructors.Expression, handle);
+    }
+    
+    processBlocks(handle: (block: StatementBlock) => StatementBlock): void {
+        this.processNodesByClass(constructors.StatementBlock, handle);
+    }
+    
+    processBlockStatements(handle: (statement: Statement) => Statement[]): void {
+        this.processNodesByClass(constructors.StatementBlock, (block) => {
+            block.processBlockStatements(handle);
+            return null;
+        });
     }
     
     addSlot<T extends Node>(node: T = null): NodeSlot<T> {

@@ -39,7 +39,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         this.identifier = identifier;
         this.argVariableDefinitions = [];
         this.returnTypeExpression = this.addSlot();
-        this.block.get().processStatements((statement) => {
+        this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
                 const identifier = statement.args[0].get().evaluateToIdentifier();
@@ -56,7 +56,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
                 this.returnTypeExpression.set(typeExpression);
                 return [];
             }
-            return null;
+            return [statement];
         });
     }
     
