@@ -1,5 +1,5 @@
 
-import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Identifier } from "./identifier.js";
@@ -69,8 +69,9 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         this.argVariableDefinitions.forEach((slot) => {
             output.push(slot.get().getDisplayString());
         });
-        if (this.returnTypeExpression !== null) {
-            output.push("Return type: " + this.returnTypeExpression.get().getDisplayString());
+        const returnTypeExpression = this.returnTypeExpression.get();
+        if (returnTypeExpression !== null) {
+            output.push("Return type: " + returnTypeExpression.getDisplayString());
         }
         return output.join("\n");
     }

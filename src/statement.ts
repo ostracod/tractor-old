@@ -1,11 +1,8 @@
 
 import * as niceUtils from "./niceUtils.js";
-import { Displayable } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
-import { CompilerError } from "./compilerError.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
-import { Compiler } from "./compiler.js";
 import { Expression, expandInlineFunctions } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
@@ -133,14 +130,13 @@ export class IdentifierFunctionStatement extends FunctionStatement {
 export class InitFunctionStatement extends FunctionStatement {
     
     createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
-        const compiler = this.getCompiler();
-        if (compiler.initFunctionDefinition !== null) {
-            throw this.createError("Expected exactly one INIT_FUNC statement.");
-        }
         const definition = new InitFunctionDefinition(this.block.get());
         const rootBlock = this.getCompiler().rootBlock.get();
-        const slot = rootBlock.addSlot(definition);
-        compiler.initFunctionDefinition = slot;
+        const slot = rootBlock.initFunctionDefinition;
+        if (slot.get() !== null) {
+            throw this.createError("Expected exactly one INIT_FUNC statement.");
+        }
+        slot.set(definition);
         return slot;
     }
 }

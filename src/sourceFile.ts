@@ -4,19 +4,15 @@ import * as parseUtils from "./parseUtils.js";
 import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import { CompilerError } from "./compilerError.js";
-import { Compiler } from "./compiler.js";
 import { Token } from "./token.js";
 import { TokenLine } from "./tokenLine.js";
 import { Statement } from "./statement.js";
-import { StatementBlock } from "./statementBlock.js";
 
 export class SourceFile implements Displayable {
-    compiler: Compiler;
     path: string;
     lines: string[];
     
-    constructor(compiler: Compiler, path: string) {
-        this.compiler = compiler;
+    constructor(path: string) {
         this.path = path;
         if (!fs.existsSync(this.path)) {
             throw new CompilerError(`Could not find source file at "${this.path}".`);
@@ -31,12 +27,23 @@ export class SourceFile implements Displayable {
 
 export class TractorFile extends SourceFile {
     tokenLines: TokenLine[];
-    block: StatementBlock;
+    statements: Statement[];
     
-    constructor(compiler: Compiler, path: string) {
-        super(compiler, path);
+    constructor(path: string) {
+        super(path);
         this.parseLines();
         this.parseTokens();
+    }
+    
+    tryOperation(pos: Pos, operation: () => void): void {
+        try {
+            operation();
+        } catch (error) {
+            if (error instanceof CompilerError && error.pos === null) {
+                error.pos = pos;
+            }
+            throw error;
+        }
     }
     
     parseLines(): void {
@@ -44,14 +51,9 @@ export class TractorFile extends SourceFile {
         this.lines.forEach((line, index) => {
             const pos = new Pos(this, index + 1);
             let tokens: Token[];
-            try {
+            this.tryOperation(pos, () => {
                 tokens = parseUtils.parseLine(line);
-            } catch (error) {
-                if (error instanceof CompilerError) {
-                    error.pos = pos;
-                }
-                throw error;
-            }
+            });
             if (tokens.length > 0) {
                 const tokenLine = new TokenLine(tokens, pos);
                 this.tokenLines.push(tokenLine);
@@ -63,23 +65,20 @@ export class TractorFile extends SourceFile {
         const statements = this.tokenLines.map((tokenLine) => {
             const { pos } = tokenLine;
             let statement: Statement;
-            try {
+            this.tryOperation(pos, () => {
                 statement = parseUtils.parseTokens(tokenLine.tokens);
-            } catch (error) {
-                if (error instanceof CompilerError) {
-                    error.pos = pos;
-                }
-                throw error;
-            }
+            });
             statement.pos = pos;
             return statement;
         });
-        this.block = new StatementBlock(new Pos(this), statements);
-        this.block.collapse();
+        this.tryOperation(new Pos(this), () => {
+            this.statements = parseUtils.collapseBlocks(statements);
+        });
     }
     
     getDisplayString(): string {
-        return this.block.getDisplayString();
+        const lines = this.statements.map((statement) => statement.getDisplayString());
+        return lines.join("\n");
     }
 }
 

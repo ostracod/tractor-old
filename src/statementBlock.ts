@@ -1,5 +1,5 @@
 
-import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
@@ -8,6 +8,7 @@ import { Statement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierDefinitionMap } from "./identifier.js";
+import { InitFunctionDefinition } from "./functionDefinition.js";
 
 class IfClause {
     destination: Statement[];
@@ -116,38 +117,6 @@ export class StatementBlock extends Node {
     
     addIdentifierDefinition<T extends IdentifierDefinition>(definition: T): NodeSlot<T> {
         return this.identifierDefinitions.get().add(definition);
-    }
-    
-    // TODO: Move this logic into parseUtils.
-    collapse(): void {
-        const blockStack: StatementBlock[] = [this];
-        const statements = this.statements.map((slot) => slot.get());
-        this.setStatements([]);
-        statements.forEach((statement) => {
-            const statementType = statement.type;
-            if (statementType.isBlockEnd) {
-                blockStack.pop();
-                if (blockStack.length <= 0) {
-                    throw statement.createError(
-                        `Unexpected "${statementType.directive}" statement.`,
-                    );
-                }
-                if (!statementType.isBlockStart) {
-                    return;
-                }
-            }
-            const lastBlock = blockStack[blockStack.length - 1];
-            if (statementType.isBlockStart) {
-                const block = statement.createStatementBlock();
-                statement.block.set(block);
-                blockStack.push(block);
-            }
-            lastBlock.addStatement(statement);
-        });
-        if (blockStack.length > 1) {
-            const lastBlock = blockStack[blockStack.length - 1];
-            throw lastBlock.createError("Missing END statement.");
-        }
     }
     
     processBlockStatements(handle: (statement: Statement) => Statement[]): void {
@@ -269,6 +238,15 @@ export class StatementBlock extends Node {
         return this.statements.map((slot) => (
             slot.get().getDisplayString(indentationLevel)
         )).join("\n");
+    }
+}
+
+export class RootStatementBlock extends StatementBlock {
+    initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
+    
+    constructor() {
+        super();
+        this.initFunctionDefinition = this.addSlot();
     }
 }
 

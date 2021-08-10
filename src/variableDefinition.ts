@@ -1,5 +1,5 @@
 
-import { Displayable, IdentifierDefinition } from "./interfaces.js";
+import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";

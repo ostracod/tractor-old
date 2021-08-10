@@ -7,9 +7,9 @@ import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
-import { Statement, ImportStatement, FunctionStatement } from "./statement.js";
-import { StatementBlock } from "./statementBlock.js";
-import { FunctionDefinition, IdentifierFunctionDefinition, InitFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
+import { ImportStatement, FunctionStatement } from "./statement.js";
+import { RootStatementBlock } from "./statementBlock.js";
+import { FunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 
 export class Compiler extends Node {
     projectPath: string;
@@ -20,9 +20,8 @@ export class Compiler extends Node {
     buildFileName: string;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
-    initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
     functionDefinitions: NodeSlot<FunctionDefinition>[];
-    rootBlock: NodeSlot<StatementBlock>;
+    rootBlock: NodeSlot<RootStatementBlock>;
     
     constructor(projectPath: string, configNames: string[]) {
         super();
@@ -31,9 +30,8 @@ export class Compiler extends Node {
         this.configNames = configNames;
         this.importedPaths = new Set();
         this.foreignFiles = [];
-        this.initFunctionDefinition = null;
         this.functionDefinitions = [];
-        this.rootBlock = this.addSlot(new StatementBlock());
+        this.rootBlock = this.addSlot(new RootStatementBlock());
     }
     
     readConfig(): void {
@@ -102,8 +100,8 @@ export class Compiler extends Node {
         if (absolutePath === null) {
             return;
         }
-        const tractorFile = new TractorFile(this, absolutePath);
-        const statements = tractorFile.block.statements.map((slot) => slot.get());
+        const tractorFile = new TractorFile(absolutePath);
+        const { statements } = tractorFile;
         const importStatements: ImportStatement[] = [];
         statements.forEach((statement) => {
             if (statement instanceof ImportStatement) {
@@ -122,19 +120,20 @@ export class Compiler extends Node {
         if (absolutePath === null) {
             return;
         }
-        const foreignFile = new SourceFile(this, absolutePath);
+        const foreignFile = new SourceFile(absolutePath);
         this.foreignFiles.push(foreignFile);
     }
     
     extractFunctionDefinitions(): void {
-        this.rootBlock.get().processBlockStatements((statement) => {
+        const rootBlock = this.rootBlock.get();
+        rootBlock.processBlockStatements((statement) => {
             if (statement instanceof FunctionStatement) {
                 statement.createFunctionDefinition();
                 return [];
             }
             return [statement];
         });
-        if (this.initFunctionDefinition === null) {
+        if (rootBlock.initFunctionDefinition.get() === null) {
             throw new CompilerError("Missing INIT_FUNC statement.");
         }
     }

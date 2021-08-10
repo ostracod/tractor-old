@@ -416,4 +416,39 @@ export const parseTokens = (tokens: Token[]): Statement => {
     return statementType.createStatement(modifiers, result.expressions);
 };
 
+export const collapseBlocks = (inputStatements: Statement[]): Statement[] => {
+    const getLast = <T>(list: T[]) => list[list.length - 1];
+    const output: Statement[] = [];
+    const statementsStack: Statement[][] = [output];
+    inputStatements.forEach((statement) => {
+        const statementType = statement.type;
+        let nestedStatements: Statement[] = null;
+        if (statementType.isBlockEnd) {
+            nestedStatements = statementsStack.pop();
+            if (statementsStack.length <= 0) {
+                throw statement.createError(
+                    `Unexpected "${statementType.directive}" statement.`,
+                );
+            }
+        }
+        const statements = getLast(statementsStack);
+        if (nestedStatements !== null) {
+            const parentStatement = getLast(statements);
+            const block = parentStatement.createStatementBlock(nestedStatements);
+            parentStatement.block.set(block);
+            if (!statementType.isBlockStart) {
+                return;
+            }
+        }
+        statements.push(statement);
+        if (statementType.isBlockStart) {
+            statementsStack.push([]);
+        }
+    });
+    if (statementsStack.length > 1) {
+        throw new CompilerError("Missing END statement.");
+    }
+    return output;
+};
+
 
