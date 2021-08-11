@@ -74,11 +74,17 @@ export class Statement extends Node {
     
     copy(): Statement {
         const args = this.args.map((slot) => slot.get().copy());
-        return new (this.constructor as StatementConstructor)(
+        const output = new (this.constructor as StatementConstructor)(
             this.type,
             this.modifiers.slice(),
             args,
         );
+        output.pos = this.pos;
+        const block = this.block.get();
+        if (block !== null) {
+            output.block.set(block.copy());
+        }
+        return output;
     }
 }
 

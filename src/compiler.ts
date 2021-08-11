@@ -7,8 +7,9 @@ import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
+import { Expression } from "./expression.js";
 import { ImportStatement, FunctionStatement } from "./statement.js";
-import { RootStatementBlock } from "./statementBlock.js";
+import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { FunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 
 export class Compiler extends Node {
@@ -138,34 +139,45 @@ export class Compiler extends Node {
         }
     }
     
-    iterateOverExpandedNodes(handle: (node: Node) => void): void {
-        handle(this.rootBlock.get());
-        this.functionDefinitions.forEach((slot) => {
-            const definition = slot.get();
-            if (!(definition instanceof InlineFunctionDefinition)) {
-                handle(definition);
+    iterateOverExpandedNodes<T extends Node>(
+        constructor: Function & { prototype: T },
+        handle: (node: T) => T,
+    ): void {
+        this.processNodes((node) => {
+            if (node instanceof InlineFunctionDefinition) {
+                return node;
+            }
+            if (node instanceof constructor) {
+                return handle(node as T);
+            } else {
+                return null;
             }
         });
     }
     
+    iterateOverExpandedBlocks(handle: (node: StatementBlock) => void): void {
+        this.iterateOverExpandedNodes(StatementBlock, (block) => {
+            handle(block);
+            return null;
+        });
+    }
+    
     transformControlFlow(): void {
-        this.iterateOverExpandedNodes((node) => {
-            node.processBlocks((block) => {
-                block.transformControlFlow();
-                return null;
-            });
+        this.iterateOverExpandedBlocks((block) => {
+            block.transformControlFlow();
         });
     }
     
     resolveCompItems(): void {
-        this.iterateOverExpandedNodes((node) => {
-            node.processExpressions((expression) => expression.resolveCompItems());
-        });
+        this.iterateOverExpandedNodes(
+            Expression,
+            (expression) => expression.resolveCompItems(),
+        );
     }
     
     expandInlineFunctions(): void {
-        this.iterateOverExpandedNodes((node) => {
-            node.processBlockStatements((statement) => statement.expandInlineFunctions());
+        this.iterateOverExpandedBlocks((block) => {
+            block.processBlockStatements((statement) => statement.expandInlineFunctions());
         });
     }
     

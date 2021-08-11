@@ -109,8 +109,11 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
             );
             output.push(variableStatement);
         });
-        // TODO: Finish this function.
-        console.log(identifierMap.getDisplayString());
+        this.block.get().statements.forEach((slot) => {
+            const statement = slot.get().copy();
+            output.push(statement);
+        });
+        // TODO: Replace identifiers and RET statements.
         
         return output;
     }

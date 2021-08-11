@@ -77,6 +77,11 @@ class IfClause {
     }
 }
 
+export type StatementBlockConstructor = new (
+    pos?: Pos,
+    statements?: Statement[],
+) => StatementBlock;
+
 export class StatementBlock extends Node {
     statements: NodeSlot<Statement>[];
     scope: NodeSlot<Scope>;
@@ -240,13 +245,18 @@ export class StatementBlock extends Node {
             slot.get().getDisplayString(indentationLevel)
         )).join("\n");
     }
+    
+    copy(): StatementBlock {
+        const statements = this.statements.map((slot) => slot.get().copy());
+        return new (this.constructor as StatementBlockConstructor)(this.pos, statements);
+    }
 }
 
 export class RootStatementBlock extends StatementBlock {
     initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
     
-    constructor() {
-        super();
+    constructor(pos: Pos = null, statements: Statement[] = []) {
+        super(pos, statements);
         this.initFunctionDefinition = this.addSlot();
     }
 }
