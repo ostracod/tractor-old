@@ -1,8 +1,10 @@
 
 import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
+import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
-import { Identifier } from "./identifier.js";
+import { StatementGenerator } from "./statementGenerator.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { Expression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 
@@ -27,7 +29,7 @@ export abstract class FunctionDefinition extends Node {
 export type IdentifierFunctionDefinitionConstructor = new (
     identifier: Identifier,
     block: StatementBlock,
-) => InlineFunctionDefinition;
+) => IdentifierFunctionDefinition;
 
 export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
     identifier: Identifier;
@@ -88,6 +90,56 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
     
     getFunctionTypeName(): string {
         return "Inline function";
+    }
+    
+    expandInlineHelper(
+        args: Expression[],
+        returnValueIdentifier: Identifier,
+        generator: StatementGenerator,
+    ): Statement[] {
+        const output = [];
+        const identifierMap = new IdentifierMap<Identifier>();
+        this.argVariableDefinitions.forEach((slot) => {
+            const argVariableDefinition = slot.get();
+            const identifier = new NumberIdentifier();
+            identifierMap.add(argVariableDefinition.identifier, identifier);
+            const variableStatement = generator.createSoftVarStatement(
+                identifier,
+                argVariableDefinition.typeExpression.get().copy(),
+            );
+            output.push(variableStatement);
+        });
+        // TODO: Finish this function.
+        console.log(identifierMap.getDisplayString());
+        
+        return output;
+    }
+    
+    expandInline(args: Expression[], generator: StatementGenerator): {
+        statements: Statement[],
+        returnValueIdentifier: Identifier,
+    } {
+        const statements: Statement[] = [];
+        let returnValueIdentifier: Identifier;
+        const returnTypeExpression = this.returnTypeExpression.get();
+        if (this.returnTypeExpression === null) {
+            returnValueIdentifier = null;
+        } else {
+            returnValueIdentifier = new NumberIdentifier();
+            const variableStatement = generator.createSoftVarStatement(
+                returnValueIdentifier,
+                returnTypeExpression.copy(),
+            );
+            statements.push(variableStatement);
+        }
+        const result = this.expandInlineHelper(args, returnValueIdentifier, generator);
+        const block = this.createStatementBlock(result);
+        const scopeStatement = generator.createScopeStatement(block);
+        statements.push(scopeStatement);
+        return {
+            statements,
+            returnValueIdentifier
+        };
     }
 }
 

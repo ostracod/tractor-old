@@ -7,7 +7,8 @@ import { Pos } from "./pos.js";
 import { Statement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier, IdentifierDefinitionMap } from "./identifier.js";
+import { Identifier, NumberIdentifier } from "./identifier.js";
+import { Scope } from "./scope.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
 
 class IfClause {
@@ -78,14 +79,14 @@ class IfClause {
 
 export class StatementBlock extends Node {
     statements: NodeSlot<Statement>[];
-    identifierDefinitions: NodeSlot<IdentifierDefinitionMap>;
+    scope: NodeSlot<Scope>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super();
         this.pos = pos;
         this.statements = [];
         this.setStatements(statements);
-        this.identifierDefinitions = this.addSlot(new IdentifierDefinitionMap());
+        this.scope = this.addSlot(new Scope());
     }
     
     addStatement(statement: Statement): void {
@@ -104,7 +105,7 @@ export class StatementBlock extends Node {
     }
     
     getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
-        const definition = this.identifierDefinitions.get().get(identifier);
+        const definition = this.scope.get().get(identifier);
         if (definition !== null) {
             return definition;
         }
@@ -116,7 +117,7 @@ export class StatementBlock extends Node {
     }
     
     addIdentifierDefinition<T extends IdentifierDefinition>(definition: T): NodeSlot<T> {
-        return this.identifierDefinitions.get().add(definition);
+        return this.scope.get().add(definition);
     }
     
     processBlockStatements(handle: (statement: Statement) => Statement[]): void {

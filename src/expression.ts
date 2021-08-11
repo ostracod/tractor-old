@@ -1,38 +1,15 @@
 
-import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { CompItem, CompString, CompFunctionHandle } from "./compItem.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
-import { IdentifierFunctionDefinition } from "./functionDefinition.js";
-
-export const processExpressionList = (
-    expressions: NodeSlot<Expression>[],
-    handle: (expression: Expression) => Expression,
-): void => {
-    expressions.forEach((slot) => {
-        const expression = handle(slot.get());
-        if (expression !== null) {
-            slot.set(expression);
-        }
-    });
-}
-
-export const expandInlineFunctions = (
-    process: (handle: (expression: Expression) => Expression) => void,
-): Statement[] => {
-    const output: Statement[] = [];
-    process((expression) => {
-        const result = expression.expandInlineFunctions();
-        niceUtils.extendList(output, result.statements);
-        return result.expression;
-    });
-    return output;
-};
+import { IdentifierFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 
 export abstract class Expression extends Node {
+    
+    abstract copy(): Expression;
     
     evaluateToCompItemOrNull(): CompItem {
         return null;
@@ -68,10 +45,7 @@ export abstract class Expression extends Node {
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
-        const statements = expandInlineFunctions((handle) => {
-            this.processExpressions(handle);
-        });
-        return { expression: null, statements };
+        return null;
     }
 }
 
@@ -85,6 +59,10 @@ export class CompItemExpression extends Expression {
     
     getDisplayString(): string {
         return this.item.getDisplayString();
+    }
+    
+    copy(): Expression {
+        return new CompItemExpression(this.item);
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -102,6 +80,10 @@ export class IdentifierExpression extends Expression  {
     
     getDisplayString(): string {
         return this.identifier.getDisplayString();
+    }
+    
+    copy(): Expression {
+        return new IdentifierExpression(this.identifier);
     }
     
     evaluateToIdentifierOrNull(): Identifier {
@@ -132,6 +114,13 @@ export class UnaryExpression extends Expression {
     getDisplayString(): string {
         return `${this.operator.text}(${this.operand.get().getDisplayString()})`;
     }
+    
+    copy(): Expression {
+        return new UnaryExpression(
+            this.operator,
+            this.operand.get().copy(),
+        );
+    }
 }
 
 export class BinaryExpression extends Expression {
@@ -149,6 +138,14 @@ export class BinaryExpression extends Expression {
     getDisplayString(): string {
         return `(${this.operand1.get().getDisplayString()} ${this.operator.text} ${this.operand2.get().getDisplayString()})`;
     }
+    
+    copy(): Expression {
+        return new BinaryExpression(
+            this.operator,
+            this.operand1.get().copy(),
+            this.operand2.get().copy(),
+        );
+    }
 }
 
 export class SubscriptExpression extends Expression {
@@ -164,6 +161,13 @@ export class SubscriptExpression extends Expression {
     getDisplayString(): string {
         return `${this.arrayExpression.get().getDisplayString()}[${this.indexExpression.get().getDisplayString()}]`;
     }
+    
+    copy(): Expression {
+        return new SubscriptExpression(
+            this.arrayExpression.get().copy(),
+            this.indexExpression.get().copy(),
+        );
+    }
 }
 
 export class InvocationExpression extends Expression {
@@ -176,11 +180,33 @@ export class InvocationExpression extends Expression {
         this.argExpressions = this.addSlots(argExpressions);
     }
     
-    // TODO: Override expandInlineFunctions.
+    expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
+        const compItem = this.functionExpression.get().evaluateToCompItemOrNull();
+        if (!(compItem instanceof CompFunctionHandle)) {
+            return null;
+        }
+        const definition = compItem.functionDefinition;
+        if (!(definition instanceof InlineFunctionDefinition)) {
+            return null;
+        }
+        const argExpressions = this.argExpressions.map((slot) => slot.get());
+        const generator = this.createStatementGenerator();
+        const result = definition.expandInline(argExpressions, generator);
+        const { statements, returnValueIdentifier } = result;
+        const expression = new IdentifierExpression(returnValueIdentifier);
+        return { expression, statements };
+    }
     
     getDisplayString(): string {
         const textList = this.argExpressions.map((slot) => slot.get().getDisplayString());
         return `${this.functionExpression.get().getDisplayString()}(${textList.join(", ")})`;
+    }
+    
+    copy(): Expression {
+        return new InvocationExpression(
+            this.functionExpression.get().copy(),
+            this.argExpressions.map((slot) => slot.get().copy()),
+        );
     }
 }
 
@@ -195,6 +221,10 @@ export class ListExpression extends Expression {
     getDisplayString(): string {
         const textList = this.elements.map((slot) => slot.get().getDisplayString());
         return `{${textList.join(", ")}}`;
+    }
+    
+    copy(): Expression {
+        return new ListExpression(this.elements.map((slot) => slot.get().copy()));
     }
 }
 

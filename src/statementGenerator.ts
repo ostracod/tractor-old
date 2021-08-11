@@ -63,6 +63,13 @@ export class StatementGenerator {
         ]);
         this.addStatement(statement);
     }
+    
+    createSoftVarStatement(identifier: Identifier, typeExpression: Expression): Statement {
+        return this.createStatement("SOFT_VAR", [
+            new IdentifierExpression(identifier),
+            typeExpression,
+        ]);
+    }
 }
 
 constructors.StatementGenerator = StatementGenerator;

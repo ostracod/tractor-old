@@ -156,7 +156,7 @@ export abstract class Node implements Displayable {
 
 let nextSlotId = 0;
 
-export class NodeSlot<T extends Node = Node> {
+export class NodeSlot<T extends Node = Node> implements Displayable {
     id: number;
     parentNode: Node;
     node: T;
@@ -183,6 +183,14 @@ export class NodeSlot<T extends Node = Node> {
             node.parentSlot = this;
         }
         this.node = node;
+    }
+    
+    getDisplayString(): string {
+        if (this.node === null) {
+            return "(Empty slot)";
+        } else {
+            return "(Slot) " + this.node.getDisplayString();
+        }
     }
 }
 

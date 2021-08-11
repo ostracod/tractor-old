@@ -1,17 +1,15 @@
 
-import { Displayable, IdentifierDefinition } from "./interfaces.js";
-import { Node, NodeSlot } from "./node.js";
+import { Displayable } from "./interfaces.js";
 import { CompilerError } from "./compilerError.js";
 
 let nextIdentifierNumber = 0;
 
 export abstract class Identifier implements Displayable {
+    key: string;
     
     abstract getDisplayString(): string;
     
     abstract equals(identifier: Identifier): boolean;
-    
-    abstract getKey(): string;
 }
 
 export class NameIdentifier extends Identifier {
@@ -20,6 +18,7 @@ export class NameIdentifier extends Identifier {
     constructor(name: string) {
         super();
         this.name = name;
+        this.key = `name,${this.name}`;
     }
     
     getDisplayString(): string {
@@ -32,10 +31,6 @@ export class NameIdentifier extends Identifier {
         }
         return (this.name === identifier.name);
     }
-    
-    getKey(): string {
-        return `name,${this.name}`;
-    }
 }
 
 export class NumberIdentifier extends Identifier {
@@ -45,6 +40,7 @@ export class NumberIdentifier extends Identifier {
         super();
         this.value = nextIdentifierNumber;
         nextIdentifierNumber += 1;
+        this.key = `number,${this.value}`;
     }
     
     getDisplayString(): string {
@@ -57,64 +53,58 @@ export class NumberIdentifier extends Identifier {
         }
         return (this.value === identifier.value);
     }
-    
-    getKey(): string {
-        return `number,${this.value}`;
-    }
 }
 
-export class IdentifierDefinitionMap<T extends IdentifierDefinition = IdentifierDefinition> extends Node {
-    map: { [key: string]: NodeSlot<T> };
-    keys: string[]; // Ensures correct order for iteration.
+export class IdentifierMap<T extends Displayable> implements Displayable {
+    map: { [key: string]: T };
+    identifiers: Identifier[];
     
     constructor() {
-        super();
         this.map = {};
-        this.keys = [];
+        this.identifiers = [];
     }
     
     get(identifier: Identifier): T {
-        const key = identifier.getKey();
+        const { key } = identifier;
         if (key in this.map) {
-            return this.map[key].get();
+            return this.map[key];
         } else {
             return null;
         }
     }
     
-    add<T2 extends T>(definition: T2): NodeSlot<T2> {
-        const key = definition.identifier.getKey();
+    add(identifier: Identifier, value: T): void {
+        const { key } = identifier;
         if (key in this.map) {
             throw new CompilerError("Duplicate identifier.");
         }
-        const slot = this.addSlot(definition);
-        this.map[key] = slot;
-        this.keys.push(key);
-        return slot;
+        this.map[key] = value;
+        this.identifiers.push(identifier);
     }
     
-    iterate(handle: (definition: T) => void): void {
-        for (const key of this.keys) {
-            handle(this.map[key].get());
+    iterate(handle: (identifier, value: T) => void): void {
+        for (const identifier of this.identifiers) {
+            const { key } = identifier;
+            handle(identifier, this.map[key]);
         }
     }
     
     getAll(): T[] {
         const output: T[] = [];
-        this.iterate((definition) => {
-            output.push(definition);
+        this.iterate((value) => {
+            output.push(value);
         });
         return output;
     }
     
     getSize(): number {
-        return this.keys.length;
+        return this.identifiers.length;
     }
     
     getDisplayString(): string {
         const lines: string[] = [];
-        this.iterate((definition) => {
-            lines.push(`${definition.identifier.getDisplayString()}: ${definition.getDisplayString()}`);
+        this.iterate((identifier, value) => {
+            lines.push(`${identifier.getDisplayString()}: ${value.getDisplayString()}`);
         });
         return lines.join("\n");
     }

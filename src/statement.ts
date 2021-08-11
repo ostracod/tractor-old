@@ -3,8 +3,14 @@ import * as niceUtils from "./niceUtils.js";
 import { Node, NodeSlot } from "./node.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
-import { Expression, expandInlineFunctions } from "./expression.js";
+import { Expression } from "./expression.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+
+export type StatementConstructor = new (
+    type: StatementType,
+    modifiers: string[],
+    args: Expression[],
+) => Statement;
 
 export class Statement extends Node {
     type: StatementType;
@@ -25,8 +31,14 @@ export class Statement extends Node {
     // TODO: SCOPE, STRUCT, and UNION statements should also
     // expand inline functions in nested block.
     expandInlineFunctions(): Statement[] {
-        const statements = expandInlineFunctions((handle) => {
-            this.processExpressions(handle);
+        const statements = [];
+        this.processExpressions((expression) => {
+            const result = expression.expandInlineFunctions();
+            if (result === null) {
+                return null;
+            }
+            niceUtils.extendList(statements, result.statements);
+            return result.expression;
         });
         if (statements.length <= 0) {
             return null;
@@ -58,6 +70,15 @@ export class Statement extends Node {
             textList.push(nestedBlock.getDisplayString(indentationLevel + 1));
         }
         return textList.join("\n");
+    }
+    
+    copy(): Statement {
+        const args = this.args.map((slot) => slot.get().copy());
+        return new (this.constructor as StatementConstructor)(
+            this.type,
+            this.modifiers.slice(),
+            args,
+        );
     }
 }
 
