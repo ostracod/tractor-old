@@ -44,7 +44,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
-                const identifier = statement.args[0].get().evaluateToIdentifier();
+                const identifier = statement.getDeclarationIdentifier();
                 const typeExpression = statement.args[1].get();
                 const definition = new ArgVariableDefinition(identifier, typeExpression);
                 const slot = this.block.get().addIdentifierDefinition(definition);
@@ -99,18 +99,20 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
     ): Statement[] {
         const output = [];
         const identifierMap = new IdentifierMap<Identifier>();
-        this.argVariableDefinitions.forEach((slot) => {
+        this.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
             identifierMap.add(argVariableDefinition.identifier, identifier);
             const variableStatement = generator.createSoftVarStatement(
                 identifier,
                 argVariableDefinition.typeExpression.get().copy(),
+                args[index].copy(),
             );
             output.push(variableStatement);
         });
         this.block.get().statements.forEach((slot) => {
             const statement = slot.get().copy();
+            statement.createDeclarationIdentifiers(identifierMap);
             output.push(statement);
         });
         // TODO: Replace identifiers and RET statements.

@@ -64,11 +64,19 @@ export class StatementGenerator {
         this.addStatement(statement);
     }
     
-    createSoftVarStatement(identifier: Identifier, typeExpression: Expression): Statement {
-        return this.createStatement("SOFT_VAR", [
+    createSoftVarStatement(
+        identifier: Identifier,
+        typeExpression: Expression,
+        initItem: Expression = null,
+    ): Statement {
+        const args = [
             new IdentifierExpression(identifier),
             typeExpression,
-        ]);
+        ];
+        if (initItem !== null) {
+            args.push(initItem);
+        }
+        return this.createStatement("SOFT_VAR", args);
     }
 }
 

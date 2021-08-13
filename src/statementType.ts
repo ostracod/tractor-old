@@ -18,6 +18,7 @@ interface StatementTypeOptions {
     isBlockEnd?: boolean;
     canRequire?: boolean;
     canInline?: boolean;
+    hasDeclarationIdentifier?: boolean;
 }
 
 export const directiveStatementTypeMap: { [directive: string]: StatementType } = {};
@@ -32,6 +33,7 @@ export class StatementType {
     canRequire: boolean;
     canInline: boolean;
     allowedModifiers: string[];
+    hasDeclarationIdentifier: boolean;
     
     constructor(
         directive: string,
@@ -52,6 +54,11 @@ export class StatementType {
         this.isBlockEnd = niceUtils.getWithDefault(options, "isBlockEnd", false);
         this.canRequire = niceUtils.getWithDefault(options, "canRequire", false);
         this.canInline = niceUtils.getWithDefault(options, "canInline", false);
+        this.hasDeclarationIdentifier = niceUtils.getWithDefault(
+            options,
+            "hasDeclarationIdentifier",
+            false,
+        );
         this.allowedModifiers = [];
         if (this.canRequire) {
             niceUtils.extendList(this.allowedModifiers, ["REQUIRE", "FOREIGN"]);
@@ -92,12 +99,13 @@ const variableStatementTypeOptions: StatementTypeOptions = {
     minimumArgAmount: 2,
     maximumArgAmount: 3,
     canRequire: true,
+    hasDeclarationIdentifier: true,
 };
 new StatementType("VAR", Statement, variableStatementTypeOptions);
 new StatementType("COMP", Statement, variableStatementTypeOptions);
 new StatementType("FIXED", Statement, variableStatementTypeOptions);
 new StatementType("SOFT_VAR", Statement, variableStatementTypeOptions);
-new StatementType("LABEL", Statement, { argAmount: 1 });
+new StatementType("LABEL", Statement, { argAmount: 1, hasDeclarationIdentifier: true });
 new StatementType("JUMP", Statement, { argAmount: 1 });
 new StatementType("JUMP_IF", Statement, { argAmount: 2 });
 new StatementType("SCOPE", Statement, { isBlockStart: true });
@@ -112,15 +120,21 @@ new StatementType("ELSE", Statement, { isBlockStart: true, isBlockEnd: true });
 new StatementType("WHILE", Statement, { argAmount: 1, isBlockStart: true });
 new StatementType("BREAK", Statement, {});
 new StatementType("CONTINUE", Statement, {});
-new StatementType("FIELD", Statement, { argAmount: 2 });
-new StatementType("TYPE_FIELD", Statement, { argAmount: 2 });
+new StatementType("FIELD", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
+new StatementType("TYPE_FIELD", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
 new StatementType("STRUCT", Statement, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
+    hasDeclarationIdentifier: true,
 });
-new StatementType("UNION", Statement, { argAmount: 1, isBlockStart: true, canRequire: true });
-new StatementType("ARG", Statement, { argAmount: 2 });
+new StatementType("UNION", Statement, {
+    argAmount: 1,
+    isBlockStart: true,
+    canRequire: true,
+    hasDeclarationIdentifier: true,
+});
+new StatementType("ARG", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
 new StatementType("RET_TYPE", Statement, { argAmount: 1 });
 new StatementType("RET", Statement, { maximumArgAmount: 1 });
 new StatementType("FUNC_TYPE", Statement, {
@@ -128,12 +142,14 @@ new StatementType("FUNC_TYPE", Statement, {
     isBlockStart: true,
     canRequire: true,
     canInline: true,
+    hasDeclarationIdentifier: true,
 });
 new StatementType("FUNC", IdentifierFunctionStatement, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
     canInline: true,
+    hasDeclarationIdentifier: true,
 });
 new StatementType("INIT_FUNC", InitFunctionStatement, { isBlockStart: true });
 new StatementType("IMPORT", PathImportStatement, { argAmount: 1 });

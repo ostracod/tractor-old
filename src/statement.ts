@@ -1,9 +1,11 @@
 
 import * as niceUtils from "./niceUtils.js";
+import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { StatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
-import { Expression } from "./expression.js";
+import { Expression, IdentifierExpression } from "./expression.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 
 export type StatementConstructor = new (
@@ -26,6 +28,35 @@ export class Statement extends Node {
         this.block = this.addSlot();
         this.type.validateModifiers(this.modifiers);
         this.type.validateArgCount(this.args.length);
+    }
+    
+    getDeclarationIdentifierSlot(): NodeSlot<Expression> {
+        const { hasDeclarationIdentifier } = this.type;
+        if (!hasDeclarationIdentifier) {
+            return null;
+        }
+        return this.args[0];
+    }
+    
+    getDeclarationIdentifier(): Identifier {
+        const identifierExpression = this.getDeclarationIdentifierSlot().get();
+        return identifierExpression.evaluateToIdentifier();
+    }
+    
+    createDeclarationIdentifiers(destination: IdentifierMap<Identifier>): void {
+        const slot = this.getDeclarationIdentifierSlot();
+        if (slot === null) {
+            this.processStatements((statement) => {
+                statement.createDeclarationIdentifiers(destination);
+                return statement;
+            });
+        } else {
+            const oldIdentifier = slot.get().evaluateToIdentifier();
+            const newIdentifier = new NumberIdentifier();
+            const expression = new IdentifierExpression(newIdentifier);
+            slot.set(expression);
+            destination.add(oldIdentifier, newIdentifier);
+        }
     }
     
     // TODO: SCOPE, STRUCT, and UNION statements should also
@@ -140,7 +171,7 @@ export abstract class FunctionStatement extends Statement {
 export class IdentifierFunctionStatement extends FunctionStatement {
     
     createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
-        const identifier = this.args[0].get().evaluateToIdentifier();
+        const identifier = this.getDeclarationIdentifier();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
             definitionConstructor = InlineFunctionDefinition;
@@ -167,5 +198,7 @@ export class InitFunctionStatement extends FunctionStatement {
         return slot;
     }
 }
+
+constructors.Statement = Statement;
 
 

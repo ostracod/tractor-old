@@ -1,5 +1,6 @@
 
 import { Compiler } from "./compiler.js";
+import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
@@ -11,6 +12,7 @@ interface Constructors {
     StatementBlock: typeof StatementBlock;
     StatementGenerator: typeof StatementGenerator;
     Expression: typeof Expression;
+    Statement: typeof Statement;
 }
 
 export const constructors = {} as Constructors;

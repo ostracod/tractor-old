@@ -90,6 +90,10 @@ export abstract class Node implements Displayable {
         this.processNodesByClass(constructors.Expression, handle);
     }
     
+    processStatements(handle: (statement: Statement) => Statement): void {
+        this.processNodesByClass(constructors.Statement, handle);
+    }
+    
     processBlocks(handle: (block: StatementBlock) => StatementBlock): void {
         this.processNodesByClass(constructors.StatementBlock, handle);
     }
