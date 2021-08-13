@@ -190,10 +190,9 @@ export class InvocationExpression extends Expression {
             return null;
         }
         const argExpressions = this.argExpressions.map((slot) => slot.get());
-        const generator = this.createStatementGenerator();
-        const result = definition.expandInline(argExpressions, generator);
-        const { statements, returnValueIdentifier } = result;
-        const expression = new IdentifierExpression(returnValueIdentifier);
+        const result = definition.expandInline(argExpressions, this.getPos());
+        const { statements, returnItemIdentifier } = result;
+        const expression = new IdentifierExpression(returnItemIdentifier);
         return { expression, statements };
     }
     

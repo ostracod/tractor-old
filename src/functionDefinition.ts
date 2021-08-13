@@ -1,11 +1,12 @@
 
 import { IdentifierDefinition } from "./interfaces.js";
+import { Pos } from "./pos.js";
 import { Node, NodeSlot } from "./node.js";
 import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
-import { Expression } from "./expression.js";
+import { Expression, IdentifierExpression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 
 export abstract class FunctionDefinition extends Node {
@@ -94,11 +95,15 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
     
     expandInlineHelper(
         args: Expression[],
-        returnValueIdentifier: Identifier,
+        returnItemIdentifier: Identifier,
+        endLabelIdentifier: Identifier,
         generator: StatementGenerator,
-    ): Statement[] {
-        const output = [];
+    ): StatementBlock {
+        
+        const output = new StatementBlock();
         const identifierMap = new IdentifierMap<Identifier>();
+        
+        // Create a soft variable for each argument.
         this.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
@@ -108,42 +113,80 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
                 argVariableDefinition.typeExpression.get().copy(),
                 args[index].copy(),
             );
-            output.push(variableStatement);
+            output.addStatement(variableStatement);
         });
+        
+        // Expand the body and create definition identifiers.
         this.block.get().statements.forEach((slot) => {
             const statement = slot.get().copy();
             statement.createDeclarationIdentifiers(identifierMap);
-            output.push(statement);
+            output.addStatement(statement);
         });
-        // TODO: Replace identifiers and RET statements.
+        
+        // Replace identifiers in the expanded body.
+        output.processExpressions((expression) => {
+            const oldIdentifier = expression.evaluateToIdentifierOrNull();
+            if (oldIdentifier === null) {
+                return null;
+            }
+            const newIdentifier = identifierMap.get(oldIdentifier);
+            if (newIdentifier === null) {
+                return null;
+            }
+            return new IdentifierExpression(newIdentifier);
+        });
+        
+        // Replace return statements with jump statements.
+        output.processBlockStatements((statement) => {
+            const { directive } = statement.type;
+            if (directive !== "RET") {
+                return null;
+            }
+            const statements = [];
+            if (statement.args.length > 0) {
+                const initStatement = generator.createInitStatement(
+                    returnItemIdentifier,
+                    statement.args[0].get(),
+                );
+                statements.push(initStatement);
+            }
+            const jumpStatement = generator.createJumpStatement(endLabelIdentifier);
+            statements.push(jumpStatement);
+            return statements;
+        });
         
         return output;
     }
     
-    expandInline(args: Expression[], generator: StatementGenerator): {
+    expandInline(args: Expression[], pos: Pos): {
         statements: Statement[],
-        returnValueIdentifier: Identifier,
+        returnItemIdentifier: Identifier,
     } {
         const statements: Statement[] = [];
-        let returnValueIdentifier: Identifier;
+        const generator = new StatementGenerator(pos, statements);
+        let returnItemIdentifier: Identifier;
         const returnTypeExpression = this.returnTypeExpression.get();
         if (this.returnTypeExpression === null) {
-            returnValueIdentifier = null;
+            returnItemIdentifier = null;
         } else {
-            returnValueIdentifier = new NumberIdentifier();
-            const variableStatement = generator.createSoftVarStatement(
-                returnValueIdentifier,
+            returnItemIdentifier = new NumberIdentifier();
+            generator.addSoftVarStatement(
+                returnItemIdentifier,
                 returnTypeExpression.copy(),
             );
-            statements.push(variableStatement);
         }
-        const result = this.expandInlineHelper(args, returnValueIdentifier, generator);
-        const block = this.createStatementBlock(result);
-        const scopeStatement = generator.createScopeStatement(block);
-        statements.push(scopeStatement);
+        const endLabelIdentifier = new NumberIdentifier();
+        const block = this.expandInlineHelper(
+            args,
+            returnItemIdentifier,
+            endLabelIdentifier,
+            generator,
+        );
+        generator.addScopeStatement(block);
+        generator.addLabelStatement(endLabelIdentifier);
         return {
             statements,
-            returnValueIdentifier
+            returnItemIdentifier,
         };
     }
 }

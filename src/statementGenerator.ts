@@ -1,11 +1,12 @@
 
 import { constructors } from "./constructors.js";
 import { Pos } from "./pos.js";
-import { directiveStatementTypeMap } from "./statementType.js";
+import { StatementType, directiveStatementTypeMap, expressionStatementType } from "./statementType.js";
 import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
-import { Expression, IdentifierExpression } from "./expression.js";
+import { Expression, IdentifierExpression, BinaryExpression } from "./expression.js";
 import { Identifier } from "./identifier.js";
+import { binaryOperatorMap } from "./operator.js";
 
 export class StatementGenerator {
     pos: Pos;
@@ -16,11 +17,15 @@ export class StatementGenerator {
         this.destination = destination;
     }
     
-    createStatement(directive: string, args: Expression[]): Statement {
-        const statementType = directiveStatementTypeMap[directive];
+    createStatementHelper(statementType: StatementType, args: Expression[]): Statement {
         const output = statementType.createStatement([], args);
         output.pos = this.pos;
         return output;
+    }
+    
+    createStatement(directive: string, args: Expression[]): Statement {
+        const statementType = directiveStatementTypeMap[directive];
+        return this.createStatementHelper(statementType, args);
     }
     
     addStatement(statement: Statement): void {
@@ -77,6 +82,25 @@ export class StatementGenerator {
             args.push(initItem);
         }
         return this.createStatement("SOFT_VAR", args);
+    }
+    
+    addSoftVarStatement(
+        identifier: Identifier,
+        typeExpression: Expression,
+        initItem: Expression = null,
+    ): void {
+        const statement = this.createSoftVarStatement(identifier, typeExpression, initItem);
+        this.addStatement(statement);
+    }
+    
+    createInitStatement(identifier: Identifier, initItemExpression: Expression) {
+        const identifierExpression = new IdentifierExpression(identifier);
+        const binaryExpression = new BinaryExpression(
+            binaryOperatorMap[":="],
+            identifierExpression,
+            initItemExpression,
+        );
+        return this.createStatementHelper(expressionStatementType, [binaryExpression]);
     }
 }
 
