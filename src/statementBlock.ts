@@ -4,7 +4,7 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement } from "./statement.js";
+import { Statement, VariableStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier } from "./identifier.js";
@@ -12,7 +12,6 @@ import { Scope } from "./scope.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
 
 class IfClause {
-    destination: Statement[];
     condition: Expression;
     generator: StatementGenerator;
     block: StatementBlock;
@@ -28,13 +27,12 @@ class IfClause {
         isLastClause: boolean,
         endIdentifier: Identifier,
     ) {
-        this.destination = destination;
         if (statement.type.directive === "ELSE") {
             this.condition = null;
         } else {
             this.condition = statement.args[0].get();
         }
-        this.generator = statement.createStatementGenerator(this.destination);
+        this.generator = statement.createStatementGenerator(destination);
         this.block = statement.block.get();
         this.isFirstClause = isFirstClause;
         this.isLastClause = isLastClause;
@@ -59,20 +57,20 @@ class IfClause {
             identifier = this.startIdentifier;
             condition = this.condition;
         }
-        this.generator.addJumpIfStatement(identifier, condition);
+        this.generator.createJumpIfStatement(identifier, condition);
     }
     
     addLabelStatement(identifier: Identifier): void {
-        this.generator.addLabelStatement(identifier);
+        this.generator.createLabelStatement(identifier);
     }
     
     addScopeStatement(): void {
         if (this.startIdentifier !== null) {
             this.addLabelStatement(this.startIdentifier);
         }
-        this.generator.addScopeStatement(this.block);
+        this.generator.createScopeStatement(this.block);
         if (!this.isFirstClause) {
-            this.generator.addJumpStatement(this.endIdentifier);
+            this.generator.createJumpStatement(this.endIdentifier);
         }
     }
 }
@@ -211,11 +209,11 @@ export class StatementBlock extends Node {
         const condition = whileStatement.args[0].get().invertBooleanValue();
         const nestedBlock = whileStatement.block.get();
         nestedBlock.transformBreakAndContinueStatements(startIdentifier, endIdentifier);
-        generator.addLabelStatement(startIdentifier);
-        generator.addJumpIfStatement(endIdentifier, condition);
-        generator.addScopeStatement(nestedBlock);
-        generator.addJumpStatement(startIdentifier);
-        generator.addLabelStatement(endIdentifier);
+        generator.createLabelStatement(startIdentifier);
+        generator.createJumpIfStatement(endIdentifier, condition);
+        generator.createScopeStatement(nestedBlock);
+        generator.createJumpStatement(startIdentifier);
+        generator.createLabelStatement(endIdentifier);
     }
     
     transformControlFlow(): void {
@@ -240,10 +238,28 @@ export class StatementBlock extends Node {
         this.setStatements(nextStatements);
     }
     
+    extractVariableDefinitions(): void {
+        this.processBlockStatements((statement) => {
+            if (statement instanceof VariableStatement) {
+                return statement.createVariableDefinition().statements;
+            } else {
+                return [statement];
+            }
+        });
+    }
+    
     getDisplayString(indentationLevel = 0): string {
-        return this.statements.map((slot) => (
-            slot.get().getDisplayString(indentationLevel)
-        )).join("\n");
+        const textList = [];
+        const indentation = niceUtils.getIndentation(indentationLevel);
+        this.scope.get().iterate((definition) => {
+            const text = indentation + definition.getDisplayString();
+            textList.push(text);
+        });
+        this.statements.forEach((slot) => {
+            const text = slot.get().getDisplayString(indentationLevel);
+            textList.push(text);
+        });
+        return textList.join("\n");
     }
     
     copy(): StatementBlock {
@@ -258,6 +274,15 @@ export class RootStatementBlock extends StatementBlock {
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super(pos, statements);
         this.initFunctionDefinition = this.addSlot();
+    }
+    
+    getDisplayString(indentationLevel = 0): string {
+        const textList = [super.getDisplayString(indentationLevel)];
+        const initFunctionDefinition = this.initFunctionDefinition.get();
+        if (initFunctionDefinition !== null) {
+            textList.push(initFunctionDefinition.getDisplayString());
+        }
+        return textList.join("\n");
     }
 }
 

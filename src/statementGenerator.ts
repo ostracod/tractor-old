@@ -18,18 +18,17 @@ export class StatementGenerator {
     }
     
     createStatementHelper(statementType: StatementType, args: Expression[]): Statement {
-        const output = statementType.createStatement([], args);
-        output.pos = this.pos;
-        return output;
+        const statement = statementType.createStatement([], args);
+        statement.pos = this.pos;
+        if (this.destination !== null) {
+            this.destination.push(statement);
+        }
+        return statement;
     }
     
     createStatement(directive: string, args: Expression[]): Statement {
         const statementType = directiveStatementTypeMap[directive];
         return this.createStatementHelper(statementType, args);
-    }
-    
-    addStatement(statement: Statement): void {
-        this.destination.push(statement);
     }
     
     createJumpStatement(identifier: Identifier): Statement {
@@ -38,17 +37,11 @@ export class StatementGenerator {
         ]);
     }
     
-    addJumpStatement(identifier: Identifier): void {
-        const statement = this.createJumpStatement(identifier);
-        this.addStatement(statement);
-    }
-    
-    addJumpIfStatement(identifier: Identifier, condition: Expression): void {
-        const statement = this.createStatement("JUMP_IF", [
+    createJumpIfStatement(identifier: Identifier, condition: Expression): Statement {
+        return this.createStatement("JUMP_IF", [
             new IdentifierExpression(identifier),
             condition,
         ]);
-        this.addStatement(statement);
     }
     
     createScopeStatement(block: StatementBlock): Statement {
@@ -57,16 +50,10 @@ export class StatementGenerator {
         return output;
     }
     
-    addScopeStatement(block: StatementBlock): void {
-        const statement = this.createScopeStatement(block);
-        this.addStatement(statement);
-    }
-    
-    addLabelStatement(identifier: Identifier): void {
-        const statement = this.createStatement("LABEL", [
+    createLabelStatement(identifier: Identifier): Statement {
+        return this.createStatement("LABEL", [
             new IdentifierExpression(identifier),
         ]);
-        this.addStatement(statement);
     }
     
     createSoftVarStatement(
@@ -83,17 +70,7 @@ export class StatementGenerator {
         }
         return this.createStatement("SOFT_VAR", args);
     }
-    
-    addSoftVarStatement(
-        identifier: Identifier,
-        typeExpression: Expression,
-        initItem: Expression = null,
-    ): void {
-        const statement = this.createSoftVarStatement(identifier, typeExpression, initItem);
-        this.addStatement(statement);
-    }
-    
-    createInitStatement(identifier: Identifier, initItemExpression: Expression) {
+    createInitStatement(identifier: Identifier, initItemExpression: Expression): Statement {
         const identifierExpression = new IdentifierExpression(identifier);
         const binaryExpression = new BinaryExpression(
             binaryOperatorMap[":="],
@@ -103,10 +80,9 @@ export class StatementGenerator {
         return this.createStatementHelper(expressionStatementType, [binaryExpression]);
     }
     
-    addReturnStatement(item: Expression = null): void {
+    createReturnStatement(item: Expression = null): Statement {
         const expressions: Expression[] = (item === null) ? [] : [item];
-        const statement = this.createStatement("RET", expressions);
-        this.addStatement(statement);
+        return this.createStatement("RET", expressions);
     }
 }
 

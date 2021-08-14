@@ -2,17 +2,18 @@
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
-import { StatementType } from "./statementType.js";
+import { StatementType, VariableStatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
-import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { VariableDefinitionConstructor, VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
 
-export type StatementConstructor = new (
-    type: StatementType,
+export type StatementConstructor<T extends Statement = Statement> = new (
+    type: T["type"],
     modifiers: string[],
     args: Expression[],
-) => Statement;
+) => T;
 
 export class Statement extends Node {
     type: StatementType;
@@ -156,21 +157,20 @@ export class ForeignImportStatement extends ImportStatement {
     }
 }
 
-export abstract class FunctionStatement extends Statement {
+export abstract class FunctionStatement<T extends FunctionDefinition> extends Statement {
     
-    abstract createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition>;
+    abstract createFunctionDefinitionHelper(): void;
     
     createFunctionDefinition(): void {
         this.tryOperation(() => {
-            const slot = this.createFunctionDefinitionHelper();
-            this.getCompiler().functionDefinitions.push(slot);
+            this.createFunctionDefinitionHelper();
         });
     }
 }
 
-export class IdentifierFunctionStatement extends FunctionStatement {
+export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFunctionDefinition> {
     
-    createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
+    createFunctionDefinitionHelper(): void {
         const identifier = this.getDeclarationIdentifier();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
@@ -180,14 +180,13 @@ export class IdentifierFunctionStatement extends FunctionStatement {
         }
         const definition = new definitionConstructor(identifier, this.block.get());
         const rootBlock = this.getCompiler().rootBlock.get();
-        const slot = rootBlock.addIdentifierDefinition(definition);
-        return slot;
+        rootBlock.addIdentifierDefinition(definition);
     }
 }
 
-export class InitFunctionStatement extends FunctionStatement {
+export class InitFunctionStatement extends FunctionStatement<InitFunctionDefinition> {
     
-    createFunctionDefinitionHelper(): NodeSlot<FunctionDefinition> {
+    createFunctionDefinitionHelper(): void {
         const definition = new InitFunctionDefinition(this.block.get());
         const rootBlock = this.getCompiler().rootBlock.get();
         const slot = rootBlock.initFunctionDefinition;
@@ -195,7 +194,27 @@ export class InitFunctionStatement extends FunctionStatement {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }
         slot.set(definition);
-        return slot;
+    }
+}
+
+export class VariableStatement<T extends VariableDefinition> extends Statement {
+    type: VariableStatementType<T>;
+    
+    createVariableDefinition(): {
+        variableDefinition: NodeSlot<T>,
+        statements: Statement[],
+    } {
+        const identifier = this.getDeclarationIdentifier();
+        const typeExpression = this.args[1].get();
+        const constructor = this.type.variableDefinitionConstructor;
+        const definition = new constructor(identifier, typeExpression);
+        let statements: Statement[] = [];
+        if (this.args.length > 2) {
+            const generator = this.createStatementGenerator(statements);
+            generator.createInitStatement(identifier, this.args[2].get());
+        }
+        const slot = this.getParentBlock().addIdentifierDefinition(definition);
+        return { variableDefinition: slot, statements };
     }
 }
 

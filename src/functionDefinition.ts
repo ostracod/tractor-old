@@ -3,7 +3,7 @@ import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
 import { Node, NodeSlot } from "./node.js";
-import { Statement } from "./statement.js";
+import { Statement, VariableStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
@@ -47,13 +47,9 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
-                const identifier = statement.getDeclarationIdentifier();
-                const typeExpression = statement.args[1].get();
-                const typeResolver = new TypeResolver(typeExpression);
-                const definition = new ArgVariableDefinition(identifier, typeResolver);
-                const slot = this.block.get().addIdentifierDefinition(definition);
-                this.argVariableDefinitions.push(slot);
-                return [];
+                const result = (statement as VariableStatement<ArgVariableDefinition>).createVariableDefinition();
+                this.argVariableDefinitions.push(result.variableDefinition);
+                return result.statements;
             } else if (directive === "RET_TYPE") {
                 if (this.returnTypeResolver.get() !== null) {
                     throw statement.createError("Extra RET_TYPE statement.");
@@ -73,13 +69,10 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifier.getDisplayString();
         const output = [`${typeText} name: ${identifierText}`];
-        const indentation = niceUtils.getIndentation(1);
-        this.argVariableDefinitions.forEach((slot) => {
-            output.push(indentation + slot.get().getDisplayString());
-        });
         const returnTypeResolver = this.returnTypeResolver.get();
         if (returnTypeResolver !== null) {
             const returnTypeText = returnTypeResolver.getDisplayString();
+            const indentation = niceUtils.getIndentation(1);
             output.push(indentation + "Return type: " + returnTypeText);
         }
         return output.join("\n");
@@ -103,9 +96,10 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         args: Expression[],
         returnItemIdentifier: Identifier,
         endLabelIdentifier: Identifier,
-        generator: StatementGenerator,
+        pos: Pos,
     ): StatementBlock {
         
+        const generator = new StatementGenerator(pos);
         const output = new StatementBlock();
         const identifierMap = new IdentifierMap<Identifier>();
         
@@ -177,7 +171,7 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
             returnItemIdentifier = null;
         } else {
             returnItemIdentifier = new NumberIdentifier();
-            generator.addSoftVarStatement(
+            generator.createSoftVarStatement(
                 returnItemIdentifier,
                 returnTypeResolver.expression.get().copy(),
             );
@@ -187,10 +181,10 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
             args,
             returnItemIdentifier,
             endLabelIdentifier,
-            generator,
+            pos,
         );
-        generator.addScopeStatement(block);
-        generator.addLabelStatement(endLabelIdentifier);
+        generator.createScopeStatement(block);
+        generator.createLabelStatement(endLabelIdentifier);
         return {
             statements,
             returnItemIdentifier,

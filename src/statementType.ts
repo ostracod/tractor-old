@@ -1,14 +1,9 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, VariableStatement } from "./statement.js";
 import { Expression } from "./expression.js";
-
-type StatementConstructor = new (
-    type: StatementType,
-    modifiers: string[],
-    args: Expression[],
-) => Statement;
+import { VariableDefinitionConstructor, VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
 
 interface StatementTypeOptions {
     minimumArgAmount?: number;
@@ -23,9 +18,9 @@ interface StatementTypeOptions {
 
 export const directiveStatementTypeMap: { [directive: string]: StatementType } = {};
 
-export class StatementType {
+export class StatementType<T extends Statement = Statement> {
     directive: string;
-    statementConstructor: StatementConstructor;
+    statementConstructor: StatementConstructor<T>;
     minimumArgAmount: number;
     maximumArgAmount: number;
     isBlockStart: boolean;
@@ -37,7 +32,7 @@ export class StatementType {
     
     constructor(
         directive: string,
-        statementConstructor: StatementConstructor,
+        statementConstructor: StatementConstructor<T>,
         options: StatementTypeOptions,
     ) {
         this.directive = directive;
@@ -71,7 +66,7 @@ export class StatementType {
         }
     }
     
-    createStatement(modifiers: string[], args: Expression[]): Statement {
+    createStatement(modifiers: string[], args: Expression[]): T {
         return new this.statementConstructor(this, modifiers, args);
     }
     
@@ -94,6 +89,19 @@ export class StatementType {
     }
 }
 
+export class VariableStatementType<T extends VariableDefinition> extends StatementType<VariableStatement<T>> {
+    variableDefinitionConstructor: VariableDefinitionConstructor<T>;
+    
+    constructor(
+        directive: string,
+        variableDefinitionConstructor: VariableDefinitionConstructor<T>,
+        options: StatementTypeOptions,
+    ) {
+        super(directive, VariableStatement, options);
+        this.variableDefinitionConstructor = variableDefinitionConstructor;
+    }
+}
+
 export const expressionStatementType = new StatementType(null, Statement, { argAmount: 1 });
 const variableStatementTypeOptions: StatementTypeOptions = {
     minimumArgAmount: 2,
@@ -101,10 +109,10 @@ const variableStatementTypeOptions: StatementTypeOptions = {
     canRequire: true,
     hasDeclarationIdentifier: true,
 };
-new StatementType("VAR", Statement, variableStatementTypeOptions);
-new StatementType("COMP", Statement, variableStatementTypeOptions);
-new StatementType("FIXED", Statement, variableStatementTypeOptions);
-new StatementType("SOFT_VAR", Statement, variableStatementTypeOptions);
+new VariableStatementType("VAR", FrameVariableDefinition, variableStatementTypeOptions);
+new VariableStatementType("COMP", CompVariableDefinition, variableStatementTypeOptions);
+new VariableStatementType("FIXED", CompVariableDefinition, variableStatementTypeOptions);
+new VariableStatementType("SOFT_VAR", SoftVariableDefinition, variableStatementTypeOptions);
 new StatementType("LABEL", Statement, { argAmount: 1, hasDeclarationIdentifier: true });
 new StatementType("JUMP", Statement, { argAmount: 1 });
 new StatementType("JUMP_IF", Statement, { argAmount: 2 });
@@ -134,7 +142,10 @@ new StatementType("UNION", Statement, {
     canRequire: true,
     hasDeclarationIdentifier: true,
 });
-new StatementType("ARG", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
+new VariableStatementType("ARG", ArgVariableDefinition, {
+    argAmount: 2,
+    hasDeclarationIdentifier: true
+});
 new StatementType("RET_TYPE", Statement, { argAmount: 1 });
 new StatementType("RET", Statement, { maximumArgAmount: 1 });
 new StatementType("FUNC_TYPE", Statement, {

@@ -21,7 +21,6 @@ export class Compiler extends Node {
     buildFileName: string;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
-    functionDefinitions: NodeSlot<FunctionDefinition>[];
     rootBlock: NodeSlot<RootStatementBlock>;
     
     constructor(projectPath: string, configNames: string[]) {
@@ -31,7 +30,6 @@ export class Compiler extends Node {
         this.configNames = configNames;
         this.importedPaths = new Set();
         this.foreignFiles = [];
-        this.functionDefinitions = [];
         this.rootBlock = this.addSlot(new RootStatementBlock());
     }
     
@@ -162,6 +160,12 @@ export class Compiler extends Node {
         });
     }
     
+    extractVariableDefinitions(): void {
+        this.iterateOverExpandedBlocks((block) => {
+            block.extractVariableDefinitions();
+        });
+    }
+    
     transformControlFlow(): void {
         this.iterateOverExpandedBlocks((block) => {
             block.transformControlFlow();
@@ -182,13 +186,7 @@ export class Compiler extends Node {
     }
     
     getDisplayString(): string {
-        return [
-            niceUtils.getDisplayStrings("Root Block", [this.rootBlock.get()]),
-            niceUtils.getDisplayStrings(
-                "Function Definitions",
-                this.functionDefinitions.map((slot) => slot.get()),
-            ),
-        ].join("\n");
+        return this.rootBlock.get().getDisplayString();
     }
     
     compile(): void {
@@ -198,10 +196,12 @@ export class Compiler extends Node {
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
+            // TODO: Loop over these invocations until no
+            // further compT items can be resolved.
+            this.extractVariableDefinitions();
             this.transformControlFlow();
             this.resolveCompItems();
             this.expandInlineFunctions();
-            // TODO: Finish this method.
             
             console.log(this.getDisplayString());
         } catch (error) {

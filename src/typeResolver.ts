@@ -13,7 +13,7 @@ export class TypeResolver extends Node {
         this.expression = this.addSlot(expression);
         const statements: Statement[] = [];
         const statementGenerator = expression.createStatementGenerator(statements);
-        statementGenerator.addReturnStatement(expression.copy());
+        statementGenerator.createReturnStatement(expression.copy());
         const block = expression.createStatementBlock(statements);
         this.block = this.addSlot(block);
     }
