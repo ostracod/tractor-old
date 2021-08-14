@@ -102,6 +102,12 @@ export class StatementGenerator {
         );
         return this.createStatementHelper(expressionStatementType, [binaryExpression]);
     }
+    
+    addReturnStatement(item: Expression = null): void {
+        const expressions: Expression[] = (item === null) ? [] : [item];
+        const statement = this.createStatement("RET", expressions);
+        this.addStatement(statement);
+    }
 }
 
 constructors.StatementGenerator = StatementGenerator;

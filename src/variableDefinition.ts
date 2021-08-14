@@ -2,29 +2,29 @@
 import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
-import { Expression } from "./expression.js";
+import { TypeResolver } from "./typeResolver.js";
 
 export abstract class VariableDefinition extends Node implements IdentifierDefinition {
     identifier: Identifier;
-    typeExpression: NodeSlot<Expression>;
+    typeResolver: NodeSlot<TypeResolver>;
     
-    constructor(identifier: Identifier, typeExpression: Expression) {
+    constructor(identifier: Identifier, typeResolver: TypeResolver) {
         super();
         this.identifier = identifier;
-        this.typeExpression = this.addSlot(typeExpression);
+        this.typeResolver = this.addSlot(typeResolver);
     }
     
     abstract getDisplayStringHelper(): string;
     
     getDisplayString(): string {
-        return `${this.getDisplayStringHelper()} ${this.identifier.getDisplayString()}, ${this.typeExpression.get().getDisplayString()}`;
+        return `${this.getDisplayStringHelper()} variable name: ${this.identifier.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`;
     }
 }
 
 export class ArgVariableDefinition extends VariableDefinition {
     
     getDisplayStringHelper(): string {
-        return "ARG";
+        return "Arg";
     }
 }
 
