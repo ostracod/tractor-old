@@ -1,13 +1,14 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
-import { Node, NodeSlot } from "./node.js";
+import { Node, NodeSlot, processNodeList } from "./node.js";
 import { StatementType, VariableStatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { VariableDefinitionConstructor, VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
+import { FieldDefinition, DataFieldDefinition, StructDefinition } from "./typeDefinition.js";
 
 export type StatementConstructor<T extends Statement = Statement> = new (
     type: T["type"],
@@ -60,11 +61,28 @@ export class Statement extends Node {
         }
     }
     
-    // TODO: SCOPE, STRUCT, and UNION statements should also
-    // expand inline functions in nested block.
+    createFieldDefinition(): FieldDefinition {
+        const identifier = this.getDeclarationIdentifier();
+        const typeExpression = this.args[1].get();
+        return new DataFieldDefinition(identifier, typeExpression);
+    }
+    
+    createStructDefinition(): void {
+        const identifier = this.getDeclarationIdentifier();
+        const fieldDefinitions = this.block.get().extractFieldDefinitions();
+        const structDefinition = new StructDefinition(identifier, fieldDefinitions);
+        this.getParentBlock().addIdentifierDefinition(structDefinition);
+    }
+    
+    processArgExpressions(handle: (expression: Expression) => Expression): number {
+        return processNodeList(this.args, handle, (expression, handle) => (
+            expression.processExpressions(handle)
+        ));
+    }
+    
     expandInlineFunctions(): Statement[] {
         const statements = [];
-        this.processExpressions((expression) => {
+        this.processArgExpressions((expression) => {
             const result = expression.expandInlineFunctions();
             if (result === null) {
                 return null;
@@ -73,7 +91,7 @@ export class Statement extends Node {
             return result.expression;
         });
         if (statements.length <= 0) {
-            return null;
+            return [this];
         }
         statements.push(this);
         const block = this.createStatementBlock(statements);

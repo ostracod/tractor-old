@@ -68,7 +68,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     getDisplayStringHelper(): string {
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifier.getDisplayString();
-        const output = [`${typeText} name: ${identifierText}`];
+        const output = [`${typeText} identifier: ${identifierText}`];
         const returnTypeResolver = this.returnTypeResolver.get();
         if (returnTypeResolver !== null) {
             const returnTypeText = returnTypeResolver.getDisplayString();

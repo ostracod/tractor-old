@@ -8,8 +8,9 @@ import { Statement, VariableStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier } from "./identifier.js";
-import { Scope } from "./scope.js";
+import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
+import { FieldDefinition } from "./typeDefinition.js";
 
 class IfClause {
     condition: Expression;
@@ -82,14 +83,14 @@ export type StatementBlockConstructor = new (
 
 export class StatementBlock extends Node {
     statements: NodeSlot<Statement>[];
-    scope: NodeSlot<Scope>;
+    scope: NodeSlot<IdentifierDefinitionMap>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super();
         this.pos = pos;
         this.statements = [];
         this.setStatements(statements);
-        this.scope = this.addSlot(new Scope());
+        this.scope = this.addSlot(new IdentifierDefinitionMap());
     }
     
     addStatement(statement: Statement): void {
@@ -228,10 +229,6 @@ export class StatementBlock extends Node {
         while (index < this.statements.length) {
             const statement = this.statements[index].get();
             index += 1;
-            const nestedBlock = statement.block.get();
-            if (nestedBlock !== null) {
-                output += nestedBlock.transformControlFlow();
-            }
             const { directive } = statement.type;
             if (directive === "IF") {
                 index = this.transformIfStatement(nextStatements, statement, index);
@@ -254,6 +251,30 @@ export class StatementBlock extends Node {
             } else {
                 return [statement];
             }
+        });
+    }
+    
+    extractFieldDefinitions(): FieldDefinition[] {
+        const output: FieldDefinition[] = [];
+        this.processBlockStatements((statement) => {
+            if (statement.type.directive === "FIELD") {
+                const definition = statement.createFieldDefinition();
+                output.push(definition);
+                return [];
+            }
+            return [statement];
+        });
+        return output;
+    }
+    
+    extractTypeDefinitions(): number {
+        return this.processBlockStatements((statement) => {
+            const { directive } = statement.type;
+            if (directive === "STRUCT") {
+                statement.createStructDefinition();
+                return [];
+            }
+            return [statement];
         });
     }
     

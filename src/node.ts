@@ -9,6 +9,25 @@ import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 
+export const processNodeList = <T extends Node>(
+    nodes: NodeSlot<T>[],
+    handle: (node: T) => T,
+    recur: (node: T, handle: (node: T) => T) => number,
+): number => {
+    let output = 0;
+    nodes.forEach((slot) => {
+        const node = slot.get();
+        const result = handle(node);
+        if (result === null) {
+            output += recur(node, handle);
+        } else if (result !== node) {
+            slot.set(result);
+            output += 1;
+        }
+    });
+    return output;
+};
+
 export abstract class Node implements Displayable {
     parentSlot: NodeSlot;
     slots: { [slotId: string]: NodeSlot };

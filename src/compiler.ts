@@ -168,6 +168,12 @@ export class Compiler extends Node {
         ));
     }
     
+    extractTypeDefinitions(): number {
+        return this.iterateOverExpandedBlocks((block) => (
+            block.extractTypeDefinitions()
+        ));
+    }
+    
     transformControlFlow(): number {
         return this.iterateOverExpandedBlocks((block) => (
             block.transformControlFlow()
@@ -201,6 +207,7 @@ export class Compiler extends Node {
             while (true) {
                 let processCount = 0;
                 processCount += this.extractVariableDefinitions();
+                processCount += this.extractTypeDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompItems();
                 processCount += this.expandInlineFunctions();
