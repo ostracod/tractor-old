@@ -278,18 +278,19 @@ export class StatementBlock extends Node {
         });
     }
     
-    getDisplayString(indentationLevel = 0): string {
-        const textList = [];
-        const indentation = niceUtils.getIndentation(indentationLevel);
+    getDisplayLines(): string[] {
+        const output = [];
         this.scope.get().iterate((definition) => {
-            const text = indentation + definition.getDisplayString();
-            textList.push(text);
+            niceUtils.extendList(output, definition.getDisplayLines())
         });
         this.statements.forEach((slot) => {
-            const text = slot.get().getDisplayString(indentationLevel);
-            textList.push(text);
+            niceUtils.extendList(output, slot.get().getDisplayLines())
         });
-        return textList.join("\n");
+        return output;
+    }
+    
+    getDisplayString(): string {
+        return this.getDisplayLines().join("\n");
     }
     
     copy(): StatementBlock {
@@ -306,13 +307,13 @@ export class RootStatementBlock extends StatementBlock {
         this.initFunctionDefinition = this.addSlot();
     }
     
-    getDisplayString(indentationLevel = 0): string {
-        const textList = [super.getDisplayString(indentationLevel)];
+    getDisplayLines(): string[] {
+        const output = super.getDisplayLines();
         const initFunctionDefinition = this.initFunctionDefinition.get();
         if (initFunctionDefinition !== null) {
-            textList.push(initFunctionDefinition.getDisplayString());
+            niceUtils.extendList(output, initFunctionDefinition.getDisplayLines());
         }
-        return textList.join("\n");
+        return output;
     }
 }
 

@@ -100,8 +100,7 @@ export class Statement extends Node {
         return [scopeStatement];
     }
     
-    getDisplayString(indentationLevel = 0): string {
-        const indentation = niceUtils.getIndentation(indentationLevel);
+    getDisplayLines(): string[] {
         let textList = this.modifiers.slice();
         const { directive } = this.type;
         if (directive !== null) {
@@ -113,13 +112,16 @@ export class Statement extends Node {
             )).join(", ");
             textList.push(argsText);
         }
-        const line = indentation + textList.join(" ");
-        textList = [line];
+        const output = [textList.join(" ")];
         const nestedBlock = this.block.get();
         if (nestedBlock !== null) {
-            textList.push(nestedBlock.getDisplayString(indentationLevel + 1));
+            niceUtils.extendWithIndentation(output, nestedBlock.getDisplayLines());
         }
-        return textList.join("\n");
+        return output;
+    }
+    
+    getDisplayString(): string {
+        return this.getDisplayLines().join("\n");
     }
     
     copy(): Statement {

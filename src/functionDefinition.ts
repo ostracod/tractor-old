@@ -2,7 +2,8 @@
 import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
-import { Node, NodeSlot } from "./node.js";
+import { NodeSlot } from "./node.js";
+import { Definition } from "./definition.js";
 import { Statement, VariableStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
@@ -11,7 +12,7 @@ import { Expression, IdentifierExpression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 
-export abstract class FunctionDefinition extends Node {
+export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
     
     constructor(block: StatementBlock) {
@@ -19,13 +20,12 @@ export abstract class FunctionDefinition extends Node {
         this.block = this.addSlot(block);
     }
     
-    abstract getDisplayStringHelper(): string;
+    abstract getDisplayLinesHelper(): string[];
     
-    getDisplayString(): string {
-        return [
-            this.getDisplayStringHelper(),
-            this.block.get().getDisplayString(1),
-        ].join("\n")
+    getDisplayLines(): string[] {
+        const output = this.getDisplayLinesHelper();
+        niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
+        return output;
     }
 }
 
@@ -65,7 +65,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     
     abstract getFunctionTypeName(): string;
     
-    getDisplayStringHelper(): string {
+    getDisplayLinesHelper(): string[] {
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifier.getDisplayString();
         const output = [`${typeText} identifier: ${identifierText}`];
@@ -75,7 +75,7 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
             const indentation = niceUtils.getIndentation(1);
             output.push(indentation + "Return type: " + returnTypeText);
         }
-        return output.join("\n");
+        return output;
     }
 }
 
@@ -194,8 +194,8 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
 
 export class InitFunctionDefinition extends FunctionDefinition {
     
-    getDisplayStringHelper(): string {
-        return "Init function";
+    getDisplayLinesHelper(): string[] {
+        return ["Init function"];
     }
 }
 

@@ -34,6 +34,13 @@ export const getIndentation = (indentationLevel: number): string => {
     return textList.join("");
 };
 
+export const extendWithIndentation = (destination: string[], source: string[]): void => {
+    const indentation = getIndentation(1);
+    source.forEach((text) => {
+        destination.push(indentation + text);
+    });
+}
+
 export const getDisplayStrings = (title: string, displayables: Displayable[]): string => {
     const lines = [`\n= = = ${title} = = =\n`];
     displayables.forEach((displayable) => {

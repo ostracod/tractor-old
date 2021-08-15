@@ -1,12 +1,14 @@
 
 import { IdentifierDefinition } from "./interfaces.js";
-import { Node, NodeSlot } from "./node.js";
+import * as niceUtils from "./niceUtils.js";
+import { NodeSlot } from "./node.js";
+import { Definition } from "./definition.js";
 import { Identifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { Expression } from "./expression.js";
 import { TypeResolver } from "./typeResolver.js";
 
-export abstract class TypeDefinition extends Node implements IdentifierDefinition {
+export abstract class TypeDefinition extends Definition implements IdentifierDefinition {
     identifier: Identifier;
     
     constructor(identifier: Identifier) {
@@ -26,8 +28,8 @@ export abstract class SingleTypeDefinition extends TypeDefinition {
     
     abstract getDefinitionName(): string;
     
-    getDisplayString(): string {
-        return `${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`;
+    getDisplayLines(): string[] {
+        return [`${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`];
     }
 }
 
@@ -58,12 +60,12 @@ export abstract class FieldsTypeDefinition extends TypeDefinition {
     
     abstract getDefinitionName(): string;
     
-    getDisplayString(): string {
-        const textList = [];
+    getDisplayLines(): string[] {
+        const output = [`${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}`];
         this.fieldMap.get().iterate((definition) => {
-            textList.push("   " + definition.getDisplayString())
+            niceUtils.extendWithIndentation(output, definition.getDisplayLines());
         });
-        return `${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}${textList.join("")}`;
+        return output;
     }
 }
 

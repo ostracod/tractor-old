@@ -1,6 +1,6 @@
 
 import { Identifier } from "./identifier.js";
-import { Node } from "./node.js";
+import { Definition } from "./definition.js";
 
 export interface Config {
     name: string;
@@ -16,7 +16,7 @@ export interface Displayable {
     getDisplayString(): string;
 }
 
-export interface IdentifierDefinition extends Node {
+export interface IdentifierDefinition extends Definition {
     identifier: Identifier;
 }
 
