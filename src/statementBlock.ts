@@ -4,7 +4,7 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, ComplexDefinitionStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier } from "./identifier.js";
@@ -257,7 +257,7 @@ export class StatementBlock extends Node {
     extractFieldDefinitions(): FieldDefinition[] {
         const output: FieldDefinition[] = [];
         this.processBlockStatements((statement) => {
-            if (statement.type.directive === "FIELD") {
+            if (statement instanceof FieldStatement) {
                 const definition = statement.createFieldDefinition();
                 output.push(definition);
                 return [];
@@ -269,9 +269,8 @@ export class StatementBlock extends Node {
     
     extractTypeDefinitions(): number {
         return this.processBlockStatements((statement) => {
-            const { directive } = statement.type;
-            if (directive === "STRUCT") {
-                statement.createStructDefinition();
+            if (statement.type instanceof ComplexDefinitionStatement) {
+                (statement as ComplexDefinitionStatement).createDefinition();
                 return [];
             }
             return [statement];

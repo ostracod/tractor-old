@@ -1,9 +1,10 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, VariableStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, ComplexDefinitionStatement } from "./statement.js";
 import { Expression } from "./expression.js";
-import { VariableDefinitionConstructor, VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
+import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
+import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
 
 interface StatementTypeOptions {
     minimumArgAmount?: number;
@@ -89,16 +90,52 @@ export class StatementType<T extends Statement = Statement> {
     }
 }
 
-export class VariableStatementType<T extends VariableDefinition> extends StatementType<VariableStatement<T>> {
-    variableDefinitionConstructor: VariableDefinitionConstructor<T>;
+export class SimpleDefinitionStatementType<T1 extends SingleTypeDefinition, T2 extends SimpleDefinitionStatement<T1> = SimpleDefinitionStatement<T1>> extends StatementType<T2> {
+    definitionConstructor: SingleTypeDefinitionConstructor<T1>;
     
     constructor(
         directive: string,
-        variableDefinitionConstructor: VariableDefinitionConstructor<T>,
+        statementConstructor: StatementConstructor<T2>,
+        definitionConstructor: SingleTypeDefinitionConstructor<T1>,
         options: StatementTypeOptions,
     ) {
-        super(directive, VariableStatement, options);
-        this.variableDefinitionConstructor = variableDefinitionConstructor;
+        super(directive, statementConstructor, options);
+        this.definitionConstructor = definitionConstructor;
+    }
+}
+
+export class VariableStatementType<T extends VariableDefinition> extends SimpleDefinitionStatementType<T, VariableStatement<T>> {
+    
+    constructor(
+        directive: string,
+        definitionConstructor: SingleTypeDefinitionConstructor<T>,
+        options: StatementTypeOptions,
+    ) {
+        super(directive, VariableStatement, definitionConstructor, options);
+    }
+}
+
+export class FieldStatementType<T extends FieldDefinition> extends SimpleDefinitionStatementType<T, FieldStatement<T>> {
+    
+    constructor(
+        directive: string,
+        definitionConstructor: SingleTypeDefinitionConstructor<T>,
+        options: StatementTypeOptions,
+    ) {
+        super(directive, FieldStatement, definitionConstructor, options);
+    }
+}
+
+export class ComplexDefinitionStatementType<T extends FieldsTypeDefinition> extends StatementType<ComplexDefinitionStatement<T>> {
+    definitionConstructor: FieldsTypeDefinitionConstructor<T>;
+    
+    constructor(
+        directive: string,
+        definitionConstructor: FieldsTypeDefinitionConstructor<T>,
+        options: StatementTypeOptions,
+    ) {
+        super(directive, ComplexDefinitionStatement, options);
+        this.definitionConstructor = definitionConstructor;
     }
 }
 
@@ -128,15 +165,21 @@ new StatementType("ELSE", Statement, { isBlockStart: true, isBlockEnd: true });
 new StatementType("WHILE", Statement, { argAmount: 1, isBlockStart: true });
 new StatementType("BREAK", Statement, {});
 new StatementType("CONTINUE", Statement, {});
-new StatementType("FIELD", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
-new StatementType("TYPE_FIELD", Statement, { argAmount: 2, hasDeclarationIdentifier: true });
-new StatementType("STRUCT", Statement, {
+new FieldStatementType("FIELD", DataFieldDefinition, {
+    argAmount: 2,
+    hasDeclarationIdentifier: true,
+});
+new FieldStatementType("TYPE_FIELD", TypeFieldDefinition, {
+    argAmount: 2,
+    hasDeclarationIdentifier: true,
+});
+new ComplexDefinitionStatementType("STRUCT", StructDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
     hasDeclarationIdentifier: true,
 });
-new StatementType("UNION", Statement, {
+new ComplexDefinitionStatementType("UNION", UnionDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,

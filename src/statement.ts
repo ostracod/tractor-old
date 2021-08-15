@@ -2,13 +2,13 @@
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot, processNodeList } from "./node.js";
-import { StatementType, VariableStatementType } from "./statementType.js";
+import { StatementType, SimpleDefinitionStatementType, ComplexDefinitionStatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
-import { VariableDefinitionConstructor, VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
-import { FieldDefinition, DataFieldDefinition, StructDefinition } from "./typeDefinition.js";
+import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
+import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition, FieldsTypeDefinition } from "./typeDefinition.js";
 
 export type StatementConstructor<T extends Statement = Statement> = new (
     type: T["type"],
@@ -59,19 +59,6 @@ export class Statement extends Node {
             slot.set(expression);
             destination.add(oldIdentifier, newIdentifier);
         }
-    }
-    
-    createFieldDefinition(): FieldDefinition {
-        const identifier = this.getDeclarationIdentifier();
-        const typeExpression = this.args[1].get();
-        return new DataFieldDefinition(identifier, typeExpression);
-    }
-    
-    createStructDefinition(): void {
-        const identifier = this.getDeclarationIdentifier();
-        const fieldDefinitions = this.block.get().extractFieldDefinitions();
-        const structDefinition = new StructDefinition(identifier, fieldDefinitions);
-        this.getParentBlock().addIdentifierDefinition(structDefinition);
     }
     
     processArgExpressions(handle: (expression: Expression) => Expression): number {
@@ -217,16 +204,20 @@ export class InitFunctionStatement extends FunctionStatement<InitFunctionDefinit
     }
 }
 
-export class VariableStatement<T extends VariableDefinition> extends Statement {
-    type: VariableStatementType<T>;
+export abstract class SimpleDefinitionStatement<T extends SingleTypeDefinition> extends Statement {
+    type: SimpleDefinitionStatementType<T>;
+    
+}
+
+export class VariableStatement<T extends VariableDefinition> extends SimpleDefinitionStatement<T> {
     
     createVariableDefinition(): {
         variableDefinition: NodeSlot<T>,
         statements: Statement[],
     } {
+        const constructor = this.type.definitionConstructor;
         const identifier = this.getDeclarationIdentifier();
         const typeExpression = this.args[1].get();
-        const constructor = this.type.variableDefinitionConstructor;
         const definition = new constructor(identifier, typeExpression);
         let statements: Statement[] = [];
         if (this.args.length > 2) {
@@ -235,6 +226,28 @@ export class VariableStatement<T extends VariableDefinition> extends Statement {
         }
         const slot = this.getParentBlock().addIdentifierDefinition(definition);
         return { variableDefinition: slot, statements };
+    }
+}
+
+export class FieldStatement<T extends FieldDefinition> extends SimpleDefinitionStatement<T> {
+    
+    createFieldDefinition(): T {
+        const constructor = this.type.definitionConstructor;
+        const identifier = this.getDeclarationIdentifier();
+        const typeExpression = this.args[1].get();
+        return new constructor(identifier, typeExpression);
+    }
+}
+
+export class ComplexDefinitionStatement<T extends FieldsTypeDefinition = FieldsTypeDefinition> extends Statement {
+    type: ComplexDefinitionStatementType<T>;
+    
+    createDefinition(): void {
+        const constructor = this.type.definitionConstructor;
+        const identifier = this.getDeclarationIdentifier();
+        const fieldDefinitions = this.block.get().extractFieldDefinitions();
+        const structDefinition = new constructor(identifier, fieldDefinitions);
+        this.getParentBlock().addIdentifierDefinition(structDefinition);
     }
 }
 

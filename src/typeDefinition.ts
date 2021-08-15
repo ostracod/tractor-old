@@ -17,6 +17,11 @@ export abstract class TypeDefinition extends Definition implements IdentifierDef
     }
 }
 
+export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = new (
+    identifier: Identifier,
+    typeExpression: Expression,
+) => T;
+
 export abstract class SingleTypeDefinition extends TypeDefinition {
     typeResolver: NodeSlot<TypeResolver>;
     
@@ -49,6 +54,18 @@ export class DataFieldDefinition extends FieldDefinition {
     }
 }
 
+export class TypeFieldDefinition extends FieldDefinition {
+    
+    getDefinitionNameHelper(): string {
+        return "Type";
+    }
+}
+
+export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
+    identifier: Identifier,
+    fields: FieldDefinition[],
+) => T;
+
 export abstract class FieldsTypeDefinition extends TypeDefinition {
     fieldMap: NodeSlot<IdentifierDefinitionMap<FieldDefinition>>;
     
@@ -73,6 +90,13 @@ export class StructDefinition extends FieldsTypeDefinition {
     
     getDefinitionName(): string {
         return "Struct";
+    }
+}
+
+export class UnionDefinition extends FieldsTypeDefinition {
+    
+    getDefinitionName(): string {
+        return "Union";
     }
 }
 

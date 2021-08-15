@@ -6,11 +6,6 @@ import { Expression } from "./expression.js";
 import { SingleTypeDefinition } from "./typeDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 
-export type VariableDefinitionConstructor<T extends VariableDefinition> = new (
-    identifier: Identifier,
-    typeExpression: Expression,
-) => T;
-
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
