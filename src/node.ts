@@ -58,7 +58,8 @@ export abstract class Node implements Displayable {
     // If handle returns null:
     //   > processNodes will not replace the original node
     //   > processNodes will recur
-    processNodes(handle: (node: Node) => Node): void {
+    processNodes(handle: (node: Node) => Node): number {
+        let output = 0;
         for (const key in this.slots) {
             const slot = this.slots[key];
             const node = slot.get();
@@ -67,18 +68,20 @@ export abstract class Node implements Displayable {
             }
             const result = handle(node);
             if (result === null) {
-                node.processNodes(handle);
-            } else {
+                output += node.processNodes(handle);
+            } else if (result !== node) {
                 slot.set(result);
+                output += 1;
             }
         }
+        return output;
     }
     
     processNodesByClass<T extends Node>(
         constructor: Function & { prototype: T },
         handle: (node: T) => T,
-    ): void {
-        this.processNodes((node) => {
+    ): number {
+        return this.processNodes((node) => {
             if (node instanceof constructor) {
                 return handle(node as T);
             }
@@ -86,23 +89,25 @@ export abstract class Node implements Displayable {
         });
     }
     
-    processExpressions(handle: (expression: Expression) => Expression): void {
-        this.processNodesByClass(constructors.Expression, handle);
+    processExpressions(handle: (expression: Expression) => Expression): number {
+        return this.processNodesByClass(constructors.Expression, handle);
     }
     
-    processStatements(handle: (statement: Statement) => Statement): void {
-        this.processNodesByClass(constructors.Statement, handle);
+    processStatements(handle: (statement: Statement) => Statement): number {
+        return this.processNodesByClass(constructors.Statement, handle);
     }
     
-    processBlocks(handle: (block: StatementBlock) => StatementBlock): void {
-        this.processNodesByClass(constructors.StatementBlock, handle);
+    processBlocks(handle: (block: StatementBlock) => StatementBlock): number {
+        return this.processNodesByClass(constructors.StatementBlock, handle);
     }
     
-    processBlockStatements(handle: (statement: Statement) => Statement[]): void {
+    processBlockStatements(handle: (statement: Statement) => Statement[]): number {
+        let output = 0;
         this.processNodesByClass(constructors.StatementBlock, (block) => {
-            block.processBlockStatements(handle);
+            output += block.processBlockStatements(handle);
             return null;
         });
+        return output;
     }
     
     addSlot<T extends Node>(node: T = null): NodeSlot<T> {

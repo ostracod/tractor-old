@@ -21,7 +21,7 @@ export class TypeResolver extends Node {
     // TODO: Add method to resolve a type.
     
     getDisplayString() {
-        return "(Unresolved type)";
+        return this.expression.get().getDisplayString();
     }
 }
 

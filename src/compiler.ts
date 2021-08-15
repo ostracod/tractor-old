@@ -137,11 +137,11 @@ export class Compiler extends Node {
         }
     }
     
-    iterateOverExpandedNodes<T extends Node>(
+    processExpandedNodes<T extends Node>(
         constructor: Function & { prototype: T },
         handle: (node: T) => T,
-    ): void {
-        this.processNodes((node) => {
+    ): number {
+        return this.processNodes((node) => {
             if (node instanceof InlineFunctionDefinition) {
                 return node;
             }
@@ -153,36 +153,38 @@ export class Compiler extends Node {
         });
     }
     
-    iterateOverExpandedBlocks(handle: (node: StatementBlock) => void): void {
-        this.iterateOverExpandedNodes(StatementBlock, (block) => {
-            handle(block);
+    iterateOverExpandedBlocks(handle: (node: StatementBlock) => number): number {
+        let output = 0;
+        this.processExpandedNodes(StatementBlock, (block) => {
+            output += handle(block);
             return null;
         });
+        return output;
     }
     
-    extractVariableDefinitions(): void {
-        this.iterateOverExpandedBlocks((block) => {
-            block.extractVariableDefinitions();
-        });
+    extractVariableDefinitions(): number {
+        return this.iterateOverExpandedBlocks((block) => (
+            block.extractVariableDefinitions()
+        ));
     }
     
-    transformControlFlow(): void {
-        this.iterateOverExpandedBlocks((block) => {
-            block.transformControlFlow();
-        });
+    transformControlFlow(): number {
+        return this.iterateOverExpandedBlocks((block) => (
+            block.transformControlFlow()
+        ));
     }
     
-    resolveCompItems(): void {
-        this.iterateOverExpandedNodes(
+    resolveCompItems(): number {
+        return this.processExpandedNodes(
             Expression,
             (expression) => expression.resolveCompItems(),
         );
     }
     
-    expandInlineFunctions(): void {
-        this.iterateOverExpandedBlocks((block) => {
-            block.processBlockStatements((statement) => statement.expandInlineFunctions());
-        });
+    expandInlineFunctions(): number {
+        return this.iterateOverExpandedBlocks((block) => (
+            block.processBlockStatements((statement) => statement.expandInlineFunctions())
+        ));
     }
     
     getDisplayString(): string {
@@ -196,13 +198,16 @@ export class Compiler extends Node {
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
-            // TODO: Loop over these invocations until no
-            // further compT items can be resolved.
-            this.extractVariableDefinitions();
-            this.transformControlFlow();
-            this.resolveCompItems();
-            this.expandInlineFunctions();
-            
+            while (true) {
+                let processCount = 0;
+                processCount += this.extractVariableDefinitions();
+                processCount += this.transformControlFlow();
+                processCount += this.resolveCompItems();
+                processCount += this.expandInlineFunctions();
+                if (processCount <= 0) {
+                    break;
+                }
+            }
             console.log(this.getDisplayString());
         } catch (error) {
             if (error instanceof CompilerError) {

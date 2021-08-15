@@ -167,7 +167,7 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         const generator = new StatementGenerator(pos, statements);
         let returnItemIdentifier: Identifier;
         const returnTypeResolver = this.returnTypeResolver.get();
-        if (this.returnTypeResolver === null) {
+        if (returnTypeResolver === null) {
             returnItemIdentifier = null;
         } else {
             returnItemIdentifier = new NumberIdentifier();

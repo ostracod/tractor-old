@@ -123,19 +123,24 @@ export class StatementBlock extends Node {
         return this.scope.get().add(definition);
     }
     
-    processBlockStatements(handle: (statement: Statement) => Statement[]): void {
+    processBlockStatements(handle: (statement: Statement) => Statement[]): number {
+        let output = 0;
         const nextStatements = [];
         this.statements.forEach((slot) => {
             const statement = slot.get();
             const result = handle(statement);
             if (result === null) {
-                statement.processBlockStatements(handle);
+                output += statement.processBlockStatements(handle);
                 nextStatements.push(statement);
             } else {
+                if (result.length !== 1 || result[0] !== statement) {
+                    output += 1;
+                }
                 niceUtils.extendList(nextStatements, result);
             }
         });
         this.setStatements(nextStatements);
+        return output;
     }
     
     transformIfStatement(
@@ -216,7 +221,8 @@ export class StatementBlock extends Node {
         generator.createLabelStatement(endIdentifier);
     }
     
-    transformControlFlow(): void {
+    transformControlFlow(): number {
+        let output = 0;
         const nextStatements = [];
         let index = 0;
         while (index < this.statements.length) {
@@ -224,22 +230,25 @@ export class StatementBlock extends Node {
             index += 1;
             const nestedBlock = statement.block.get();
             if (nestedBlock !== null) {
-                nestedBlock.transformControlFlow();
+                output += nestedBlock.transformControlFlow();
             }
             const { directive } = statement.type;
             if (directive === "IF") {
                 index = this.transformIfStatement(nextStatements, statement, index);
+                output += 1;
             } else if (directive === "WHILE") {
                 this.transformWhileStatement(nextStatements, statement);
+                output += 1;
             } else {
                 nextStatements.push(statement);
             }
         }
         this.setStatements(nextStatements);
+        return output;
     }
     
-    extractVariableDefinitions(): void {
-        this.processBlockStatements((statement) => {
+    extractVariableDefinitions(): number {
+        return this.processBlockStatements((statement) => {
             if (statement instanceof VariableStatement) {
                 return statement.createVariableDefinition().statements;
             } else {

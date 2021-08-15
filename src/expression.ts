@@ -58,7 +58,11 @@ export class CompItemExpression extends Expression {
     }
     
     getDisplayString(): string {
-        return this.item.getDisplayString();
+        if (this.item === null) {
+            return "(Void)";
+        } else {
+            return this.item.getDisplayString();
+        }
     }
     
     copy(): Expression {
@@ -192,7 +196,12 @@ export class InvocationExpression extends Expression {
         const argExpressions = this.argExpressions.map((slot) => slot.get());
         const result = definition.expandInline(argExpressions, this.getPos());
         const { statements, returnItemIdentifier } = result;
-        const expression = new IdentifierExpression(returnItemIdentifier);
+        let expression: Expression;
+        if (returnItemIdentifier === null) {
+            expression = new CompItemExpression(null);
+        } else {
+            expression = new IdentifierExpression(returnItemIdentifier);
+        }
         return { expression, statements };
     }
     
