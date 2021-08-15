@@ -269,7 +269,7 @@ export class StatementBlock extends Node {
     
     extractTypeDefinitions(): number {
         return this.processBlockStatements((statement) => {
-            if (statement.type instanceof ComplexDefinitionStatement) {
+            if (statement instanceof ComplexDefinitionStatement) {
                 (statement as ComplexDefinitionStatement).createDefinition();
                 return [];
             }
