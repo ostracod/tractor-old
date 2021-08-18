@@ -4,13 +4,12 @@ import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
 import { NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
-import { Statement, VariableStatement } from "./statement.js";
+import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { Expression, IdentifierExpression } from "./expression.js";
-import { ArgVariableDefinition } from "./variableDefinition.js";
-import { TypeResolver } from "./typeResolver.js";
+import { FunctionSignature } from "./functionSignature.js";
 
 export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
@@ -36,31 +35,13 @@ export type IdentifierFunctionDefinitionConstructor = new (
 
 export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
     identifier: Identifier;
-    argVariableDefinitions: NodeSlot<ArgVariableDefinition>[];
-    returnTypeResolver: NodeSlot<TypeResolver>;
+    signature: NodeSlot<FunctionSignature>;
     
     constructor(identifier: Identifier, block: StatementBlock) {
         super(block);
         this.identifier = identifier;
-        this.argVariableDefinitions = [];
-        this.returnTypeResolver = this.addSlot();
-        this.processBlockStatements((statement) => {
-            const { directive } = statement.type;
-            if (directive === "ARG") {
-                const result = (statement as VariableStatement<ArgVariableDefinition>).createVariableDefinition();
-                this.argVariableDefinitions.push(result.variableDefinition);
-                return result.statements;
-            } else if (directive === "RET_TYPE") {
-                if (this.returnTypeResolver.get() !== null) {
-                    throw statement.createError("Extra RET_TYPE statement.");
-                }
-                const typeExpression = statement.args[0].get();
-                const typeResolver = new TypeResolver(typeExpression);
-                this.returnTypeResolver.set(typeResolver);
-                return [];
-            }
-            return [statement];
-        });
+        const signature = this.block.get().createFunctionSignature();
+        this.signature = this.addSlot(signature);
     }
     
     abstract getFunctionTypeName(): string;
@@ -69,12 +50,8 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifier.getDisplayString();
         const output = [`${typeText} identifier: ${identifierText}`];
-        const returnTypeResolver = this.returnTypeResolver.get();
-        if (returnTypeResolver !== null) {
-            const returnTypeText = returnTypeResolver.getDisplayString();
-            const indentation = niceUtils.getIndentation(1);
-            output.push(indentation + "Return type: " + returnTypeText);
-        }
+        const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
+        niceUtils.extendWithIndentation(output, returnTypeLines);
         return output;
     }
 }
@@ -102,9 +79,10 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         const generator = new StatementGenerator(pos);
         const output = new StatementBlock();
         const identifierMap = new IdentifierMap<Identifier>();
+        const signature = this.signature.get();
         
         // Create a soft variable for each argument.
-        this.argVariableDefinitions.forEach((slot, index) => {
+        signature.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
             identifierMap.add(argVariableDefinition.identifier, identifier);
@@ -166,7 +144,8 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         const statements: Statement[] = [];
         const generator = new StatementGenerator(pos, statements);
         let returnItemIdentifier: Identifier;
-        const returnTypeResolver = this.returnTypeResolver.get();
+        const signature = this.signature.get();
+        const returnTypeResolver = signature.returnTypeResolver.get();
         if (returnTypeResolver === null) {
             returnItemIdentifier = null;
         } else {

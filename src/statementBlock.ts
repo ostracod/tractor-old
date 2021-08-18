@@ -11,6 +11,8 @@ import { Identifier, NumberIdentifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
 import { FieldDefinition } from "./typeDefinition.js";
+import { ArgVariableDefinition } from "./variableDefinition.js";
+import { FunctionSignature } from "./functionSignature.js";
 
 class IfClause {
     condition: Expression;
@@ -275,6 +277,27 @@ export class StatementBlock extends Node {
             }
             return [statement];
         });
+    }
+    
+    createFunctionSignature(): FunctionSignature {
+        const argVariableDefinitions: NodeSlot<ArgVariableDefinition>[] = [];
+        let returnTypeExpression: Expression = null;
+        this.processBlockStatements((statement) => {
+            const { directive } = statement.type;
+            if (directive === "ARG") {
+                const result = (statement as VariableStatement<ArgVariableDefinition>).createVariableDefinition();
+                argVariableDefinitions.push(result.variableDefinition);
+                return result.statements;
+            } else if (directive === "RET_TYPE") {
+                if (returnTypeExpression !== null) {
+                    throw statement.createError("Extra RET_TYPE statement.");
+                }
+                returnTypeExpression = statement.args[0].get();
+                return [];
+            }
+            return [statement];
+        });
+        return new FunctionSignature(argVariableDefinitions, returnTypeExpression);
     }
     
     getDisplayLines(): string[] {

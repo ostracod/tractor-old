@@ -206,8 +206,8 @@ export class Compiler extends Node {
             this.extractFunctionDefinitions();
             while (true) {
                 let processCount = 0;
-                processCount += this.extractVariableDefinitions();
                 processCount += this.extractTypeDefinitions();
+                processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompItems();
                 processCount += this.expandInlineFunctions();
