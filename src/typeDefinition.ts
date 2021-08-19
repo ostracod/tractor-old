@@ -7,6 +7,8 @@ import { Identifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { Expression } from "./expression.js";
 import { TypeResolver } from "./typeResolver.js";
+import { StatementBlock } from "./statementBlock.js";
+import { FunctionSignature } from "./functionSignature.js";
 
 export abstract class TypeDefinition extends Definition implements IdentifierDefinition {
     identifier: Identifier;
@@ -97,6 +99,26 @@ export class UnionDefinition extends FieldsTypeDefinition {
     
     getDefinitionName(): string {
         return "Union";
+    }
+}
+
+export class FunctionTypeDefinition extends TypeDefinition {
+    block: NodeSlot<StatementBlock>;
+    signature: NodeSlot<FunctionSignature>;
+    
+    constructor(identifier: Identifier, block: StatementBlock) {
+        super(identifier);
+        this.block = this.addSlot(block);
+        const signature = this.block.get().createFunctionSignature();
+        this.signature = this.addSlot(signature);
+    }
+    
+    getDisplayLines(): string[] {
+        const output = [`Function type identifier: ${this.identifier.getDisplayString()}`];
+        const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
+        niceUtils.extendWithIndentation(output, returnTypeLines);
+        niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
+        return output;
     }
 }
 

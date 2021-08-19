@@ -4,13 +4,13 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement, FieldStatement, ComplexDefinitionStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
-import { FieldDefinition } from "./typeDefinition.js";
+import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
 
@@ -271,8 +271,14 @@ export class StatementBlock extends Node {
     
     extractTypeDefinitions(): number {
         return this.processBlockStatements((statement) => {
-            if (statement instanceof ComplexDefinitionStatement) {
-                (statement as ComplexDefinitionStatement).createDefinition();
+            if (statement instanceof FieldsTypeStatement) {
+                (statement as FieldsTypeStatement).createDefinition();
+                return [];
+            } else if (statement.type.directive === "FUNC_TYPE") {
+                const identifier = statement.getDeclarationIdentifier();
+                const block = statement.block.get();
+                const definition = new FunctionTypeDefinition(identifier, block);
+                this.addIdentifierDefinition(definition);
                 return [];
             }
             return [statement];

@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, ComplexDefinitionStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
 import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
@@ -126,7 +126,7 @@ export class FieldStatementType<T extends FieldDefinition> extends SimpleDefinit
     }
 }
 
-export class ComplexDefinitionStatementType<T extends FieldsTypeDefinition> extends StatementType<ComplexDefinitionStatement<T>> {
+export class FieldsTypeStatementType<T extends FieldsTypeDefinition> extends StatementType<FieldsTypeStatement<T>> {
     definitionConstructor: FieldsTypeDefinitionConstructor<T>;
     
     constructor(
@@ -134,7 +134,7 @@ export class ComplexDefinitionStatementType<T extends FieldsTypeDefinition> exte
         definitionConstructor: FieldsTypeDefinitionConstructor<T>,
         options: StatementTypeOptions,
     ) {
-        super(directive, ComplexDefinitionStatement, options);
+        super(directive, FieldsTypeStatement, options);
         this.definitionConstructor = definitionConstructor;
     }
 }
@@ -173,13 +173,13 @@ new FieldStatementType("TYPE_FIELD", TypeFieldDefinition, {
     argAmount: 2,
     hasDeclarationIdentifier: true,
 });
-new ComplexDefinitionStatementType("STRUCT", StructDefinition, {
+new FieldsTypeStatementType("STRUCT", StructDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
     hasDeclarationIdentifier: true,
 });
-new ComplexDefinitionStatementType("UNION", UnionDefinition, {
+new FieldsTypeStatementType("UNION", UnionDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,

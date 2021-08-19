@@ -2,7 +2,7 @@
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot, processNodeList } from "./node.js";
-import { StatementType, SimpleDefinitionStatementType, ComplexDefinitionStatementType } from "./statementType.js";
+import { StatementType, SimpleDefinitionStatementType, FieldsTypeStatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
@@ -239,8 +239,8 @@ export class FieldStatement<T extends FieldDefinition> extends SimpleDefinitionS
     }
 }
 
-export class ComplexDefinitionStatement<T extends FieldsTypeDefinition = FieldsTypeDefinition> extends Statement {
-    type: ComplexDefinitionStatementType<T>;
+export class FieldsTypeStatement<T extends FieldsTypeDefinition = FieldsTypeDefinition> extends Statement {
+    type: FieldsTypeStatementType<T>;
     
     createDefinition(): void {
         const constructor = this.type.definitionConstructor;
