@@ -13,6 +13,7 @@ import { InitFunctionDefinition } from "./functionDefinition.js";
 import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
+import { BuiltInDefinition, createBuiltInDefinitionMap } from "./builtInDefinition.js";
 
 class IfClause {
     condition: Expression;
@@ -329,10 +330,14 @@ export class StatementBlock extends Node {
 
 export class RootStatementBlock extends StatementBlock {
     initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
+    builtInDefinitionMap: NodeSlot<IdentifierDefinitionMap<BuiltInDefinition>>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super(pos, statements);
         this.initFunctionDefinition = this.addSlot();
+        const definitionMap = createBuiltInDefinitionMap();
+        this.builtInDefinitionMap = this.addSlot(definitionMap);
+        console.log(definitionMap.getDisplayString());
     }
     
     getDisplayLines(): string[] {
@@ -342,6 +347,15 @@ export class RootStatementBlock extends StatementBlock {
             niceUtils.extendList(output, initFunctionDefinition.getDisplayLines());
         }
         return output;
+    }
+    
+    getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
+        const definition = super.getIdentifierDefinition(identifier);
+        if (definition === null) {
+            return this.builtInDefinitionMap.get().get(identifier);
+        } else {
+            return definition;
+        }
     }
 }
 

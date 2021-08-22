@@ -97,9 +97,11 @@ export class IdentifierExpression extends Expression  {
     resolveCompItems(): Expression {
         const parentBlock = this.getParentBlock();
         const definition = parentBlock.getIdentifierDefinition(this.identifier);
-        if (definition instanceof IdentifierFunctionDefinition) {
-            const compItem = new CompFunctionHandle(definition);
-            return new CompItemExpression(compItem);
+        if (definition !== null) {
+            const compItem = definition.getCompItemOrNull();
+            if (compItem !== null) {
+                return new CompItemExpression(compItem);
+            }
         }
         return super.resolveCompItems();
     }

@@ -1,6 +1,6 @@
 
 import { Displayable } from "./interfaces.js";
-import { IdentifierFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition } from "./functionDefinition.js";
 
 export abstract class CompItem implements Displayable {
     
@@ -34,15 +34,15 @@ export class CompString extends CompItem {
 }
 
 export class CompFunctionHandle extends CompItem {
-    functionDefinition: IdentifierFunctionDefinition;
+    functionDefinition: FunctionDefinition;
     
-    constructor(functionDefinition: IdentifierFunctionDefinition) {
+    constructor(functionDefinition: FunctionDefinition) {
         super();
         this.functionDefinition = functionDefinition;
     }
     
     getDisplayString(): string {
-        return this.functionDefinition.identifier.getDisplayString();
+        return this.functionDefinition.getName();
     }
 }
 

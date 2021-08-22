@@ -10,6 +10,7 @@ import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { FunctionSignature } from "./functionSignature.js";
+import { CompItem, CompFunctionHandle } from "./compItem.js";
 
 export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
@@ -19,7 +20,13 @@ export abstract class FunctionDefinition extends Definition {
         this.block = this.addSlot(block);
     }
     
+    abstract getName(): string;
+    
     abstract getDisplayLinesHelper(): string[];
+    
+    getCompItemOrNull(): CompItem {
+        return new CompFunctionHandle(this);
+    }
     
     getDisplayLines(): string[] {
         const output = this.getDisplayLinesHelper();
@@ -45,6 +52,10 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     }
     
     abstract getFunctionTypeName(): string;
+    
+    getName(): string {
+        return this.identifier.getDisplayString();
+    }
     
     getDisplayLinesHelper(): string[] {
         const typeText = this.getFunctionTypeName();
@@ -172,6 +183,10 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
 }
 
 export class InitFunctionDefinition extends FunctionDefinition {
+    
+    getName(): string {
+        return "#initFunc";
+    }
     
     getDisplayLinesHelper(): string[] {
         return ["Init function"];
