@@ -1,7 +1,7 @@
 
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
-import { CompItem, CompString, CompFunctionHandle } from "./compItem.js";
+import { CompItem, CompArray, CompFunctionHandle } from "./compItem.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
@@ -21,10 +21,10 @@ export abstract class Expression extends Node {
     
     evaluateToString(): string {
         const constant = this.evaluateToCompItemOrNull();
-        if (constant === null || !(constant instanceof CompString)) {
+        if (constant === null || !(constant instanceof CompArray)) {
             throw this.createError("Expected string.");
         }
-        return (constant as CompString).value;
+        return (constant as CompArray).convertToString();
     }
     
     evaluateToIdentifier(): Identifier {

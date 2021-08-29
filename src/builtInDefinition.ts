@@ -3,7 +3,7 @@ import { IdentifierDefinition } from "./interfaces.js";
 import { Definition } from "./definition.js";
 import { Identifier, NameIdentifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
-import { CompItem, CompNumber } from "./compItem.js";
+import { CompItem, CompInteger } from "./compItem.js";
 
 export class BuiltInDefinition extends Definition implements IdentifierDefinition {
     identifier: Identifier;
@@ -36,8 +36,10 @@ const addBuiltInDefinition = (name: string, item: CompItem): void => {
     builtInDefinitions.push(definition);
 };
 
-addBuiltInDefinition("TRUE", new CompNumber(1n));
-addBuiltInDefinition("FALSE", new CompNumber(0n));
+export const initializeBuiltInDefinitions = (): void => {
+    addBuiltInDefinition("TRUE", new CompInteger(1n));
+    addBuiltInDefinition("FALSE", new CompInteger(0n));
+};
 
 export const createBuiltInDefinitionMap = (): IdentifierDefinitionMap<BuiltInDefinition> => {
     const output = new IdentifierDefinitionMap<BuiltInDefinition>();

@@ -3,10 +3,11 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import { CompilerError } from "./compilerError.js";
 import { expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
 import { Statement } from "./statement.js";
-import { CompNumber, CompString } from "./compItem.js";
+import { CompInteger, CompArray } from "./compItem.js";
 import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 import { NameIdentifier } from "./identifier.js";
+import { IntegerType } from "./itemType.js";
 
 interface TokenResult {
     token: Token;
@@ -215,6 +216,18 @@ const assertDelimiter = (tokens: Token[], index: number, text: string): void => 
     throw new CompilerError(`Expected "${text}" delimiter.`);
 };
 
+const parseStringToken = (token: StringToken): CompArray => {
+    const { text } = token;
+    const charType = new IntegerType(false, 8);
+    const elements = [];
+    for (let index = 0; index < text.length; index++) {
+        const charCode = text.charCodeAt(index);
+        const compItem = new CompInteger(BigInt(charCode), charType);
+        elements.push(compItem);
+    }
+    return new CompArray(elements, charType);
+};
+
 const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult => {
     if (index >= tokens.length) {
         return null;
@@ -234,24 +247,24 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
     }
     if (token instanceof NumberToken) {
         const value = BigInt(token.text);
-        const constant = new CompNumber(value);
+        const compItem = new CompInteger(value);
         return {
-            expression: new CompItemExpression(constant),
+            expression: new CompItemExpression(compItem),
             index,
         };
     }
     if (token instanceof StringToken) {
-        const constant = new CompString(token.text);
+        const compItem = parseStringToken(token);
         return {
-            expression: new CompItemExpression(constant),
+            expression: new CompItemExpression(compItem),
             index,
         };
     }
     if (token instanceof CharacterToken) {
         const value = BigInt(token.text.charCodeAt(0));
-        const constant = new CompNumber(value);
+        const compItem = new CompInteger(value);
         return {
-            expression: new CompItemExpression(constant),
+            expression: new CompItemExpression(compItem),
             index,
         };
     }
