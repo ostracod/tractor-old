@@ -47,19 +47,14 @@ export class IntegerType extends ValueType {
     getDisplayString(): string {
         let term: string;
         if (this.isSigned === null) {
-            term = "intT";
+            term = "int";
         } else if (this.isSigned) {
-            term = "sIntT";
+            term = "sInt";
         } else {
-            term = "uIntT";
+            term = "uInt";
         }
-        let suffix: string;
-        if (this.bitAmount == null) {
-            suffix = "";
-        } else {
-            suffix = this.bitAmount.toString();
-        }
-        return term + suffix;
+        const suffix = (this.bitAmount == null) ? "" : this.bitAmount.toString();
+        return term + suffix + "T";
     }
 }
 

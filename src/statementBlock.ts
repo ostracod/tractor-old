@@ -337,7 +337,6 @@ export class RootStatementBlock extends StatementBlock {
         this.initFunctionDefinition = this.addSlot();
         const definitionMap = createBuiltInDefinitionMap();
         this.builtInDefinitionMap = this.addSlot(definitionMap);
-        console.log(definitionMap.getDisplayString());
     }
     
     getDisplayLines(): string[] {
