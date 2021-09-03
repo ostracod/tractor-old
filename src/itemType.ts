@@ -1,5 +1,6 @@
 
 import { constructors } from "./constructors.js";
+import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { FunctionTypeDefinition } from "./typeDefinition.js";
 
@@ -55,6 +56,13 @@ export class IntegerType extends ValueType {
         }
         const suffix = (this.bitAmount == null) ? "" : this.bitAmount.toString();
         return term + suffix + "T";
+    }
+    
+    convertToUnixC(): string {
+        if (this.isSigned === null || this.bitAmount === null) {
+            throw new CompilerError("Expected concrete type.");
+        }
+        return (this.isSigned) ? `int${this.bitAmount}_t` : `uint${this.bitAmount}_t`;
     }
 }
 

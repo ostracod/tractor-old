@@ -4,7 +4,6 @@ import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinition } from "./typeDefinition.js";
-import { TypeResolver } from "./typeResolver.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
@@ -26,6 +25,16 @@ export class FrameVariableDefinition extends VariableDefinition {
     
     getDefinitionNameHelper(): string {
         return "Frame";
+    }
+    
+    convertToUnixC(): string {
+        const tempType = this.typeResolver.get().getType();
+        let typeText: string;
+        this.tryOperation(() => {
+            typeText = tempType.convertToUnixC();
+        });
+        const identifierText = this.identifier.getCodeString();
+        return `${typeText} ${identifierText};`;
     }
 }
 

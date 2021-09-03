@@ -11,6 +11,8 @@ import { Expression } from "./expression.js";
 import { ImportStatement, FunctionStatement } from "./statement.js";
 import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { FunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
+import { TypeResolver } from "./typeResolver.js";
+import { codeGeneratorConstructorMap, TargetCodeGeneratorConstructor } from "./targetCodeGenerator.js";
 
 export class Compiler extends Node {
     projectPath: string;
@@ -22,6 +24,7 @@ export class Compiler extends Node {
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
     rootBlock: NodeSlot<RootStatementBlock>;
+    codeGeneratorConstructor: TargetCodeGeneratorConstructor;
     
     constructor(projectPath: string, configNames: string[]) {
         super();
@@ -34,11 +37,13 @@ export class Compiler extends Node {
     }
     
     readConfig(): void {
+        
         const path = pathUtils.join(this.projectPath, "tractorConfig.json");
         let config = JSON.parse(fs.readFileSync(path, "utf8")) as Config;
         this.configImportMap = {};
         this.targetLanguage = null;
         this.buildFileName = null;
+        
         let index = 0;
         while (true) {
             const { importMap, targetLanguage, buildFileName, configs } = config;
@@ -77,11 +82,17 @@ export class Compiler extends Node {
         if (index < this.configNames.length) {
             throw new CompilerError(`Config "${config.name}" has no nested configs.`);
         }
+        
         if (this.targetLanguage === null) {
             throw new CompilerError("Missing targetLanguage in config.");
         }
         if (this.buildFileName === null) {
             throw new CompilerError("Missing buildFileName in config.");
+        }
+        
+        this.codeGeneratorConstructor = codeGeneratorConstructorMap[this.targetLanguage];
+        if (typeof this.codeGeneratorConstructor === "undefined") {
+            throw new CompilerError(`Unknown target language "${this.targetLanguage}".`);
         }
     }
     
@@ -187,6 +198,21 @@ export class Compiler extends Node {
         );
     }
     
+    resolveTypes(): number {
+        let output = 0;
+        this.processExpandedNodes(
+            TypeResolver,
+            (typeResolver) => {
+                const result = typeResolver.resolveType();
+                if (result) {
+                    output += 1;
+                }
+                return null;
+            },
+        );
+        return output;
+    }
+    
     expandInlineFunctions(): number {
         return this.iterateOverExpandedBlocks((block) => (
             block.processBlockStatements((statement) => statement.expandInlineFunctions())
@@ -204,18 +230,24 @@ export class Compiler extends Node {
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
             this.extractFunctionDefinitions();
+            console.log("Processing definitions...");
             while (true) {
                 let processCount = 0;
                 processCount += this.extractTypeDefinitions();
                 processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompItems();
+                processCount += this.resolveTypes();
                 processCount += this.expandInlineFunctions();
                 if (processCount <= 0) {
                     break;
                 }
             }
-            console.log(this.getDisplayString());
+            console.log(`\n${this.getDisplayString()}\n`);
+            console.log("Generating target code...");
+            const codeGenerator = new this.codeGeneratorConstructor(this);
+            codeGenerator.generateCode();
+            console.log("Finished.");
         } catch (error) {
             if (error instanceof CompilerError) {
                 console.log(error.getDisplayString());

@@ -10,6 +10,10 @@ export abstract class CompItem implements Displayable {
     abstract getType(): ItemType;
     
     abstract getDisplayString(): string;
+    
+    convertToUnixC(): string {
+        throw new CompilerError(`Cannot convert ${this.getDisplayString()} to Unix C.`);
+    }
 }
 
 export abstract class CompValue extends CompItem {

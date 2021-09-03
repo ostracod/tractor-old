@@ -7,6 +7,8 @@ let nextIdentifierNumber = 0;
 export abstract class Identifier implements Displayable {
     key: string;
     
+    abstract getCodeString(): string;
+    
     abstract getDisplayString(): string;
     
     abstract equals(identifier: Identifier): boolean;
@@ -19,6 +21,10 @@ export class NameIdentifier extends Identifier {
         super();
         this.name = name;
         this.key = `name,${this.name}`;
+    }
+    
+    getCodeString(): string {
+        return "nameIdentifier_" + this.name;
     }
     
     getDisplayString(): string {
@@ -41,6 +47,10 @@ export class NumberIdentifier extends Identifier {
         this.value = nextIdentifierNumber;
         nextIdentifierNumber += 1;
         this.key = `number,${this.value}`;
+    }
+    
+    getCodeString(): string {
+        return "numberIdentifier_" + this.value;
     }
     
     getDisplayString(): string {

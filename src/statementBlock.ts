@@ -14,6 +14,7 @@ import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
 import { BuiltInDefinition, createBuiltInDefinitionMap } from "./builtInDefinition.js";
+import { CompItem } from "./compItem.js";
 
 class IfClause {
     condition: Expression;
@@ -278,7 +279,11 @@ export class StatementBlock extends Node {
             } else if (statement.type.directive === "FUNC_TYPE") {
                 const identifier = statement.getDeclarationIdentifier();
                 const block = statement.block.get();
-                const definition = new FunctionTypeDefinition(identifier, block);
+                const definition = new FunctionTypeDefinition(
+                    this.getPos(),
+                    identifier,
+                    block,
+                );
                 this.addIdentifierDefinition(definition);
                 return [];
             }
@@ -307,6 +312,21 @@ export class StatementBlock extends Node {
         return new FunctionSignature(argVariableDefinitions, returnTypeExpression);
     }
     
+    evaluateToCompItemOrNull(): CompItem {
+        for (const slot of this.statements) {
+            const statement = slot.get();
+            // TODO: Handle control flow.
+            if (statement.type.directive === "RET") {
+                if (statement.args.length <= 0) {
+                    return null;
+                }
+                const expression = statement.args[0].get();
+                return expression.evaluateToCompItemOrNull();
+            }
+        }
+        return null;
+    }
+    
     getDisplayLines(): string[] {
         const output = [];
         this.scope.get().iterate((definition) => {
@@ -320,6 +340,17 @@ export class StatementBlock extends Node {
     
     getDisplayString(): string {
         return this.getDisplayLines().join("\n");
+    }
+    
+    convertToUnixC(): string {
+        const codeList = [];
+        this.scope.get().iterate((definition) => {
+            const code = definition.convertToUnixC();
+            if (code !== null) {
+                codeList.push(code);
+            }
+        });
+        return codeList.join("\n");
     }
     
     copy(): StatementBlock {

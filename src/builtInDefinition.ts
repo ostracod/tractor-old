@@ -12,7 +12,7 @@ export class BuiltInDefinition extends Definition implements IdentifierDefinitio
     item: CompItem;
     
     constructor(identifier: Identifier, item: CompItem) {
-        super();
+        super(null);
         this.identifier = identifier;
         this.item = item;
     }

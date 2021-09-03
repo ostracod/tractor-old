@@ -15,8 +15,8 @@ import { CompItem, CompFunctionHandle } from "./compItem.js";
 export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
     
-    constructor(block: StatementBlock) {
-        super();
+    constructor(pos: Pos, block: StatementBlock) {
+        super(pos);
         this.block = this.addSlot(block);
     }
     
@@ -36,6 +36,7 @@ export abstract class FunctionDefinition extends Definition {
 }
 
 export type IdentifierFunctionDefinitionConstructor = new (
+    pos: Pos,
     identifier: Identifier,
     block: StatementBlock,
 ) => IdentifierFunctionDefinition;
@@ -44,8 +45,8 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     identifier: Identifier;
     signature: NodeSlot<FunctionSignature>;
     
-    constructor(identifier: Identifier, block: StatementBlock) {
-        super(block);
+    constructor(pos: Pos, identifier: Identifier, block: StatementBlock) {
+        super(pos, block);
         this.identifier = identifier;
         const signature = this.block.get().createFunctionSignature();
         this.signature = this.addSlot(signature);
@@ -190,6 +191,14 @@ export class InitFunctionDefinition extends FunctionDefinition {
     
     getDisplayLinesHelper(): string[] {
         return ["Init function"];
+    }
+    
+    convertToUnixC(): string {
+        const codeList = ["int main(int argc, const char *argv[]) {"];
+        const block = this.block.get();
+        codeList.push(block.convertToUnixC());
+        codeList.push("return 0;\n}");
+        return codeList.join("\n");
     }
 }
 

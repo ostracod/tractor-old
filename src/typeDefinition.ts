@@ -1,4 +1,5 @@
 
+import { Pos } from "./pos.js";
 import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
@@ -13,13 +14,14 @@ import { FunctionSignature } from "./functionSignature.js";
 export abstract class TypeDefinition extends Definition implements IdentifierDefinition {
     identifier: Identifier;
     
-    constructor(identifier: Identifier) {
-        super();
+    constructor(pos: Pos, identifier: Identifier) {
+        super(pos);
         this.identifier = identifier;
     }
 }
 
 export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = new (
+    pos: Pos,
     identifier: Identifier,
     typeExpression: Expression,
 ) => T;
@@ -27,8 +29,8 @@ export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = ne
 export abstract class SingleTypeDefinition extends TypeDefinition {
     typeResolver: NodeSlot<TypeResolver>;
     
-    constructor(identifier: Identifier, typeExpression: Expression) {
-        super(identifier);
+    constructor(pos: Pos, identifier: Identifier, typeExpression: Expression) {
+        super(pos, identifier);
         const typeResolver = new TypeResolver(typeExpression);
         this.typeResolver = this.addSlot(typeResolver);
     }
@@ -64,6 +66,7 @@ export class TypeFieldDefinition extends FieldDefinition {
 }
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
+    pos: Pos,
     identifier: Identifier,
     fields: FieldDefinition[],
 ) => T;
@@ -71,8 +74,8 @@ export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = ne
 export abstract class FieldsTypeDefinition extends TypeDefinition {
     fieldMap: NodeSlot<IdentifierDefinitionMap<FieldDefinition>>;
     
-    constructor(identifier: Identifier, fields: FieldDefinition[]) {
-        super(identifier);
+    constructor(pos: Pos, identifier: Identifier, fields: FieldDefinition[]) {
+        super(pos, identifier);
         const fieldMap = new IdentifierDefinitionMap<FieldDefinition>(fields);
         this.fieldMap = this.addSlot(fieldMap);
     }
@@ -106,8 +109,8 @@ export class FunctionTypeDefinition extends TypeDefinition {
     block: NodeSlot<StatementBlock>;
     signature: NodeSlot<FunctionSignature>;
     
-    constructor(identifier: Identifier, block: StatementBlock) {
-        super(identifier);
+    constructor(pos: Pos, identifier: Identifier, block: StatementBlock) {
+        super(pos, identifier);
         this.block = this.addSlot(block);
         const signature = this.block.get().createFunctionSignature();
         this.signature = this.addSlot(signature);
