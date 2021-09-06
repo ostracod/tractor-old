@@ -10,6 +10,7 @@ import { Expression } from "./expression.js";
 import { Identifier, NumberIdentifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
+import { TypeResolver } from "./typeResolver.js";
 import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
@@ -293,7 +294,7 @@ export class StatementBlock extends Node {
     
     createFunctionSignature(): FunctionSignature {
         const argVariableDefinitions: NodeSlot<ArgVariableDefinition>[] = [];
-        let returnTypeExpression: Expression = null;
+        let returnTypeResolver: NodeSlot<TypeResolver> = this.addSlot();
         this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
@@ -301,15 +302,16 @@ export class StatementBlock extends Node {
                 argVariableDefinitions.push(result.variableDefinition);
                 return result.statements;
             } else if (directive === "RET_TYPE") {
-                if (returnTypeExpression !== null) {
+                if (returnTypeResolver.get() !== null) {
                     throw statement.createError("Extra RET_TYPE statement.");
                 }
-                returnTypeExpression = statement.args[0].get();
+                const expression = statement.args[0].get();
+                returnTypeResolver.set(new TypeResolver(expression));
                 return [];
             }
             return [statement];
         });
-        return new FunctionSignature(argVariableDefinitions, returnTypeExpression);
+        return new FunctionSignature(argVariableDefinitions, returnTypeResolver);
     }
     
     evaluateToCompItemOrNull(): CompItem {

@@ -6,20 +6,17 @@ import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 
 export class FunctionSignature extends Node {
+    // argVariableDefinitions and returnTypeResolver are weak references.
     argVariableDefinitions: NodeSlot<ArgVariableDefinition>[];
     returnTypeResolver: NodeSlot<TypeResolver>;
     
     constructor(
         argVariableDefinitions: NodeSlot<ArgVariableDefinition>[],
-        returnTypeExpression: Expression,
+        returnTypeResolver: NodeSlot<TypeResolver>,
     ) {
         super();
         this.argVariableDefinitions = argVariableDefinitions;
-        this.returnTypeResolver = this.addSlot();
-        if (returnTypeExpression !== null) {
-            const returnTypeResolver = new TypeResolver(returnTypeExpression);
-            this.returnTypeResolver.set(returnTypeResolver);
-        }
+        this.returnTypeResolver = returnTypeResolver;
     }
     
     getReturnTypeDisplayLines(): string[] {
