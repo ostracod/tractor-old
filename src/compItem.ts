@@ -41,6 +41,11 @@ export class CompInteger extends CompValue {
     getDisplayString(): string {
         return this.value.toString();
     }
+    
+    convertToUnixC(): string {
+        // TODO: Cast the integer to this.type.
+        return this.value.toString();
+    }
 }
 
 export class CompArray extends CompValue {

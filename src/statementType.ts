@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
 import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
@@ -139,7 +139,11 @@ export class FieldsTypeStatementType<T extends FieldsTypeDefinition> extends Sta
     }
 }
 
-export const expressionStatementType = new StatementType(null, Statement, { argAmount: 1 });
+export const expressionStatementType = new StatementType(
+    null,
+    ExpressionStatement,
+    { argAmount: 1 },
+);
 const variableStatementTypeOptions: StatementTypeOptions = {
     minimumArgAmount: 2,
     maximumArgAmount: 3,

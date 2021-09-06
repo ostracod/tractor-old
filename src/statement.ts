@@ -111,6 +111,10 @@ export class Statement extends Node {
         return this.getDisplayLines().join("\n");
     }
     
+    convertToUnixC(): string {
+        throw this.createError(`Unexpected ${this.type.directive} statement.`);
+    }
+    
     copy(): Statement {
         const args = this.args.map((slot) => slot.get().copy());
         const output = new (this.constructor as StatementConstructor)(
@@ -252,6 +256,14 @@ export class FieldsTypeStatement<T extends FieldsTypeDefinition = FieldsTypeDefi
         const fieldDefinitions = this.block.get().extractFieldDefinitions();
         const structDefinition = new constructor(this.getPos(), identifier, fieldDefinitions);
         this.getParentBlock().addIdentifierDefinition(structDefinition);
+    }
+}
+
+export class ExpressionStatement extends Statement {
+    
+    convertToUnixC(): string {
+        const expression = this.args[0].get();
+        return expression.convertToUnixC() + ";";
     }
 }
 

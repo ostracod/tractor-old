@@ -352,6 +352,10 @@ export class StatementBlock extends Node {
                 codeList.push(code);
             }
         });
+        this.statements.forEach((slot) => {
+            const statement = slot.get();
+            codeList.push(statement.convertToUnixC());
+        });
         return codeList.join("\n");
     }
     

@@ -1,4 +1,5 @@
 
+import { IdentifierDefinition } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { CompItem, CompArray, CompFunctionHandle } from "./compItem.js";
@@ -47,6 +48,12 @@ export abstract class Expression extends Node {
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
         return null;
     }
+    
+    // TODO: Make this method abstract after
+    // implementing in each subclass.
+    convertToUnixC(): string {
+        throw this.createError("convertToUnixC is not yet implemented for this expression.");
+    }
 }
 
 export class CompItemExpression extends Expression {
@@ -63,6 +70,10 @@ export class CompItemExpression extends Expression {
         } else {
             return this.item.getDisplayString();
         }
+    }
+    
+    convertToUnixC(): string {
+        return this.item.convertToUnixC();
     }
     
     copy(): Expression {
@@ -94,9 +105,13 @@ export class IdentifierExpression extends Expression  {
         return this.identifier;
     }
     
-    resolveCompItems(): Expression {
+    getIdentifierDefinitionOrNull(): IdentifierDefinition {
         const parentBlock = this.getParentBlock();
-        const definition = parentBlock.getIdentifierDefinition(this.identifier);
+        return parentBlock.getIdentifierDefinition(this.identifier);
+    }
+    
+    resolveCompItems(): Expression {
+        const definition = this.getIdentifierDefinitionOrNull();
         if (definition !== null) {
             const compItem = definition.getCompItemOrNull();
             if (compItem !== null) {
@@ -104,6 +119,11 @@ export class IdentifierExpression extends Expression  {
             }
         }
         return super.resolveCompItems();
+    }
+    
+    convertToUnixC(): string {
+        const definition = this.getIdentifierDefinitionOrNull();
+        return definition.identifier.getCodeString();
     }
 }
 
@@ -143,6 +163,10 @@ export class BinaryExpression extends Expression {
     
     getDisplayString(): string {
         return `(${this.operand1.get().getDisplayString()} ${this.operator.text} ${this.operand2.get().getDisplayString()})`;
+    }
+    
+    convertToUnixC(): string {
+        return this.operator.generateUnixC(this.operand1.get(), this.operand2.get());
     }
     
     copy(): Expression {

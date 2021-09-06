@@ -1,4 +1,6 @@
 
+import { Expression } from "./expression.js";
+
 export const operatorTextSet = new Set<string>();
 export const unaryOperatorMap: { [text: string]: UnaryOperator } = {};
 export const binaryOperatorMap: { [text: string]: BinaryOperator } = {};
@@ -27,6 +29,28 @@ export class BinaryOperator extends Operator {
         super(text);
         this.precedence = precedence;
         binaryOperatorMap[this.text] = this;
+    }
+    
+    getUnixCText(): string {
+        return this.text;
+    }
+    
+    generateUnixC(operand1: Expression, operand2: Expression) {
+        const code1 = operand1.convertToUnixC();
+        const code2 = operand2.convertToUnixC();
+        return `(${code1} ${this.getUnixCText()} ${code2})`;
+    }
+}
+
+export class InitializationOperator extends BinaryOperator {
+    precedence: number;
+    
+    constructor() {
+        super(":=", 14);
+    }
+    
+    getUnixCText(): string {
+        return "=";
     }
 }
 
@@ -69,6 +93,6 @@ new BinaryOperator("<<=", 14);
 new BinaryOperator("&&=", 14);
 new BinaryOperator("^^=", 14);
 new BinaryOperator("||=", 14);
-new BinaryOperator(":=", 14);
+new InitializationOperator();
 
 
