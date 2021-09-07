@@ -95,7 +95,7 @@ export class FunctionHandleType extends ValueType {
     }
     
     getDisplayString(): string {
-        return this.functionTypeDefinition.identifier.getDisplayString();
+        return this.functionTypeDefinition.identifierBehavior.getDisplayString();
     }
 }
 

@@ -33,7 +33,7 @@ export class FrameVariableDefinition extends VariableDefinition {
         this.tryOperation(() => {
             typeText = tempType.convertToUnixC();
         });
-        const identifierText = this.identifier.getCodeString();
+        const identifierText = this.identifierBehavior.getCodeString();
         return `${typeText} ${identifierText};`;
     }
 }

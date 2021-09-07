@@ -278,11 +278,11 @@ export class StatementBlock extends Node {
                 (statement as FieldsTypeStatement).createDefinition();
                 return [];
             } else if (statement.type.directive === "FUNC_TYPE") {
-                const identifier = statement.getDeclarationIdentifier();
+                const identifierBehavior = statement.createIdentifierBehavior();
                 const block = statement.block.get();
                 const definition = new FunctionTypeDefinition(
                     this.getPos(),
-                    identifier,
+                    identifierBehavior,
                     block,
                 );
                 this.addIdentifierDefinition(definition);
@@ -392,6 +392,15 @@ export class RootStatementBlock extends StatementBlock {
         } else {
             return definition;
         }
+    }
+    
+    convertToUnixC(): string {
+        const initFunctionDefinition = this.initFunctionDefinition.get();
+        const codeList = [
+            super.convertToUnixC(),
+            initFunctionDefinition.convertToUnixC(),
+        ];
+        return codeList.join("\n");
     }
 }
 

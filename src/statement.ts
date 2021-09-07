@@ -6,6 +6,7 @@ import { StatementType, SimpleDefinitionStatementType, FieldsTypeStatementType }
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
+import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehavior.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
 import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition, FieldsTypeDefinition } from "./typeDefinition.js";
@@ -40,9 +41,14 @@ export class Statement extends Node {
         return this.args[0];
     }
     
-    getDeclarationIdentifier(): Identifier {
+    createIdentifierBehavior(): IdentifierBehavior {
         const identifierExpression = this.getDeclarationIdentifierSlot().get();
-        return identifierExpression.evaluateToIdentifier();
+        const identifier = identifierExpression.evaluateToIdentifier();
+        if (this.modifiers.includes("FOREIGN")) {
+            return new ForeignIdentifierBehavior(identifier);
+        } else {
+            return new IdentifierBehavior(identifier);
+        }
     }
     
     createDeclarationIdentifiers(destination: IdentifierMap<Identifier>): void {
@@ -182,7 +188,7 @@ export abstract class FunctionStatement<T extends FunctionDefinition> extends St
 export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFunctionDefinition> {
     
     createFunctionDefinitionHelper(): void {
-        const identifier = this.getDeclarationIdentifier();
+        const identifierBehavior = this.createIdentifierBehavior();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
             definitionConstructor = InlineFunctionDefinition;
@@ -191,7 +197,7 @@ export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFun
         }
         const definition = new definitionConstructor(
             this.getPos(),
-            identifier,
+            identifierBehavior,
             this.block.get(),
         );
         const rootBlock = this.getCompiler().rootBlock.get();
@@ -224,13 +230,13 @@ export class VariableStatement<T extends VariableDefinition> extends SimpleDefin
         statements: Statement[],
     } {
         const constructor = this.type.definitionConstructor;
-        const identifier = this.getDeclarationIdentifier();
+        const identifierBehavior = this.createIdentifierBehavior();
         const typeExpression = this.args[1].get();
-        const definition = new constructor(this.getPos(), identifier, typeExpression);
+        const definition = new constructor(this.getPos(), identifierBehavior, typeExpression);
         let statements: Statement[] = [];
         if (this.args.length > 2) {
             const generator = this.createStatementGenerator(statements);
-            generator.createInitStatement(identifier, this.args[2].get());
+            generator.createInitStatement(identifierBehavior.identifier, this.args[2].get());
         }
         const slot = this.getParentBlock().addIdentifierDefinition(definition);
         return { variableDefinition: slot, statements };
@@ -241,9 +247,9 @@ export class FieldStatement<T extends FieldDefinition> extends SimpleDefinitionS
     
     createFieldDefinition(): T {
         const constructor = this.type.definitionConstructor;
-        const identifier = this.getDeclarationIdentifier();
+        const identifierBehavior = this.createIdentifierBehavior();
         const typeExpression = this.args[1].get();
-        return new constructor(this.getPos(), identifier, typeExpression);
+        return new constructor(this.getPos(), identifierBehavior, typeExpression);
     }
 }
 
@@ -252,9 +258,13 @@ export class FieldsTypeStatement<T extends FieldsTypeDefinition = FieldsTypeDefi
     
     createDefinition(): void {
         const constructor = this.type.definitionConstructor;
-        const identifier = this.getDeclarationIdentifier();
+        const identifierBehavior = this.createIdentifierBehavior();
         const fieldDefinitions = this.block.get().extractFieldDefinitions();
-        const structDefinition = new constructor(this.getPos(), identifier, fieldDefinitions);
+        const structDefinition = new constructor(
+            this.getPos(),
+            identifierBehavior,
+            fieldDefinitions,
+        );
         this.getParentBlock().addIdentifierDefinition(structDefinition);
     }
 }

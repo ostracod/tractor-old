@@ -123,7 +123,7 @@ export class IdentifierExpression extends Expression  {
     
     convertToUnixC(): string {
         const definition = this.getIdentifierDefinitionOrNull();
-        return definition.identifier.getCodeString();
+        return definition.identifierBehavior.getCodeString();
     }
 }
 

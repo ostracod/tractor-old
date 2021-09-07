@@ -1,5 +1,5 @@
 
-import { Identifier } from "./identifier.js";
+import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Definition } from "./definition.js";
 
 export interface Config {
@@ -17,7 +17,7 @@ export interface Displayable {
 }
 
 export interface IdentifierDefinition extends Definition {
-    identifier: Identifier;
+    identifierBehavior: IdentifierBehavior;
 }
 
 

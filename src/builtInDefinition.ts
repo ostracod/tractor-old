@@ -3,22 +3,23 @@ import { IdentifierDefinition } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { Definition } from "./definition.js";
 import { Identifier, NameIdentifier } from "./identifier.js";
+import { IdentifierBehavior } from "./identifierBehavior.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { CompItem, CompInteger } from "./compItem.js";
 import { ValueType } from "./itemType.js";
 
 export class BuiltInDefinition extends Definition implements IdentifierDefinition {
-    identifier: Identifier;
+    identifierBehavior: IdentifierBehavior;
     item: CompItem;
     
-    constructor(identifier: Identifier, item: CompItem) {
+    constructor(identifierBehavior: IdentifierBehavior, item: CompItem) {
         super(null);
-        this.identifier = identifier;
+        this.identifierBehavior = identifierBehavior;
         this.item = item;
     }
     
     copy(): BuiltInDefinition {
-        return new BuiltInDefinition(this.identifier, this.item);
+        return new BuiltInDefinition(this.identifierBehavior, this.item);
     }
     
     getCompItemOrNull(): CompItem {
@@ -26,7 +27,7 @@ export class BuiltInDefinition extends Definition implements IdentifierDefinitio
     }
     
     getDisplayLines(): string[] {
-        return [`Built-in identifier: ${this.identifier.getDisplayString()}; item: ${this.item.getDisplayString()}`];
+        return [`Built-in identifier: ${this.identifierBehavior.getDisplayString()}; item: ${this.item.getDisplayString()}`];
     }
 }
 
@@ -37,7 +38,8 @@ const addBuiltInDefinition = (item: CompItem, name: string = null): void => {
         name = item.getDisplayString();
     }
     const identifier = new NameIdentifier(name);
-    const definition = new BuiltInDefinition(identifier, item);
+    const identifierBehavior = new IdentifierBehavior(identifier);
+    const definition = new BuiltInDefinition(identifierBehavior, item);
     builtInDefinitions.push(definition);
 };
 

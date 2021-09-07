@@ -8,6 +8,7 @@ import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
+import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { FunctionSignature } from "./functionSignature.js";
 import { CompItem, CompFunctionHandle } from "./compItem.js";
@@ -37,17 +38,17 @@ export abstract class FunctionDefinition extends Definition {
 
 export type IdentifierFunctionDefinitionConstructor = new (
     pos: Pos,
-    identifier: Identifier,
+    identifierBehavior: IdentifierBehavior,
     block: StatementBlock,
 ) => IdentifierFunctionDefinition;
 
 export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
-    identifier: Identifier;
+    identifierBehavior: IdentifierBehavior;
     signature: NodeSlot<FunctionSignature>;
     
-    constructor(pos: Pos, identifier: Identifier, block: StatementBlock) {
+    constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
         super(pos, block);
-        this.identifier = identifier;
+        this.identifierBehavior = identifierBehavior;
         const signature = this.block.get().createFunctionSignature();
         this.signature = this.addSlot(signature);
     }
@@ -55,12 +56,12 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     abstract getFunctionTypeName(): string;
     
     getName(): string {
-        return this.identifier.getDisplayString();
+        return this.identifierBehavior.getDisplayString();
     }
     
     getDisplayLinesHelper(): string[] {
         const typeText = this.getFunctionTypeName();
-        const identifierText = this.identifier.getDisplayString();
+        const identifierText = this.identifierBehavior.getDisplayString();
         const output = [`${typeText} identifier: ${identifierText}`];
         const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
         niceUtils.extendWithIndentation(output, returnTypeLines);
@@ -97,7 +98,10 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         signature.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
-            identifierMap.add(argVariableDefinition.identifier, identifier);
+            identifierMap.add(
+                argVariableDefinition.identifierBehavior.identifier,
+                identifier,
+            );
             const typeResolver = argVariableDefinition.typeResolver.get();
             const variableStatement = generator.createSoftVarStatement(
                 identifier,

@@ -25,7 +25,8 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
     
     add<T2 extends T>(definition: T2): NodeSlot<T2> {
         const slot = this.addSlot(definition);
-        this.identifierMap.add(definition.identifier, slot);
+        const { identifier } = definition.identifierBehavior;
+        this.identifierMap.add(identifier, slot);
         return slot;
     }
     
@@ -36,7 +37,7 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
     getDisplayString(): string {
         const lines: string[] = [];
         this.iterate((definition) => {
-            lines.push(`${definition.identifier.getDisplayString()}: ${definition.getDisplayString()}`);
+            lines.push(`${definition.identifierBehavior.getDisplayString()}: ${definition.getDisplayString()}`);
         });
         return lines.join("\n");
     }

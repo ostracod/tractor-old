@@ -12,6 +12,10 @@ export abstract class Identifier implements Displayable {
     abstract getDisplayString(): string;
     
     abstract equals(identifier: Identifier): boolean;
+    
+    getForeignCodeString(): string {
+        throw new CompilerError(`Cannot use ${this.getDisplayString()} as foreign identifier.`);
+    }
 }
 
 export class NameIdentifier extends Identifier {
@@ -25,6 +29,10 @@ export class NameIdentifier extends Identifier {
     
     getCodeString(): string {
         return "nameIdentifier_" + this.name;
+    }
+    
+    getForeignCodeString(): string {
+        return this.name;
     }
     
     getDisplayString(): string {

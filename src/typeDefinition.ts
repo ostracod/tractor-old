@@ -4,7 +4,7 @@ import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
-import { Identifier } from "./identifier.js";
+import { IdentifierBehavior } from "./identifierBehavior.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { Expression } from "./expression.js";
 import { TypeResolver } from "./typeResolver.js";
@@ -12,25 +12,29 @@ import { StatementBlock } from "./statementBlock.js";
 import { FunctionSignature } from "./functionSignature.js";
 
 export abstract class TypeDefinition extends Definition implements IdentifierDefinition {
-    identifier: Identifier;
+    identifierBehavior: IdentifierBehavior;
     
-    constructor(pos: Pos, identifier: Identifier) {
+    constructor(pos: Pos, identifierBehavior: IdentifierBehavior) {
         super(pos);
-        this.identifier = identifier;
+        this.identifierBehavior = identifierBehavior;
     }
 }
 
 export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = new (
     pos: Pos,
-    identifier: Identifier,
+    identifierBehavior: IdentifierBehavior,
     typeExpression: Expression,
 ) => T;
 
 export abstract class SingleTypeDefinition extends TypeDefinition {
     typeResolver: NodeSlot<TypeResolver>;
     
-    constructor(pos: Pos, identifier: Identifier, typeExpression: Expression) {
-        super(pos, identifier);
+    constructor(
+        pos: Pos,
+        identifierBehavior: IdentifierBehavior,
+        typeExpression: Expression,
+    ) {
+        super(pos, identifierBehavior);
         const typeResolver = new TypeResolver(typeExpression);
         this.typeResolver = this.addSlot(typeResolver);
     }
@@ -38,7 +42,7 @@ export abstract class SingleTypeDefinition extends TypeDefinition {
     abstract getDefinitionName(): string;
     
     getDisplayLines(): string[] {
-        return [`${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`];
+        return [`${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`];
     }
 }
 
@@ -67,15 +71,19 @@ export class TypeFieldDefinition extends FieldDefinition {
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
     pos: Pos,
-    identifier: Identifier,
+    identifierBehavior: IdentifierBehavior,
     fields: FieldDefinition[],
 ) => T;
 
 export abstract class FieldsTypeDefinition extends TypeDefinition {
     fieldMap: NodeSlot<IdentifierDefinitionMap<FieldDefinition>>;
     
-    constructor(pos: Pos, identifier: Identifier, fields: FieldDefinition[]) {
-        super(pos, identifier);
+    constructor(
+        pos: Pos,
+        identifierBehavior: IdentifierBehavior,
+        fields: FieldDefinition[],
+    ) {
+        super(pos, identifierBehavior);
         const fieldMap = new IdentifierDefinitionMap<FieldDefinition>(fields);
         this.fieldMap = this.addSlot(fieldMap);
     }
@@ -83,7 +91,7 @@ export abstract class FieldsTypeDefinition extends TypeDefinition {
     abstract getDefinitionName(): string;
     
     getDisplayLines(): string[] {
-        const output = [`${this.getDefinitionName()} identifier: ${this.identifier.getDisplayString()}`];
+        const output = [`${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}`];
         this.fieldMap.get().iterate((definition) => {
             niceUtils.extendWithIndentation(output, definition.getDisplayLines());
         });
@@ -109,15 +117,15 @@ export class FunctionTypeDefinition extends TypeDefinition {
     block: NodeSlot<StatementBlock>;
     signature: NodeSlot<FunctionSignature>;
     
-    constructor(pos: Pos, identifier: Identifier, block: StatementBlock) {
-        super(pos, identifier);
+    constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
+        super(pos, identifierBehavior);
         this.block = this.addSlot(block);
         const signature = this.block.get().createFunctionSignature();
         this.signature = this.addSlot(signature);
     }
     
     getDisplayLines(): string[] {
-        const output = [`Function type identifier: ${this.identifier.getDisplayString()}`];
+        const output = [`Function type identifier: ${this.identifierBehavior.getDisplayString()}`];
         const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
         niceUtils.extendWithIndentation(output, returnTypeLines);
         niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());

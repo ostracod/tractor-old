@@ -25,9 +25,10 @@ class UnixCGenerator extends TargetCodeGenerator {
         }
         const buildFilePath = pathUtils.join(buildDirectoryPath, buildFileName);
         const rootBlock = this.compiler.rootBlock.get();
-        const codeList: string[] = ["#include <stdint.h>"];
-        const initFunctionDefinition = rootBlock.initFunctionDefinition.get();
-        codeList.push(initFunctionDefinition.convertToUnixC());
+        const codeList: string[] = [
+            "#include <stdint.h>",
+            rootBlock.convertToUnixC(),
+        ];
         fs.writeFileSync(buildFilePath, codeList.join("\n") + "\n");
     }
 }
