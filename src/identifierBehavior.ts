@@ -9,6 +9,10 @@ export class IdentifierBehavior implements Displayable {
         this.identifier = identifier;
     }
     
+    shouldConvertDefinitionToCode(): boolean {
+        return true;
+    }
+    
     getDisplayString(): string {
         return this.identifier.getDisplayString();
     }
@@ -20,8 +24,12 @@ export class IdentifierBehavior implements Displayable {
 
 export class ForeignIdentifierBehavior extends IdentifierBehavior {
     
+    shouldConvertDefinitionToCode(): boolean {
+        return false;
+    }
+    
     getDisplayString(): string {
-        return "(foreign) " + super.getDisplayString();
+        return "#foreign_" + super.getDisplayString();
     }
     
     getCodeString(): string {

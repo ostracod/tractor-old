@@ -121,7 +121,7 @@ export class Compiler extends Node {
             }
         });
         importStatements.forEach((statement) => {
-            statement.importFiles();
+            statement.importFiles(this);
         });
     }
     

@@ -6,7 +6,7 @@
             "name": "unix",
             "description": "Executable for unix-like systems.",
             "importMap": {
-                "print": "./unixPrint.c"
+                "print": "./unixPrint.trtr"
             },
             "targetLanguage": "unixC",
             "buildFileName": "unixAddInts.c"

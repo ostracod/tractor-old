@@ -5,7 +5,7 @@ import { CompilerError } from "./compilerError.js";
 import { Pos } from "./pos.js";
 import { Compiler } from "./compiler.js";
 import { Statement } from "./statement.js";
-import { StatementBlock } from "./statementBlock.js";
+import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
 
@@ -67,8 +67,9 @@ export abstract class Node implements Displayable {
         return this.getParentByClass(constructors.StatementBlock);
     }
     
-    getCompiler(): Compiler {
-        return this.getParentByClass(constructors.Compiler);
+    getRootBlock(): RootStatementBlock {
+        const compiler = this.getParentByClass(constructors.Compiler);
+        return compiler.rootBlock.get();
     }
     
     // If handle returns a node:

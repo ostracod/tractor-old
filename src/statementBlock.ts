@@ -347,6 +347,9 @@ export class StatementBlock extends Node {
     convertToUnixC(): string {
         const codeList = [];
         this.scope.get().iterate((definition) => {
+            if (!definition.identifierBehavior.shouldConvertDefinitionToCode()) {
+                return;
+            }
             const code = definition.convertToUnixC();
             if (code !== null) {
                 codeList.push(code);

@@ -10,6 +10,7 @@ import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehav
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
 import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition, FieldsTypeDefinition } from "./typeDefinition.js";
+import { Compiler } from "./compiler.js";
 
 export type StatementConstructor<T extends Statement = Statement> = new (
     type: T["type"],
@@ -139,28 +140,31 @@ export class Statement extends Node {
 
 export abstract class ImportStatement extends Statement {
     
-    abstract importFilesHelper(): void;
+    abstract importFilesHelper(compiler: Compiler): void;
     
-    importFiles(): void {
+    getImportString(): string {
+        return this.args[0].get().evaluateToString();
+    }
+    
+    importFiles(compiler: Compiler): void {
         this.tryOperation(() => {
-            this.importFilesHelper();
+            this.importFilesHelper(compiler);
         });
     }
 }
 
 export class PathImportStatement extends ImportStatement {
     
-    importFilesHelper(): void {
-        const path = this.args[0].get().evaluateToString();
-        this.getCompiler().importTractorFile(path);
+    importFilesHelper(compiler: Compiler): void {
+        const path = this.getImportString();
+        compiler.importTractorFile(path);
     }
 }
 
 export class ConfigImportStatement extends ImportStatement {
     
-    importFilesHelper(): void {
-        const name = this.args[0].get().evaluateToString();
-        const compiler = this.getCompiler();
+    importFilesHelper(compiler: Compiler): void {
+        const name = this.getImportString();
         const path = compiler.configImportMap[name];
         compiler.importTractorFile(path);
     }
@@ -168,9 +172,9 @@ export class ConfigImportStatement extends ImportStatement {
 
 export class ForeignImportStatement extends ImportStatement {
     
-    importFilesHelper(): void {
-        const path = this.args[0].get().evaluateToString();
-        this.getCompiler().importForeignFile(path);
+    importFilesHelper(compiler: Compiler): void {
+        const path = this.getImportString();
+        compiler.importForeignFile(path);
     }
 }
 
@@ -200,8 +204,7 @@ export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFun
             identifierBehavior,
             this.block.get(),
         );
-        const rootBlock = this.getCompiler().rootBlock.get();
-        rootBlock.addIdentifierDefinition(definition);
+        this.getRootBlock().addIdentifierDefinition(definition);
     }
 }
 
@@ -209,8 +212,7 @@ export class InitFunctionStatement extends FunctionStatement<InitFunctionDefinit
     
     createFunctionDefinitionHelper(): void {
         const definition = new InitFunctionDefinition(this.getPos(), this.block.get());
-        const rootBlock = this.getCompiler().rootBlock.get();
-        const slot = rootBlock.initFunctionDefinition;
+        const slot = this.getRootBlock().initFunctionDefinition;
         if (slot.get() !== null) {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }

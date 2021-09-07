@@ -3,7 +3,6 @@ import { Compiler } from "./compiler.js";
 import { initializeBuiltInDefinitions } from "./builtInDefinition.js";
 // We need to import these files to populate their
 // constructors in constructors.ts.
-import "./compiler.js";
 import "./statement.js";
 import "./statementBlock.js";
 import "./statementGenerator.js";

@@ -236,6 +236,12 @@ export class InvocationExpression extends Expression {
         return `${this.functionExpression.get().getDisplayString()}(${textList.join(", ")})`;
     }
     
+    convertToUnixC(): string {
+        const functionCode = this.functionExpression.get().convertToUnixC();
+        const argCodeList = this.argExpressions.map((slot) => slot.get().convertToUnixC());
+        return `(${functionCode})(${argCodeList.join(", ")})`;
+    }
+    
     copy(): Expression {
         return new InvocationExpression(
             this.functionExpression.get().copy(),

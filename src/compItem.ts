@@ -2,7 +2,7 @@
 import { Displayable } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
-import { FunctionDefinition } from "./functionDefinition.js";
+import { IdentifierFunctionDefinition } from "./functionDefinition.js";
 import { ItemType, IntegerType, ArrayType, FunctionHandleType } from "./itemType.js";
 
 export abstract class CompItem implements Displayable {
@@ -86,9 +86,9 @@ export class CompArray extends CompValue {
 }
 
 export class CompFunctionHandle extends CompValue {
-    functionDefinition: FunctionDefinition;
+    functionDefinition: IdentifierFunctionDefinition;
     
-    constructor(functionDefinition: FunctionDefinition) {
+    constructor(functionDefinition: IdentifierFunctionDefinition) {
         super();
         this.functionDefinition = functionDefinition;
     }
@@ -99,7 +99,11 @@ export class CompFunctionHandle extends CompValue {
     }
     
     getDisplayString(): string {
-        return this.functionDefinition.getName();
+        return this.functionDefinition.identifierBehavior.getDisplayString();
+    }
+    
+    convertToUnixC(): string {
+        return this.functionDefinition.identifierBehavior.getCodeString();
     }
 }
 

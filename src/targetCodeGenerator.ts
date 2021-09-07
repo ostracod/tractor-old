@@ -12,6 +12,13 @@ export abstract class TargetCodeGenerator {
         this.compiler = compiler;
     }
     
+    getForeignCode(): string {
+        const codeList = this.compiler.foreignFiles.map((sourceFile) => (
+            sourceFile.lines.join("\n")
+        ));
+        return codeList.join("\n");
+    }
+    
     abstract generateCode(): void;
 }
 
@@ -27,6 +34,7 @@ class UnixCGenerator extends TargetCodeGenerator {
         const rootBlock = this.compiler.rootBlock.get();
         const codeList: string[] = [
             "#include <stdint.h>",
+            this.getForeignCode(),
             rootBlock.convertToUnixC(),
         ];
         fs.writeFileSync(buildFilePath, codeList.join("\n") + "\n");

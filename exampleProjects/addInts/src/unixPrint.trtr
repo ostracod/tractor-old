@@ -1,0 +1,8 @@
+
+FOREIGN_IMPORT "./unixPrint.c"
+
+FOREIGN FUNC printNumber
+    ARG number, uInt16T
+END
+
+

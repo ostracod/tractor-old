@@ -21,13 +21,7 @@ export abstract class FunctionDefinition extends Definition {
         this.block = this.addSlot(block);
     }
     
-    abstract getName(): string;
-    
     abstract getDisplayLinesHelper(): string[];
-    
-    getCompItemOrNull(): CompItem {
-        return new CompFunctionHandle(this);
-    }
     
     getDisplayLines(): string[] {
         const output = this.getDisplayLinesHelper();
@@ -55,8 +49,8 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
     
     abstract getFunctionTypeName(): string;
     
-    getName(): string {
-        return this.identifierBehavior.getDisplayString();
+    getCompItemOrNull(): CompItem {
+        return new CompFunctionHandle(this);
     }
     
     getDisplayLinesHelper(): string[] {
@@ -188,10 +182,6 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
 }
 
 export class InitFunctionDefinition extends FunctionDefinition {
-    
-    getName(): string {
-        return "#initFunc";
-    }
     
     getDisplayLinesHelper(): string[] {
         return ["Init function"];
