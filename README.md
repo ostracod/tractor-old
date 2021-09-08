@@ -63,7 +63,7 @@ Tractor has the following built-in storage types:
 * `constT` is an immutable value. A variable whose type conforms to `constT` can only be assigned a value once.
 * `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
 * `locT` is a value which has a known address in a frame or the fixed data region.
-* `frameT` is a value which is stored in the current frame in memory. `frameT` and `compT` are mutually exclusive.
+* `frameT` is a value which is stored in a frame in memory. `frameT` is a subtype of `locT`. `frameT` and `compT` are mutually exclusive.
 * `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT` and `locT`.
 * `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
 * `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes may be unknown. `concreteT` is a subtype of `valueT`.
@@ -89,7 +89,6 @@ The following types are subtypes of `concreteT`:
 * `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
 * `ptrT(<type>)` for any type `<type>`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
-* `softArrayT(<type>)` when `<type>` conforms to `concreteT` and the array length is known
 * Any struct or union whose fields all conform to `concreteT`
 * Any non-inline function handle
 
@@ -152,6 +151,38 @@ Tractor has the following built-in functions:
 * `newPtr(<value>)` returns a native pointer to value `<value>`. The argument value must conform to `locT`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
 
+## Variables
+
+Every variable has the following attributes:
+
+* Name
+* Storage class
+* Constraint type
+* Resolved type
+* Initialization item (optional)
+
+Variable storage class may be one of the following:
+
+* `VAR` variables are stored in a global or local frame during runtime.
+* `COMP` variables are stored during compile time, and occupy no space during runtime.
+* `FIXED` variables are stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform.
+* `AUTO` variables may be stored in one of several places. The storage behavior depends on the variable's initialization item.
+
+Each storage class is associated with a type:
+
+* `VAR` variables conform to `frameT`
+* `COMP` variables conform to `compT`
+* `FIXED` variables conform to `fixedT`
+* `AUTO` variables may conform to `frameT`, `compT`, or `fixedT`
+
+Variable initialization determines the first item which a variable will contain. A variable may not be initialized more than once. If a variable is not initialized, the variable will contain an undefined item.
+
+A variable's resolved type determines the type of item which the variable may store. The resolved type is an intersection of the following types:
+
+* The constraint type, which is provided by the variable declaration
+* The type of the initialization item (if provided)
+* The type of the storage class
+
 ## Statements
 
 Every comment begins with a number sign. A comment may be placed after any statement:
@@ -174,42 +205,13 @@ Alternatively, a comment may be placed on its own line:
 
 Evaluates `<expression>`, which should result in some side-effect.
 
-**Variable statements:**
+**Variable statement:**
 
 ```
-VAR <name>, <type>, <item?>
+<storageClass> <name>, <constraintType>, <initItem?>
 ```
 
-Declares a variable with name `<name>` which will be stored in the global frame or current local frame. The variable will have type `<type> & frameT & locT`.
-
-```
-COMP <name>, <type>, <item?>
-```
-
-Declares a variable with name `<name>` whose item is known at compile time. The variable will have type `<type> & compT`.
-
-```
-FIXED <name>, <type>, <item?>
-```
-
-Declares a variable with name `<name>` which will be stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform. The variable will have type `<type> & fixedT`.
-
-```
-SOFT_VAR <name>, <type>, <item?>
-```
-
-Declares a variable with name `<name>` which may or may not be stored in a frame. If the initialization item conforms to `locT`, every variable reference will be expanded inline. If the initialization item conforms to `compT`, and the variable is never assigned another value, the variable will behave as a `COMP` variable. Otherwise, the variable will behave as a `VAR` variable.
-
-When the `REQUIRE` and `FOREIGN` modifiers are absent:
-
-* `<item>` may be provided as an additional argument.
-* If `<item>` is provided, the variable will be initialized with the given item.
-* In the case of `VAR` and `FIXED` statements, `<type>` must conform to `concreteT`.
-
-When the `REQUIRE` or `FOREIGN` modifiers are present:
-
-* `<item>` cannot be provided as an additional argument.
-* `<type>` may conform to `~concreteT`.
+Declares a variable with storage class `<storageClass>`, name `<name>`, and constraint type `<constraintType>`. If item `<initItem>` is provided, the variable will be initialized with the given item.
 
 Variables may be initialized using the initialization operator (`:=`) in a statement separate from declaration. For example, the following fragments of code are equivalent:
 
@@ -338,7 +340,7 @@ ARG <name>, <type>
 Declares an argument of a function with name `<name>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
 
 * When referenced in the body of an inline function, the argument will have the same type as the item passed during invocation. The argument must conform to type `<type>`.
-* When referenced in the body of a non-inline function, the argument will have type `<type> & frameT & locT`.
+* When referenced in the body of a non-inline function, the argument will have type `<type> & frameT`.
 
 **Return type statement:**
 
