@@ -64,24 +64,29 @@ Tractor has the following built-in storage types:
 * `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
 * `locT` is a value which has a known address in a frame or the fixed data region.
 * `frameT` is a value which is stored in a frame in memory. `frameT` is a subtype of `locT`. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT` and `locT`.
+* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT & locT`.
 * `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
-* `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes may be unknown. `concreteT` is a subtype of `valueT`.
+* `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes is unknown. `concreteT` is a subtype of `valueT`.
 * `itemT` is either a value or a type. Subtypes of `itemT` include `valueT` and `typeT`.
 
-Tractor has the following built-in integer types:
+Tractor has the following built-in primitive types:
 
+* `voidT` is a value whose size is zero.
 * `uInt8T`, `uInt16T`, `uInt32T`, and `uInt64T` are unsigned integers with the given number of bits.
 * `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T` are signed integers with the given number of bits.
 * `int8T`, `int16T`, `int32T`, and `int64T` are integers with the given number of bits and unknown sign.
 * `uIntT`, `sIntT` are integers with the given sign and unknown number of bits.
 * `intT` is an integer with an unknown number of bits and unknown sign.
+* `structT` is a struct with unknown fields.
+* `unionT` is a union with unknown fields.
+* `funcT` is a function with unknown arguments and return type.
 
-Tractor has the following built-in composite types:
+Tractor has the following built-in parameterizable types:
 
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
-* `softArrayT(<type>)` is an array of items with type `<type>` whose length may be unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
+* `softArrayT(<type>)` is an array of items with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
+* `fieldNameT(<type>)` is the name of a field in the given struct or union type. `fieldNameT(<type>)` is a subtype of `softArrayT(uInt8T) & compT`.
 * `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT` is a subtype of `compT`.
 
 The following types are subtypes of `concreteT`:
@@ -136,7 +141,9 @@ The expression `<item>:<type>` casts item `<item>` to type `<type>`. For example
 
 The expression `<array>[<index>]` accesses the element in array `<array>` with index `<index>`. For example, the expression `myArray[3]` accesses the fourth value of `myArray`.
 
-The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` retrieves the field with name `x` in `myStruct`.
+The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` accesses the field with name `x` in `myStruct`.
+
+The expression `<struct>[<nameString>]` also accesses the field in struct `<struct>` with name `<nameString>`. `<nameString>` must conform to `fieldNameT(typeT(<struct>))`. For example, the expression `myStruct["x"]` accesses the field with name `x` in `myStruct`.
 
 Function invocation has the format `<function>(<item>, <item>, <item>...)`, where each `<item>` is an argument of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
 
@@ -144,10 +151,11 @@ Function invocation has the format `<function>(<item>, <item>, <item>...)`, wher
 
 Tractor has the following built-in functions:
 
-* The composite types `ptrT`, `arrayT`, `softArrayT`, and `typeT`.
-* `getSize(<item>)` returns the number of bytes which item `<item>` occupies.
-* `getLen(<array>)` returns the number of elements in array `<array>`.
-* `typeConforms(<item1>, <item2>)` returns whether the type of item `<item1>` conforms to the type of item `<item2>`.
+* The parameterizable types `ptrT`, `arrayT`, `softArrayT`, `fieldNameT`, and `typeT`.
+* `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
+* `getLen(<arrayType>)` returns the number of elements in the given array type.
+* `getFieldOffset(<structType>, <nameString>)` returns the byte offset of the field with name `<nameString>` in the given struct type. `<nameString>` must conform to `fieldNameT(<structType>)`.
+* `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
 * `newPtr(<value>)` returns a native pointer to value `<value>`. The argument value must conform to `locT`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
 
@@ -348,7 +356,7 @@ Declares an argument of a function with name `<name>`. This statement is only va
 RET_TYPE <type>
 ```
 
-Declares the return type of a function to be type `<type>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement.
+Declares the return type of a function to be type `<type>`. This statement is only valid in the body of a `FUNC` or `FUNC_TYPE` statement. If `RET_TYPE` is missing in a function definition, the return type is assumed to be `voidT`.
 
 **Return statement:**
 
@@ -459,6 +467,19 @@ Specifies that function `<function>` may be expanded inline for each invocation.
 * `FUNC_TYPE` statement
 * `REQUIRE FUNC` statement
 * `FOREIGN FUNC` statement
+
+**Soft statement modifier:**
+
+```
+SOFT <definition>
+```
+
+Specifies that definition `<definition>` may contain additional unknown fields or arguments. `<definition>` must be one of the following:
+
+* `STRUCT` statement
+* `UNION` statement
+* `FUNC_TYPE` statement
+* `REQUIRE FUNC` statement
 
 ## Project Structure
 
