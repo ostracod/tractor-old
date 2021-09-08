@@ -4,7 +4,7 @@ import { CompilerError } from "./compilerError.js";
 import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
-import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, SoftVariableDefinition } from "./variableDefinition.js";
+import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, AutoVariableDefinition } from "./variableDefinition.js";
 
 interface StatementTypeOptions {
     minimumArgAmount?: number;
@@ -14,8 +14,20 @@ interface StatementTypeOptions {
     isBlockEnd?: boolean;
     canRequire?: boolean;
     canInline?: boolean;
+    canBeSoft?: boolean;
     hasDeclarationIdentifier?: boolean;
 }
+
+const defaultStatementTypeOptions = {
+    minimumArgAmount: 0,
+    maximumArgAmount: 0,
+    isBlockStart: false,
+    isBlockEnd: false,
+    canRequire: false,
+    canInline: false,
+    canBeSoft: false,
+    hasDeclarationIdentifier: false,
+};
 
 export const directiveStatementTypeMap: { [directive: string]: StatementType } = {};
 
@@ -28,6 +40,7 @@ export class StatementType<T extends Statement = Statement> {
     isBlockEnd: boolean;
     canRequire: boolean;
     canInline: boolean;
+    canBeSoft: boolean;
     allowedModifiers: string[];
     hasDeclarationIdentifier: boolean;
     
@@ -38,29 +51,30 @@ export class StatementType<T extends Statement = Statement> {
     ) {
         this.directive = directive;
         this.statementConstructor = statementConstructor;
+        options = niceUtils.getDictionaryWithDefaults(options, defaultStatementTypeOptions);
         const { argAmount } = options;
         if (typeof argAmount !== "undefined") {
             this.minimumArgAmount = argAmount;
             this.maximumArgAmount = argAmount;
         } else {
-            this.minimumArgAmount = niceUtils.getWithDefault(options, "minimumArgAmount", 0);
-            this.maximumArgAmount = niceUtils.getWithDefault(options, "maximumArgAmount", 0);
+            this.minimumArgAmount = options.minimumArgAmount;
+            this.maximumArgAmount = options.maximumArgAmount;
         }
-        this.isBlockStart = niceUtils.getWithDefault(options, "isBlockStart", false);
-        this.isBlockEnd = niceUtils.getWithDefault(options, "isBlockEnd", false);
-        this.canRequire = niceUtils.getWithDefault(options, "canRequire", false);
-        this.canInline = niceUtils.getWithDefault(options, "canInline", false);
-        this.hasDeclarationIdentifier = niceUtils.getWithDefault(
-            options,
-            "hasDeclarationIdentifier",
-            false,
-        );
+        [
+            "isBlockStart", "isBlockEnd", "hasDeclarationIdentifier",
+            "canRequire", "canInline", "canBeSoft",
+        ].forEach((name) => {
+            this[name] = options[name];
+        });
         this.allowedModifiers = [];
         if (this.canRequire) {
             niceUtils.extendList(this.allowedModifiers, ["REQUIRE", "FOREIGN"]);
         }
         if (this.canInline) {
             niceUtils.extendList(this.allowedModifiers, ["INLINE", "MAYBE_INLINE"]);
+        }
+        if (this.canBeSoft) {
+            this.allowedModifiers.push("SOFT");
         }
         if (this.directive !== null) {
             directiveStatementTypeMap[this.directive] = this;
@@ -153,7 +167,7 @@ const variableStatementTypeOptions: StatementTypeOptions = {
 new VariableStatementType("VAR", FrameVariableDefinition, variableStatementTypeOptions);
 new VariableStatementType("COMP", CompVariableDefinition, variableStatementTypeOptions);
 new VariableStatementType("FIXED", CompVariableDefinition, variableStatementTypeOptions);
-new VariableStatementType("SOFT_VAR", SoftVariableDefinition, variableStatementTypeOptions);
+new VariableStatementType("AUTO", AutoVariableDefinition, variableStatementTypeOptions);
 new StatementType("LABEL", Statement, { argAmount: 1, hasDeclarationIdentifier: true });
 new StatementType("JUMP", Statement, { argAmount: 1 });
 new StatementType("JUMP_IF", Statement, { argAmount: 2 });
@@ -181,12 +195,14 @@ new FieldsTypeStatementType("STRUCT", StructDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
+    canBeSoft: true,
     hasDeclarationIdentifier: true,
 });
 new FieldsTypeStatementType("UNION", UnionDefinition, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,
+    canBeSoft: true,
     hasDeclarationIdentifier: true,
 });
 new VariableStatementType("ARG", ArgVariableDefinition, {
@@ -200,6 +216,7 @@ new StatementType("FUNC_TYPE", Statement, {
     isBlockStart: true,
     canRequire: true,
     canInline: true,
+    canBeSoft: true,
     hasDeclarationIdentifier: true,
 });
 new StatementType("FUNC", IdentifierFunctionStatement, {
@@ -207,6 +224,7 @@ new StatementType("FUNC", IdentifierFunctionStatement, {
     isBlockStart: true,
     canRequire: true,
     canInline: true,
+    canBeSoft: true,
     hasDeclarationIdentifier: true,
 });
 new StatementType("INIT_FUNC", InitFunctionStatement, { isBlockStart: true });

@@ -88,7 +88,7 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
         const identifierMap = new IdentifierMap<Identifier>();
         const signature = this.signature.get();
         
-        // Create a soft variable for each argument.
+        // Create an auto variable for each argument.
         signature.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
@@ -97,7 +97,7 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
                 identifier,
             );
             const typeResolver = argVariableDefinition.typeResolver.get();
-            const variableStatement = generator.createSoftVarStatement(
+            const variableStatement = generator.createAutoVarStatement(
                 identifier,
                 typeResolver.expression.get().copy(),
                 args[index].copy(),
@@ -160,7 +160,7 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
             returnItemIdentifier = null;
         } else {
             returnItemIdentifier = new NumberIdentifier();
-            generator.createSoftVarStatement(
+            generator.createAutoVarStatement(
                 returnItemIdentifier,
                 returnTypeResolver.expression.get().copy(),
             );

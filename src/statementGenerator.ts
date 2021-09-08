@@ -56,7 +56,7 @@ export class StatementGenerator {
         ]);
     }
     
-    createSoftVarStatement(
+    createAutoVarStatement(
         identifier: Identifier,
         typeExpression: Expression,
         initItem: Expression = null,
@@ -68,7 +68,7 @@ export class StatementGenerator {
         if (initItem !== null) {
             args.push(initItem);
         }
-        return this.createStatement("SOFT_VAR", args);
+        return this.createStatement("AUTO", args);
     }
     createInitStatement(identifier: Identifier, initItemExpression: Expression): Statement {
         const identifierExpression = new IdentifierExpression(identifier);

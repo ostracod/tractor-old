@@ -22,6 +22,22 @@ export const getWithDefault = <T>(
     return (typeof value === "undefined") ? defaultValue : value;
 };
 
+export const getDictionaryWithDefaults = (
+    dictionary: {[key: string]: any},
+    defaultValueMap: {[key: string]: any},
+): {[key: string]: any} => {
+    const output: {[key: string]: any} = {};
+    for (const key in dictionary) {
+        output[key] = dictionary[key];
+    }
+    for (const key in defaultValueMap) {
+        if (!(key in output)) {
+            output[key] = defaultValueMap[key];
+        }
+    }
+    return output;
+};
+
 export const getNumberPhrase = (amount: number, noun: string): string => {
     return (amount === 1) ? `${amount} ${noun}` : `${amount} ${noun}s`;
 };

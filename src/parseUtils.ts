@@ -20,7 +20,7 @@ interface ExpressionResult {
 }
 
 const delimiterCharacterSet = new Set([",", "(", ")", "[", "]", "{", "}"]);
-const modifierSet = new Set(["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE"]);
+const modifierSet = new Set(["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE", "SOFT"]);
 
 const isWhitespaceCharacter = (character: string): boolean => (
     character === " " || character === "\t"

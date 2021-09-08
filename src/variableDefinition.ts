@@ -52,10 +52,10 @@ export class FixedVariableDefinition extends VariableDefinition {
     }
 }
 
-export class SoftVariableDefinition extends VariableDefinition {
+export class AutoVariableDefinition extends VariableDefinition {
     
     getDefinitionNameHelper(): string {
-        return "Soft";
+        return "Auto";
     }
 }
 
