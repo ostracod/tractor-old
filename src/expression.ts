@@ -141,6 +141,10 @@ export class UnaryExpression extends Expression {
         return `${this.operator.text}(${this.operand.get().getDisplayString()})`;
     }
     
+    convertToUnixC(): string {
+        return this.operator.generateUnixC(this.operand.get());
+    }
+    
     copy(): Expression {
         return new UnaryExpression(
             this.operator,

@@ -205,6 +205,8 @@ export class StatementBlock extends Node {
                 identifier = endIdentifier;
             } else if (directive === "CONTINUE") {
                 identifier = startIdentifier;
+            } else if (directive === "WHILE") {
+                return [statement];
             } else {
                 return null;
             }
@@ -227,6 +229,20 @@ export class StatementBlock extends Node {
         generator.createLabelStatement(endIdentifier);
     }
     
+    transformJumpIfStatement(destination: Statement[], jumpIfStatement: Statement): boolean {
+        const conditionExpression = jumpIfStatement.args[1].get();
+        const compItem = conditionExpression.evaluateToCompItemOrNull();
+        if (compItem === null) {
+            destination.push(jumpIfStatement);
+            return false;
+        }
+        const generator = jumpIfStatement.createStatementGenerator(destination);
+        const identifierExpression = jumpIfStatement.args[0].get();
+        const identifier = identifierExpression.evaluateToIdentifier();
+        generator.createJumpStatement(identifier);
+        return true;
+    }
+    
     transformControlFlow(): number {
         let output = 0;
         const nextStatements = [];
@@ -241,6 +257,11 @@ export class StatementBlock extends Node {
             } else if (directive === "WHILE") {
                 this.transformWhileStatement(nextStatements, statement);
                 output += 1;
+            } else if (directive === "JUMP_IF") {
+                const result = this.transformJumpIfStatement(nextStatements, statement);
+                if (result) {
+                    output += 1;
+                }
             } else {
                 nextStatements.push(statement);
             }

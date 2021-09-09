@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement, LabelStatement, JumpStatement, JumpIfStatement, ScopeStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
 import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, AutoVariableDefinition } from "./variableDefinition.js";
@@ -15,6 +15,7 @@ interface StatementTypeOptions {
     canRequire?: boolean;
     canInline?: boolean;
     canBeSoft?: boolean;
+    hasIdentifierArg?: boolean;
     hasDeclarationIdentifier?: boolean;
 }
 
@@ -26,6 +27,7 @@ const defaultStatementTypeOptions = {
     canRequire: false,
     canInline: false,
     canBeSoft: false,
+    hasIdentifierArg: false,
     hasDeclarationIdentifier: false,
 };
 
@@ -42,6 +44,7 @@ export class StatementType<T extends Statement = Statement> {
     canInline: boolean;
     canBeSoft: boolean;
     allowedModifiers: string[];
+    hasIdentifierArg: boolean;
     hasDeclarationIdentifier: boolean;
     
     constructor(
@@ -66,6 +69,11 @@ export class StatementType<T extends Statement = Statement> {
         ].forEach((name) => {
             this[name] = options[name];
         });
+        if (this.hasDeclarationIdentifier) {
+            this.hasIdentifierArg = true;
+        } else {
+            this.hasIdentifierArg = options.hasIdentifierArg;
+        }
         this.allowedModifiers = [];
         if (this.canRequire) {
             niceUtils.extendList(this.allowedModifiers, ["REQUIRE", "FOREIGN"]);
@@ -166,12 +174,12 @@ const variableStatementTypeOptions: StatementTypeOptions = {
 };
 new VariableStatementType("VAR", FrameVariableDefinition, variableStatementTypeOptions);
 new VariableStatementType("COMP", CompVariableDefinition, variableStatementTypeOptions);
-new VariableStatementType("FIXED", CompVariableDefinition, variableStatementTypeOptions);
+new VariableStatementType("FIXED", FixedVariableDefinition, variableStatementTypeOptions);
 new VariableStatementType("AUTO", AutoVariableDefinition, variableStatementTypeOptions);
-new StatementType("LABEL", Statement, { argAmount: 1, hasDeclarationIdentifier: true });
-new StatementType("JUMP", Statement, { argAmount: 1 });
-new StatementType("JUMP_IF", Statement, { argAmount: 2 });
-new StatementType("SCOPE", Statement, { isBlockStart: true });
+new StatementType("LABEL", LabelStatement, { argAmount: 1, hasDeclarationIdentifier: true });
+new StatementType("JUMP", JumpStatement, { argAmount: 1, hasIdentifierArg: true });
+new StatementType("JUMP_IF", JumpIfStatement, { argAmount: 2, hasIdentifierArg: true });
+new StatementType("SCOPE", ScopeStatement, { isBlockStart: true });
 new StatementType("END", Statement, { isBlockEnd: true });
 new StatementType("IF", Statement, { argAmount: 1, isBlockStart: true });
 new StatementType("ELSE_IF", Statement, {

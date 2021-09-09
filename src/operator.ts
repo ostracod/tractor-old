@@ -12,6 +12,10 @@ export class Operator {
         this.text = text;
         operatorTextSet.add(text);
     }
+    
+    getUnixCText(): string {
+        return this.text;
+    }
 }
 
 export class UnaryOperator extends Operator {
@@ -19,6 +23,10 @@ export class UnaryOperator extends Operator {
     constructor(text: string) {
         super(text);
         unaryOperatorMap[this.text] = this;
+    }
+    
+    generateUnixC(operand: Expression) {
+        return `(${this.getUnixCText()} ${operand.convertToUnixC()})`;
     }
 }
 
@@ -29,10 +37,6 @@ export class BinaryOperator extends Operator {
         super(text);
         this.precedence = precedence;
         binaryOperatorMap[this.text] = this;
-    }
-    
-    getUnixCText(): string {
-        return this.text;
     }
     
     generateUnixC(operand1: Expression, operand2: Expression) {

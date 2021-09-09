@@ -34,12 +34,16 @@ export class Statement extends Node {
         this.type.validateArgCount(this.args.length);
     }
     
+    getIdentifierSlot(): NodeSlot<Expression> {
+        return this.type.hasIdentifierArg ? this.args[0] : null;
+    }
+    
+    getIdentifier(): Identifier {
+        return this.getIdentifierSlot().get().evaluateToIdentifier();
+    }
+    
     getDeclarationIdentifierSlot(): NodeSlot<Expression> {
-        const { hasDeclarationIdentifier } = this.type;
-        if (!hasDeclarationIdentifier) {
-            return null;
-        }
-        return this.args[0];
+        return this.type.hasDeclarationIdentifier ? this.getIdentifierSlot() : null;
     }
     
     createIdentifierBehavior(): IdentifierBehavior {
@@ -276,6 +280,38 @@ export class ExpressionStatement extends Statement {
     convertToUnixC(): string {
         const expression = this.args[0].get();
         return expression.convertToUnixC() + ";";
+    }
+}
+
+export class LabelStatement extends Statement {
+    
+    convertToUnixC(): string {
+        const identifier = this.getIdentifier();
+        return identifier.getCodeString() + ":";
+    }
+}
+
+export class JumpStatement extends Statement {
+    
+    convertToUnixC(): string {
+        const identifier = this.getIdentifier();
+        return `goto ${identifier.getCodeString()};`;
+    }
+}
+
+export class JumpIfStatement extends Statement {
+    
+    convertToUnixC(): string {
+        const identifier = this.getIdentifier();
+        const conditionExpression = this.args[1].get();
+        return `if (${conditionExpression.convertToUnixC()}) goto ${identifier.getCodeString()};`;
+    }
+}
+
+export class ScopeStatement extends Statement {
+    
+    convertToUnixC(): string {
+        return `{\n${this.block.get().convertToUnixC()}\n}\n`;
     }
 }
 
