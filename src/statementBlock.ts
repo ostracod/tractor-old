@@ -15,7 +15,7 @@ import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
 import { BuiltInDefinition, createBuiltInDefinitionMap } from "./builtInDefinition.js";
-import { CompItem } from "./compItem.js";
+import { CompItem, CompInteger } from "./compItem.js";
 
 class IfClause {
     condition: Expression;
@@ -235,6 +235,12 @@ export class StatementBlock extends Node {
         if (compItem === null) {
             destination.push(jumpIfStatement);
             return false;
+        }
+        if (!(compItem instanceof CompInteger)) {
+            throw this.createError("Expected integer expression.");
+        }
+        if (compItem.value === 0n) {
+            return true;
         }
         const generator = jumpIfStatement.createStatementGenerator(destination);
         const identifierExpression = jumpIfStatement.args[0].get();
