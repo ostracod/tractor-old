@@ -81,11 +81,6 @@ class IfClause {
     }
 }
 
-interface StatementReachability {
-    statement: Statement;
-    isReachable: boolean;
-}
-
 export type StatementBlockConstructor = new (
     pos?: Pos,
     statements?: Statement[],
@@ -376,7 +371,17 @@ export class StatementBlock extends Node {
     }
     
     removeUnreachableStatements(): number {
+        
+        // Create a list of all statements and some book-keeping data.
         const statements = this.getFlattenedStatements();
+        const reachabilityMap: Map<Statement, boolean> = new Map();
+        const blocks = new Set<StatementBlock>();
+        statements.forEach((statement) => {
+            reachabilityMap.set(statement, false);
+            blocks.add(statement.getParentBlock());
+        });
+        
+        // Create a map from label identifier to statement index.
         const labelIndexMap = new IdentifierMap<number>();
         statements.forEach((statement, index) => {
             if (statement instanceof LabelStatement) {
@@ -384,21 +389,19 @@ export class StatementBlock extends Node {
                 labelIndexMap.add(identifier, index);
             }
         });
-        const reachabilities: StatementReachability[] = statements.map((statement) => ({
-            statement,
-            isReachable: false,
-        }));
+        
+        // Traverse statements from the first statement in the block.
         const indexesToVisit: number[] = [0];
         while (indexesToVisit.length > 0) {
             const index = indexesToVisit.pop();
-            if (index > reachabilities.length - 1) {
+            if (index >= statements.length) {
                 continue;
             }
-            const reachability = reachabilities[index];
-            const { statement, isReachable } = reachability;
+            const statement = statements[index];
             let shouldVisitNextIndex = false;
             let shouldVisitLabelIndex = false;
-            if (!isReachable) {
+            if (!reachabilityMap.get(statement)) {
+                reachabilityMap.set(statement, true);
                 if (statement instanceof JumpStatement) {
                     shouldVisitLabelIndex = true;
                 } else if (statement instanceof JumpIfStatement) {
@@ -415,11 +418,25 @@ export class StatementBlock extends Node {
                 const identifier = statement.getIdentifier();
                 indexesToVisit.push(labelIndexMap.get(identifier));
             }
-            reachability.isReachable = true;
         }
-        // TODO: Finish this function.
         
-        return 0;
+        // Remove unreachable statements from each block.
+        let output = 0;
+        blocks.forEach((block) => {
+            const nextStatements: Statement[] = [];
+            block.statements.forEach((slot) => {
+                const statement = slot.get();
+                const isReachable = reachabilityMap.get(statement);
+                if (typeof isReachable === "undefined" || isReachable) {
+                    nextStatements.push(statement);
+                } else {
+                    output += 1;
+                }
+            });
+            block.setStatements(nextStatements);
+        });
+        
+        return output;
     }
     
     getDisplayLines(): string[] {
