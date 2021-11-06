@@ -73,7 +73,7 @@ export class NumberIdentifier extends Identifier {
     }
 }
 
-export class IdentifierMap<T extends Displayable> implements Displayable {
+export class IdentifierMap<T> {
     map: { [key: string]: T };
     identifiers: Identifier[];
     
@@ -118,6 +118,9 @@ export class IdentifierMap<T extends Displayable> implements Displayable {
     getSize(): number {
         return this.identifiers.length;
     }
+}
+
+export class DisplayableIdentifierMap<T extends Displayable> extends IdentifierMap<T> implements Displayable {
     
     getDisplayString(): string {
         const lines: string[] = [];

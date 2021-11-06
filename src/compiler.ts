@@ -8,7 +8,7 @@ import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Expression } from "./expression.js";
-import { ImportStatement, FunctionStatement } from "./statement.js";
+import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement.js";
 import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { FunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
@@ -198,6 +198,18 @@ export class Compiler extends Node {
         );
     }
     
+    // This function must be called after extractTypeDefinitions and
+    // transformControlFlow, but before expandInlineFunctions.
+    removeUnreachableStatements(): number {
+        return this.iterateOverExpandedBlocks((block) => {
+            if (block.getParentNode() instanceof ScopeStatement) {
+                return 0;
+            } else {
+                return block.removeUnreachableStatements();
+            }
+        });
+    }
+    
     resolveTypes(): number {
         let output = 0;
         this.processExpandedNodes(
@@ -237,6 +249,7 @@ export class Compiler extends Node {
                 processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompItems();
+                processCount += this.removeUnreachableStatements();
                 processCount += this.resolveTypes();
                 processCount += this.expandInlineFunctions();
                 if (processCount <= 0) {

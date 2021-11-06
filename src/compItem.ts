@@ -11,6 +11,10 @@ export abstract class CompItem implements Displayable {
     
     abstract getDisplayString(): string;
     
+    convertToBoolean(): boolean {
+        throw new CompilerError(`Cannot convert ${this.getDisplayString()} to boolean.`);
+    }
+    
     convertToUnixC(): string {
         throw new CompilerError(`Cannot convert ${this.getDisplayString()} to Unix C.`);
     }
@@ -36,6 +40,10 @@ export class CompInteger extends CompValue {
     
     getType(): IntegerType {
         return this.type;
+    }
+    
+    convertToBoolean(): boolean {
+        return (this.value !== 0n);
     }
     
     getDisplayString(): string {

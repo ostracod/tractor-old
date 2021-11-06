@@ -4,10 +4,10 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, LabelStatement, JumpStatement, JumpIfStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier } from "./identifier.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
@@ -15,7 +15,7 @@ import { FieldDefinition, FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
 import { BuiltInDefinition, createBuiltInDefinitionMap } from "./builtInDefinition.js";
-import { CompItem, CompInteger } from "./compItem.js";
+import { CompItem } from "./compItem.js";
 
 class IfClause {
     condition: Expression;
@@ -79,6 +79,11 @@ class IfClause {
             this.generator.createJumpStatement(this.endIdentifier);
         }
     }
+}
+
+interface StatementReachability {
+    statement: Statement;
+    isReachable: boolean;
 }
 
 export type StatementBlockConstructor = new (
@@ -229,17 +234,17 @@ export class StatementBlock extends Node {
         generator.createLabelStatement(endIdentifier);
     }
     
-    transformJumpIfStatement(destination: Statement[], jumpIfStatement: Statement): boolean {
-        const conditionExpression = jumpIfStatement.args[1].get();
+    transformJumpIfStatement(
+        destination: Statement[],
+        jumpIfStatement: JumpIfStatement,
+    ): boolean {
+        const conditionExpression = jumpIfStatement.getConditionExpression();
         const compItem = conditionExpression.evaluateToCompItemOrNull();
         if (compItem === null) {
             destination.push(jumpIfStatement);
             return false;
         }
-        if (!(compItem instanceof CompInteger)) {
-            throw this.createError("Expected integer expression.");
-        }
-        if (compItem.value === 0n) {
+        if (!compItem.convertToBoolean()) {
             return true;
         }
         const generator = jumpIfStatement.createStatementGenerator(destination);
@@ -263,7 +268,7 @@ export class StatementBlock extends Node {
             } else if (directive === "WHILE") {
                 this.transformWhileStatement(nextStatements, statement);
                 output += 1;
-            } else if (directive === "JUMP_IF") {
+            } else if (statement instanceof JumpIfStatement) {
                 const result = this.transformJumpIfStatement(nextStatements, statement);
                 if (result) {
                     output += 1;
@@ -354,6 +359,67 @@ export class StatementBlock extends Node {
             }
         }
         return null;
+    }
+    
+    getFlattenedStatements(): Statement[] {
+        const output: Statement[] = [];
+        this.statements.forEach((slot) => {
+            const statement = slot.get();
+            if (statement instanceof ScopeStatement) {
+                const statements = statement.block.get().getFlattenedStatements();
+                niceUtils.extendList(output, statements);
+            } else {
+                output.push(statement);
+            }
+        });
+        return output;
+    }
+    
+    removeUnreachableStatements(): number {
+        const statements = this.getFlattenedStatements();
+        const labelIndexMap = new IdentifierMap<number>();
+        statements.forEach((statement, index) => {
+            if (statement instanceof LabelStatement) {
+                const identifier = statement.getDeclarationIdentifier();
+                labelIndexMap.add(identifier, index);
+            }
+        });
+        const reachabilities: StatementReachability[] = statements.map((statement) => ({
+            statement,
+            isReachable: false,
+        }));
+        const indexesToVisit: number[] = [0];
+        while (indexesToVisit.length > 0) {
+            const index = indexesToVisit.pop();
+            if (index > reachabilities.length - 1) {
+                continue;
+            }
+            const reachability = reachabilities[index];
+            const { statement, isReachable } = reachability;
+            let shouldVisitNextIndex = false;
+            let shouldVisitLabelIndex = false;
+            if (!isReachable) {
+                if (statement instanceof JumpStatement) {
+                    shouldVisitLabelIndex = true;
+                } else if (statement instanceof JumpIfStatement) {
+                    shouldVisitNextIndex = true;
+                    shouldVisitLabelIndex = true;
+                } else if (statement.type.directive !== "RET") {
+                    shouldVisitNextIndex = true;
+                }
+            }
+            if (shouldVisitNextIndex) {
+                indexesToVisit.push(index + 1);
+            }
+            if (shouldVisitLabelIndex) {
+                const identifier = statement.getIdentifier();
+                indexesToVisit.push(labelIndexMap.get(identifier));
+            }
+            reachability.isReachable = true;
+        }
+        // TODO: Finish this function.
+        
+        return 0;
     }
     
     getDisplayLines(): string[] {

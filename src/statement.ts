@@ -46,9 +46,13 @@ export class Statement extends Node {
         return this.type.hasDeclarationIdentifier ? this.getIdentifierSlot() : null;
     }
     
-    createIdentifierBehavior(): IdentifierBehavior {
+    getDeclarationIdentifier(): Identifier {
         const identifierExpression = this.getDeclarationIdentifierSlot().get();
-        const identifier = identifierExpression.evaluateToIdentifier();
+        return identifierExpression.evaluateToIdentifier();
+    }
+    
+    createIdentifierBehavior(): IdentifierBehavior {
+        const identifier = this.getDeclarationIdentifier();
         if (this.modifiers.includes("FOREIGN")) {
             return new ForeignIdentifierBehavior(identifier);
         } else {
@@ -301,9 +305,13 @@ export class JumpStatement extends Statement {
 
 export class JumpIfStatement extends Statement {
     
+    getConditionExpression(): Expression {
+        return this.args[1].get();
+    }
+    
     convertToUnixC(): string {
         const identifier = this.getIdentifier();
-        const conditionExpression = this.args[1].get();
+        const conditionExpression = this.getConditionExpression();
         return `if (${conditionExpression.convertToUnixC()}) goto ${identifier.getCodeString()};`;
     }
 }
