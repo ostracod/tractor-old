@@ -35,6 +35,13 @@ export class ValueType extends ItemType {
     }
 }
 
+export class VoidType extends ValueType {
+    
+    getDisplayString(): string {
+        return "voidT";
+    }
+}
+
 export class IntegerType extends ValueType {
     isSigned: boolean;
     bitAmount: number;
@@ -102,5 +109,6 @@ export class FunctionHandleType extends ValueType {
 constructors.ItemType = ItemType;
 constructors.IntegerType = IntegerType;
 constructors.ArrayType = ArrayType;
+constructors.VoidType = VoidType;
 
 

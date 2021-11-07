@@ -3,7 +3,7 @@ import { Displayable } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { IdentifierFunctionDefinition } from "./functionDefinition.js";
-import { ItemType, IntegerType, ArrayType, FunctionHandleType } from "./itemType.js";
+import { ItemType, VoidType, IntegerType, ArrayType, FunctionHandleType } from "./itemType.js";
 
 export abstract class CompItem implements Displayable {
     
@@ -22,6 +22,17 @@ export abstract class CompItem implements Displayable {
 
 export abstract class CompValue extends CompItem {
     
+}
+
+export class CompVoid extends CompValue {
+    
+    getType(): VoidType {
+        return new constructors.VoidType();
+    }
+    
+    getDisplayString(): string {
+        return "(Void)";
+    }
 }
 
 export class CompInteger extends CompValue {

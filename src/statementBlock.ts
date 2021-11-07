@@ -4,10 +4,11 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, LabelStatement, JumpStatement, JumpIfStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpIfStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
+import { StatementPancake } from "./statementPancake.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
+import { Identifier, NumberIdentifier } from "./identifier.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
 import { InitFunctionDefinition } from "./functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
@@ -342,18 +343,8 @@ export class StatementBlock extends Node {
     }
     
     evaluateToCompItemOrNull(): CompItem {
-        for (const slot of this.statements) {
-            const statement = slot.get();
-            // TODO: Handle control flow.
-            if (statement.type.directive === "RET") {
-                if (statement.args.length <= 0) {
-                    return null;
-                }
-                const expression = statement.args[0].get();
-                return expression.evaluateToCompItemOrNull();
-            }
-        }
-        return null;
+        const { returnCompItems } = this.getPancake();
+        return (returnCompItems.length === 1) ? returnCompItems[0] : null;
     }
     
     getFlattenedStatements(): Statement[] {
@@ -370,55 +361,19 @@ export class StatementBlock extends Node {
         return output;
     }
     
+    getPancake(): StatementPancake {
+        const statements = this.getFlattenedStatements();
+        return new StatementPancake(statements);
+    }
+    
     removeUnreachableStatements(): number {
         
         // Create a list of all statements and some book-keeping data.
-        const statements = this.getFlattenedStatements();
-        const reachabilityMap: Map<Statement, boolean> = new Map();
+        const { statements, reachabilityMap } = this.getPancake();
         const blocks = new Set<StatementBlock>();
         statements.forEach((statement) => {
-            reachabilityMap.set(statement, false);
             blocks.add(statement.getParentBlock());
         });
-        
-        // Create a map from label identifier to statement index.
-        const labelIndexMap = new IdentifierMap<number>();
-        statements.forEach((statement, index) => {
-            if (statement instanceof LabelStatement) {
-                const identifier = statement.getDeclarationIdentifier();
-                labelIndexMap.add(identifier, index);
-            }
-        });
-        
-        // Traverse statements from the first statement in the block.
-        const indexesToVisit: number[] = [0];
-        while (indexesToVisit.length > 0) {
-            const index = indexesToVisit.pop();
-            if (index >= statements.length) {
-                continue;
-            }
-            const statement = statements[index];
-            let shouldVisitNextIndex = false;
-            let shouldVisitLabelIndex = false;
-            if (!reachabilityMap.get(statement)) {
-                reachabilityMap.set(statement, true);
-                if (statement instanceof JumpStatement) {
-                    shouldVisitLabelIndex = true;
-                } else if (statement instanceof JumpIfStatement) {
-                    shouldVisitNextIndex = true;
-                    shouldVisitLabelIndex = true;
-                } else if (statement.type.directive !== "RET") {
-                    shouldVisitNextIndex = true;
-                }
-            }
-            if (shouldVisitNextIndex) {
-                indexesToVisit.push(index + 1);
-            }
-            if (shouldVisitLabelIndex) {
-                const identifier = statement.getIdentifier();
-                indexesToVisit.push(labelIndexMap.get(identifier));
-            }
-        }
         
         // Remove unreachable statements from each block.
         let output = 0;
