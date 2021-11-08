@@ -2,7 +2,8 @@
 import { IdentifierDefinition } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
-import { CompItem, CompArray, CompFunctionHandle } from "./compItem.js";
+import { CompItem } from "./compItem.js";
+import { CompArray, CompFunctionHandle } from "./compValue.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";

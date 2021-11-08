@@ -1,12 +1,12 @@
 
 import { IdentifierDefinition } from "./interfaces.js";
-import { constructors } from "./constructors.js";
 import { Definition } from "./definition.js";
 import { Identifier, NameIdentifier } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
-import { CompItem, CompInteger } from "./compItem.js";
-import { ValueType } from "./itemType.js";
+import { CompItem } from "./compItem.js";
+import { CompInteger } from "./compValue.js";
+import { ItemType, ValueType, IntegerType } from "./itemType.js";
 
 export class BuiltInDefinition extends Definition implements IdentifierDefinition {
     identifierBehavior: IdentifierBehavior;
@@ -48,11 +48,11 @@ export const initializeBuiltInDefinitions = (): void => {
     addBuiltInDefinition(new CompInteger(1n), "TRUE");
     addBuiltInDefinition(new CompInteger(0n), "FALSE");
     
-    addBuiltInDefinition(new constructors.ItemType());
+    addBuiltInDefinition(new ItemType());
     addBuiltInDefinition(new ValueType());
     [null, 8, 16, 32, 64].forEach((bitAmount) => {
         [null, false, true].forEach((isSigned) => {
-            addBuiltInDefinition(new constructors.IntegerType(isSigned, bitAmount));
+            addBuiltInDefinition(new IntegerType(isSigned, bitAmount));
         });
     });
 };

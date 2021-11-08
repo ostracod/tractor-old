@@ -11,7 +11,8 @@ import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { FunctionSignature } from "./functionSignature.js";
-import { CompItem, CompFunctionHandle } from "./compItem.js";
+import { CompItem } from "./compItem.js";
+import { CompFunctionHandle } from "./compValue.js";
 
 export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;

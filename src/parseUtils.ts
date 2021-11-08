@@ -3,7 +3,7 @@ import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterTo
 import { CompilerError } from "./compilerError.js";
 import { expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
 import { Statement } from "./statement.js";
-import { CompInteger, CompArray } from "./compItem.js";
+import { CompInteger, CompArray } from "./compValue.js";
 import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 import { NameIdentifier } from "./identifier.js";

@@ -1,5 +1,4 @@
 
-import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { FunctionTypeDefinition } from "./typeDefinition.js";
@@ -105,10 +104,5 @@ export class FunctionHandleType extends ValueType {
         return this.functionTypeDefinition.identifierBehavior.getDisplayString();
     }
 }
-
-constructors.ItemType = ItemType;
-constructors.IntegerType = IntegerType;
-constructors.ArrayType = ArrayType;
-constructors.VoidType = VoidType;
 
 

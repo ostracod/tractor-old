@@ -2,7 +2,8 @@
 import * as niceUtils from "./niceUtils.js";
 import { IdentifierMap } from "./identifier.js";
 import { Statement, LabelStatement, JumpStatement, JumpIfStatement } from "./statement.js";
-import { CompItem, CompVoid } from "./compItem.js";
+import { CompItem } from "./compItem.js";
+import { CompVoid } from "./compValue.js";
 
 export class StatementPancake {
     statements: Statement[];
