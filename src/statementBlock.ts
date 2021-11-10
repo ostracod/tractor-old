@@ -384,7 +384,7 @@ export class StatementBlock extends Node {
             }
         });
         
-        // Mark adjacent jump and label statements as useless.
+        // Mark jump statements as useless when adjacent to labels.
         let lastUsefulStatement: Statement = null;
         let lastUsefulIndex: number = null;
         statements.forEach((statement, index) => {
@@ -402,7 +402,6 @@ export class StatementBlock extends Node {
             }
             if (pairIsUseless) {
                 uselessStatements.add(lastUsefulStatement);
-                uselessStatements.add(statement);
                 lastUsefulStatement = null;
                 lastUsefulIndex = null;
             } else {
