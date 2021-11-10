@@ -4,7 +4,7 @@ import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpIfStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpStatement, JumpIfStatement, LabelStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { StatementPancake } from "./statementPancake.js";
 import { Expression } from "./expression.js";
@@ -376,20 +376,64 @@ export class StatementBlock extends Node {
             blocks.add(statement.getParentBlock());
         });
         
-        // Remove unreachable statements from each block.
+        // Mark unreachable statements as useless.
+        const uselessStatements: Set<Statement> = new Set();
+        reachabilityMap.forEach((isReachable, statement) => {
+            if (!isReachable) {
+                uselessStatements.add(statement);
+            }
+        });
+        
+        // Mark adjacent jump and label statements as useless.
+        let lastUsefulStatement: Statement = null;
+        let lastUsefulIndex: number = null;
+        statements.forEach((statement, index) => {
+            if (uselessStatements.has(statement)) {
+                return;
+            }
+            let pairIsUseless: boolean;
+            if (lastUsefulStatement instanceof JumpStatement
+                    && statement instanceof LabelStatement) {
+                const jumpIdentifier = lastUsefulStatement.getIdentifier();
+                const labelIdentifier = statement.getDeclarationIdentifier();
+                pairIsUseless = jumpIdentifier.equals(labelIdentifier);
+            } else {
+                pairIsUseless = false;
+            }
+            if (pairIsUseless) {
+                uselessStatements.add(lastUsefulStatement);
+                uselessStatements.add(statement);
+                lastUsefulStatement = null;
+                lastUsefulIndex = null;
+            } else {
+                lastUsefulStatement = statement;
+                lastUsefulIndex = index;
+            }
+        });
+        
+        // Remove useless statements from each block.
         let output = 0;
         blocks.forEach((block) => {
             const nextStatements: Statement[] = [];
             block.statements.forEach((slot) => {
                 const statement = slot.get();
-                const isReachable = reachabilityMap.get(statement);
-                if (typeof isReachable === "undefined" || isReachable) {
-                    nextStatements.push(statement);
-                } else {
+                if (uselessStatements.has(statement)) {
                     output += 1;
+                } else {
+                    nextStatements.push(statement);
                 }
             });
             block.setStatements(nextStatements);
+        });
+        
+        // Remove empty scope statements.
+        output += this.processBlockStatements((statement) => {
+            if (statement instanceof ScopeStatement
+                    && statement.block.get().statements.length <= 0) {
+                return [];
+            } else {
+                return null;
+            }
         });
         
         return output;
