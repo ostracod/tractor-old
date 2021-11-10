@@ -3,7 +3,8 @@ import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement, LabelStatement, JumpStatement, JumpIfStatement, ScopeStatement } from "./statement.js";
 import { Expression } from "./expression.js";
-import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition, FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
+import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition } from "./singleTypeDefinition.js";
+import { FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
 import { VariableDefinition, ArgVariableDefinition, FrameVariableDefinition, CompVariableDefinition, FixedVariableDefinition, AutoVariableDefinition } from "./variableDefinition.js";
 
 interface StatementTypeOptions {

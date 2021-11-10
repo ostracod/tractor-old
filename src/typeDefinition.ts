@@ -4,10 +4,9 @@ import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
+import { FieldDefinition } from "./singleTypeDefinition.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
-import { Expression } from "./expression.js";
-import { TypeResolver } from "./typeResolver.js";
 import { StatementBlock } from "./statementBlock.js";
 import { FunctionSignature } from "./functionSignature.js";
 
@@ -17,55 +16,6 @@ export abstract class TypeDefinition extends Definition implements IdentifierDef
     constructor(pos: Pos, identifierBehavior: IdentifierBehavior) {
         super(pos);
         this.identifierBehavior = identifierBehavior;
-    }
-}
-
-export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = new (
-    pos: Pos,
-    identifierBehavior: IdentifierBehavior,
-    typeExpression: Expression,
-) => T;
-
-export abstract class SingleTypeDefinition extends TypeDefinition {
-    typeResolver: NodeSlot<TypeResolver>;
-    
-    constructor(
-        pos: Pos,
-        identifierBehavior: IdentifierBehavior,
-        typeExpression: Expression,
-    ) {
-        super(pos, identifierBehavior);
-        const typeResolver = new TypeResolver(typeExpression);
-        this.typeResolver = this.addSlot(typeResolver);
-    }
-    
-    abstract getDefinitionName(): string;
-    
-    getDisplayLines(): string[] {
-        return [`${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`];
-    }
-}
-
-export abstract class FieldDefinition extends SingleTypeDefinition {
-    
-    abstract getDefinitionNameHelper(): string;
-    
-    getDefinitionName(): string {
-        return this.getDefinitionNameHelper() + " field";
-    }
-}
-
-export class DataFieldDefinition extends FieldDefinition {
-    
-    getDefinitionNameHelper(): string {
-        return "Data";
-    }
-}
-
-export class TypeFieldDefinition extends FieldDefinition {
-    
-    getDefinitionNameHelper(): string {
-        return "Type";
     }
 }
 

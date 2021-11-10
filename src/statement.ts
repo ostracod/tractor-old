@@ -9,7 +9,8 @@ import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehavior.js";
 import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
 import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
-import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition, FieldsTypeDefinition } from "./typeDefinition.js";
+import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition } from "./singleTypeDefinition.js";
+import { FieldsTypeDefinition } from "./typeDefinition.js";
 import { Compiler } from "./compiler.js";
 
 export type StatementConstructor<T extends Statement = Statement> = new (
