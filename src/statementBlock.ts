@@ -344,7 +344,9 @@ export class StatementBlock extends Node {
     }
     
     evaluateToCompItemOrNull(): CompItem {
-        const { returnCompItems } = this.getPancake();
+        const pancake = this.createPancake();
+        pancake.determineReachability();
+        const { returnCompItems } = pancake;
         return (returnCompItems.length === 1) ? returnCompItems[0] : null;
     }
     
@@ -362,80 +364,20 @@ export class StatementBlock extends Node {
         return output;
     }
     
-    getPancake(): StatementPancake {
+    createPancake(): StatementPancake {
         const statements = this.getFlattenedStatements();
         return new StatementPancake(statements);
     }
     
-    removeUnreachableStatements(): number {
-        
-        // Create a list of all statements and some book-keeping data.
-        const { statements, reachabilityMap } = this.getPancake();
-        const blocks = new Set<StatementBlock>();
-        statements.forEach((statement) => {
-            blocks.add(statement.getParentBlock());
-        });
-        
-        // Mark unreachable statements as useless.
-        const uselessStatements: Set<Statement> = new Set();
-        reachabilityMap.forEach((isReachable, statement) => {
-            if (!isReachable) {
-                uselessStatements.add(statement);
-            }
-        });
-        
-        // Mark jump statements as useless when adjacent to labels.
-        let lastUsefulStatement: Statement = null;
-        let lastUsefulIndex: number = null;
-        statements.forEach((statement, index) => {
-            if (uselessStatements.has(statement)) {
-                return;
-            }
-            let pairIsUseless: boolean;
-            if (lastUsefulStatement instanceof JumpStatement
-                    && statement instanceof LabelStatement) {
-                const jumpIdentifier = lastUsefulStatement.getIdentifier();
-                const labelIdentifier = statement.getDeclarationIdentifier();
-                pairIsUseless = jumpIdentifier.equals(labelIdentifier);
-            } else {
-                pairIsUseless = false;
-            }
-            if (pairIsUseless) {
-                uselessStatements.add(lastUsefulStatement);
-                lastUsefulStatement = null;
-                lastUsefulIndex = null;
-            } else {
-                lastUsefulStatement = statement;
-                lastUsefulIndex = index;
-            }
-        });
-        
-        // Remove useless statements from each block.
-        let output = 0;
-        blocks.forEach((block) => {
-            const nextStatements: Statement[] = [];
-            block.statements.forEach((slot) => {
-                const statement = slot.get();
-                if (uselessStatements.has(statement)) {
-                    output += 1;
-                } else {
-                    nextStatements.push(statement);
-                }
-            });
-            block.setStatements(nextStatements);
-        });
-        
-        // Remove empty scope statements.
-        output += this.processBlockStatements((statement) => {
+    removeEmptyScopeStatements(): number {
+        return this.processBlockStatements((statement) => {
             if (statement instanceof ScopeStatement
                     && statement.block.get().statements.length <= 0) {
                 return [];
             } else {
-                return null;
+                return [statement];
             }
         });
-        
-        return output;
     }
     
     getDisplayLines(): string[] {

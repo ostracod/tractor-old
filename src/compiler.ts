@@ -164,7 +164,7 @@ export class Compiler extends Node {
         });
     }
     
-    iterateOverExpandedBlocks(handle: (node: StatementBlock) => number): number {
+    iterateOverExpandedBlocks(handle: (block: StatementBlock) => number): number {
         let output = 0;
         this.processExpandedNodes(StatementBlock, (block) => {
             output += handle(block);
@@ -200,14 +200,23 @@ export class Compiler extends Node {
     
     // This function must be called after extractTypeDefinitions and
     // transformControlFlow, but before expandInlineFunctions.
-    removeUnreachableStatements(): number {
+    processStatementPancakes(): number {
         return this.iterateOverExpandedBlocks((block) => {
             if (block.getParentNode() instanceof ScopeStatement) {
                 return 0;
-            } else {
-                return block.removeUnreachableStatements();
             }
+            const pancake = block.createPancake();
+            pancake.determineReachability();
+            pancake.markUnreachableAsUseless();
+            pancake.markUselessJumpStatements();
+            return pancake.removeUselessStatements();
         });
+    }
+    
+    removeEmptyScopeStatements(): number {
+        return this.iterateOverExpandedBlocks((block) => (
+            block.removeEmptyScopeStatements()
+        ));
     }
     
     resolveTypes(): number {
@@ -249,7 +258,8 @@ export class Compiler extends Node {
                 processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompItems();
-                processCount += this.removeUnreachableStatements();
+                processCount += this.processStatementPancakes();
+                processCount += this.removeEmptyScopeStatements();
                 processCount += this.resolveTypes();
                 processCount += this.expandInlineFunctions();
                 if (processCount <= 0) {

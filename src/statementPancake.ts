@@ -2,11 +2,13 @@
 import * as niceUtils from "./niceUtils.js";
 import { IdentifierMap } from "./identifier.js";
 import { Statement, LabelStatement, JumpStatement, JumpIfStatement } from "./statement.js";
+import { StatementBlock } from "./statementBlock.js";
 import { CompItem } from "./compItem.js";
 import { CompVoid } from "./compValue.js";
 
 export class StatementPancake {
     statements: Statement[];
+    uselessStatements: Set<Statement>;
     labelIndexMap: IdentifierMap<number>;
     reachabilityMap: Map<Statement, boolean>;
     returnCompItems: CompItem[];
@@ -15,25 +17,10 @@ export class StatementPancake {
     // on the parent block.
     constructor(statements: Statement[]) {
         this.statements = statements;
-        this.labelIndexMap = new IdentifierMap();
-        this.statements.forEach((statement, index) => {
-            if (statement instanceof LabelStatement) {
-                const identifier = statement.getDeclarationIdentifier();
-                this.labelIndexMap.add(identifier, index);
-            }
-        });
-        this.reachabilityMap = new Map();
-        this.statements.forEach((statement) => {
-            this.reachabilityMap.set(statement, false);
-        });
-        this.returnCompItems = [];
-        const { returnsVoid, returnsUnresolvedItem } = this.determineReachability();
-        if (returnsVoid) {
-            this.returnCompItems.push(new CompVoid());
-        }
-        if (returnsUnresolvedItem) {
-            this.returnCompItems.push(null);
-        }
+        this.uselessStatements = new Set();
+        this.labelIndexMap = null;
+        this.reachabilityMap = null;
+        this.returnCompItems = null;
     }
     
     getNextIndexes(index: number): number[] {
@@ -62,7 +49,7 @@ export class StatementPancake {
         return output;
     }
     
-    determineReachability(): { returnsVoid: boolean, returnsUnresolvedItem: boolean } {
+    determineReachabilityHelper(): { returnsVoid: boolean, returnsUnresolvedItem: boolean } {
         if (this.statements.length <= 0) {
             return { returnsVoid: true, returnsUnresolvedItem: false };
         }
@@ -93,6 +80,84 @@ export class StatementPancake {
             niceUtils.extendList(indexesToVisit, nextIndexes);
         }
         return { returnsVoid, returnsUnresolvedItem };
+    }
+    
+    determineReachability(): void {
+        this.labelIndexMap = new IdentifierMap();
+        this.statements.forEach((statement, index) => {
+            if (statement instanceof LabelStatement) {
+                const identifier = statement.getDeclarationIdentifier();
+                this.labelIndexMap.add(identifier, index);
+            }
+        });
+        this.reachabilityMap = new Map();
+        this.statements.forEach((statement) => {
+            this.reachabilityMap.set(statement, false);
+        });
+        this.returnCompItems = [];
+        const { returnsVoid, returnsUnresolvedItem } = this.determineReachabilityHelper();
+        if (returnsVoid) {
+            this.returnCompItems.push(new CompVoid());
+        }
+        if (returnsUnresolvedItem) {
+            this.returnCompItems.push(null);
+        }
+    }
+    
+    markUnreachableAsUseless(): void {
+        this.reachabilityMap.forEach((isReachable, statement) => {
+            if (!isReachable) {
+                this.uselessStatements.add(statement);
+            }
+        });
+    }
+    
+    markUselessJumpStatements(): void {
+        let lastUsefulStatement: Statement = null;
+        let lastUsefulIndex: number = null;
+        this.statements.forEach((statement, index) => {
+            if (this.uselessStatements.has(statement)) {
+                return;
+            }
+            let pairIsUseless: boolean;
+            if (lastUsefulStatement instanceof JumpStatement
+                    && statement instanceof LabelStatement) {
+                const jumpIdentifier = lastUsefulStatement.getIdentifier();
+                const labelIdentifier = statement.getDeclarationIdentifier();
+                pairIsUseless = jumpIdentifier.equals(labelIdentifier);
+            } else {
+                pairIsUseless = false;
+            }
+            if (pairIsUseless) {
+                this.uselessStatements.add(lastUsefulStatement);
+                lastUsefulStatement = null;
+                lastUsefulIndex = null;
+            } else {
+                lastUsefulStatement = statement;
+                lastUsefulIndex = index;
+            }
+        });
+    }
+    
+    removeUselessStatements(): number {
+        const blocks = new Set<StatementBlock>();
+        this.statements.forEach((statement) => {
+            blocks.add(statement.getParentBlock());
+        });
+        let output = 0;
+        blocks.forEach((block) => {
+            const nextStatements: Statement[] = [];
+            block.statements.forEach((slot) => {
+                const statement = slot.get();
+                if (this.uselessStatements.has(statement)) {
+                    output += 1;
+                } else {
+                    nextStatements.push(statement);
+                }
+            });
+            block.setStatements(nextStatements);
+        });
+        return output;
     }
 }
 
