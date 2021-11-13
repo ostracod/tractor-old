@@ -282,9 +282,12 @@ export class FieldsTypeStatement<T extends FieldsTypeDefinition = FieldsTypeDefi
 
 export class ExpressionStatement extends Statement {
     
+    getExpression(): Expression {
+        return this.args[0].get();
+    }
+    
     convertToUnixC(): string {
-        const expression = this.args[0].get();
-        return expression.convertToUnixC() + ";";
+        return this.getExpression().convertToUnixC() + ";";
     }
 }
 

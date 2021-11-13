@@ -97,6 +97,6 @@ new BinaryOperator("<<=", 14);
 new BinaryOperator("&&=", 14);
 new BinaryOperator("^^=", 14);
 new BinaryOperator("||=", 14);
-new InitializationOperator();
+export const initializationOperator = new InitializationOperator();
 
 

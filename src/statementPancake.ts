@@ -1,10 +1,18 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { IdentifierMap } from "./identifier.js";
-import { Statement, LabelStatement, JumpStatement, JumpIfStatement } from "./statement.js";
+import { initializationOperator } from "./operator.js";
+import { Expression, BinaryExpression } from "./expression.js";
+import { Statement, LabelStatement, JumpStatement, JumpIfStatement, ExpressionStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { CompItem } from "./compItem.js";
 import { CompVoid } from "./compValue.js";
+import { VariableDefinition, CompVariableDefinition } from "./variableDefinition.js";
+
+interface StatementOperand {
+    statement: ExpressionStatement;
+    operand: Expression;
+}
 
 export class StatementPancake {
     statements: Statement[];
@@ -136,6 +144,47 @@ export class StatementPancake {
                 lastUsefulStatement = statement;
                 lastUsefulIndex = index;
             }
+        });
+    }
+    
+    resolveInitItems(): void {
+        const statementOperandsMap: Map<VariableDefinition, StatementOperand[]> = new Map();
+        this.statements.forEach((statement) => {
+            if (!(statement instanceof ExpressionStatement)) {
+                return;
+            }
+            const expression = statement.getExpression();
+            if (!(expression instanceof BinaryExpression)
+                    || expression.operator !== initializationOperator) {
+                return;
+            }
+            const operand1 = expression.operand1.get();
+            const operand2 = expression.operand2.get();
+            const definition = operand1.getIdentifierDefinition();
+            if (!(definition instanceof VariableDefinition)) {
+                throw operand1.createError("Expected variable definition.");
+            }
+            let statementOperands: StatementOperand[];
+            if (statementOperandsMap.has(definition)) {
+                statementOperands = statementOperandsMap.get(definition);
+            } else {
+                statementOperands = [];
+                statementOperandsMap.set(definition, statementOperands);
+            }
+            statementOperands.push({ statement, operand: operand2 });
+        });
+        statementOperandsMap.forEach((statementOperands, definition) => {
+            if (!(definition instanceof CompVariableDefinition)
+                    ||  statementOperands.length !== 1) {
+                return;
+            }
+            const { statement, operand } = statementOperands[0];
+            const compItem = operand.evaluateToCompItemOrNull();
+            if (compItem === null) {
+                return
+            }
+            definition.item = compItem;
+            this.uselessStatements.add(statement);
         });
     }
     

@@ -30,8 +30,12 @@ export abstract class SingleTypeDefinition extends Definition implements Identif
     
     abstract getDefinitionName(): string;
     
+    getDisplayLine(): string {
+        return `${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`;
+    }
+    
     getDisplayLines(): string[] {
-        return [`${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`];
+        return [this.getDisplayLine()];
     }
 }
 

@@ -1,7 +1,7 @@
 
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 import { CompilerError } from "./compilerError.js";
-import { expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
+import { StatementType, expressionStatementType, directiveStatementTypeMap } from "./statementType.js";
 import { Statement } from "./statement.js";
 import { CompInteger, CompArray } from "./compValue.js";
 import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
@@ -412,7 +412,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
             break
         }
     }
-    let statementType = expressionStatementType;
+    let statementType: StatementType = expressionStatementType;
     if (index < tokens.length) {
         const token = tokens[index];
         if (token instanceof WordToken && token.text in directiveStatementTypeMap) {

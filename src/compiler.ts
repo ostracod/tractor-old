@@ -209,6 +209,7 @@ export class Compiler extends Node {
             pancake.determineReachability();
             pancake.markUnreachableAsUseless();
             pancake.markUselessJumpStatements();
+            pancake.resolveInitItems();
             return pancake.removeUselessStatements();
         });
     }

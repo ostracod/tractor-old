@@ -37,6 +37,18 @@ export abstract class Expression extends Node {
         return output;
     }
     
+    getIdentifierDefinitionOrNull(): IdentifierDefinition {
+        return null
+    }
+    
+    getIdentifierDefinition(): IdentifierDefinition {
+        const output = this.getIdentifierDefinitionOrNull();
+        if (output === null) {
+            throw this.createError("Expected identifier definition.");
+        }
+        return output;
+    }
+    
     invertBooleanValue(): Expression {
         return new UnaryExpression(unaryOperatorMap["!"], this);
     }
