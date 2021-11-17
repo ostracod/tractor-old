@@ -5,12 +5,18 @@ import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Expression } from "./expression.js";
+import { Statement } from "./statement.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 import { CompItem } from "./compItem.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
+    
+    // Returns whether the expression has been handled.
+    handleInitExpression(expression: Expression): boolean {
+        return false;
+    }
     
     getDefinitionName(): string {
         return this.getDefinitionNameHelper() + " variable";
@@ -57,6 +63,15 @@ export class CompVariableDefinition extends VariableDefinition {
         return this.item;
     }
     
+    handleInitExpression(expression: Expression): boolean {
+        const compItem = expression.evaluateToCompItemOrNull();
+        if (compItem === null) {
+            return false;
+        }
+        this.item = compItem;
+        return true;
+    }
+    
     getDisplayLine(): string {
         let output = super.getDisplayLine();
         if (this.item !== null) {
@@ -78,6 +93,26 @@ export class FixedVariableDefinition extends CompVariableDefinition {
 }
 
 export class AutoVariableDefinition extends VariableDefinition {
+    
+    handleInitExpression(expression: Expression): boolean {
+        const compItem = expression.evaluateToCompItemOrNull();
+        if (compItem !== null) {
+            const definition = new CompVariableDefinition(
+                this.pos,
+                this.identifierBehavior,
+                null,
+            );
+            definition.setTypeResolver(this.typeResolver.get());
+            definition.item = compItem;
+            const block = this.getParentBlock();
+            block.removeIdentifierDefinition(this.identifierBehavior.identifier);
+            block.addIdentifierDefinition(definition);
+            return true;
+        }
+        // TODO: Handle other initialization cases.
+        
+        return false;
+    }
     
     getDefinitionNameHelper(): string {
         return "Auto";

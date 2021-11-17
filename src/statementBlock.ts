@@ -131,6 +131,10 @@ export class StatementBlock extends Node {
         return this.scope.get().add(definition);
     }
     
+    removeIdentifierDefinition(identifier: Identifier): void {
+        this.scope.get().remove(identifier);
+    }
+    
     processBlockStatements(handle: (statement: Statement) => Statement[]): number {
         let output = 0;
         const nextStatements = [];

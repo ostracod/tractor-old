@@ -30,6 +30,12 @@ export class IdentifierDefinitionMap<T extends IdentifierDefinition = Identifier
         return slot;
     }
     
+    remove(identifier: Identifier): void {
+        const slot = this.identifierMap.get(identifier);
+        this.removeSlot(slot);
+        this.identifierMap.remove(identifier);
+    }
+    
     iterate(handle: (definition: T) => void): void {
         this.identifierMap.iterate((identifier, slot) => handle(slot.get()));
     }

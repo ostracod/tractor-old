@@ -100,6 +100,18 @@ export class IdentifierMap<T> {
         this.identifiers.push(identifier);
     }
     
+    remove(identifier: Identifier): void {
+        const { key } = identifier;
+        if (!(key in this.map)) {
+            throw new CompilerError("Missing identifier.");
+        }
+        delete this.map[key];
+        const index = this.identifiers.findIndex((identifer2) => (
+            identifier.equals(identifer2)
+        ));
+        this.identifiers.splice(index, 1);
+    }
+    
     iterate(handle: (identifier, value: T) => void): void {
         for (const identifier of this.identifiers) {
             const { key } = identifier;

@@ -24,11 +24,19 @@ export abstract class SingleTypeDefinition extends Definition implements Identif
     ) {
         super(pos);
         this.identifierBehavior = identifierBehavior;
-        const typeResolver = new TypeResolver(typeExpression);
-        this.typeResolver = this.addSlot(typeResolver);
+        if (typeExpression === null) {
+            this.typeResolver = null;
+        } else {
+            const typeResolver = new TypeResolver(typeExpression);
+            this.setTypeResolver(typeResolver);
+        }
     }
     
     abstract getDefinitionName(): string;
+    
+    setTypeResolver(typeResolver: TypeResolver): void {
+        this.typeResolver = this.addSlot(typeResolver);
+    }
     
     getDisplayLine(): string {
         return `${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}; type: ${this.typeResolver.get().getDisplayString()}`;

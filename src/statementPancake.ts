@@ -7,7 +7,7 @@ import { Statement, LabelStatement, JumpStatement, JumpIfStatement, ExpressionSt
 import { StatementBlock } from "./statementBlock.js";
 import { CompItem } from "./compItem.js";
 import { CompVoid } from "./compValue.js";
-import { VariableDefinition, CompVariableDefinition } from "./variableDefinition.js";
+import { VariableDefinition } from "./variableDefinition.js";
 
 interface StatementOperand {
     statement: ExpressionStatement;
@@ -174,17 +174,14 @@ export class StatementPancake {
             statementOperands.push({ statement, operand: operand2 });
         });
         statementOperandsMap.forEach((statementOperands, definition) => {
-            if (!(definition instanceof CompVariableDefinition)
-                    ||  statementOperands.length !== 1) {
+            if (statementOperands.length !== 1) {
                 return;
             }
             const { statement, operand } = statementOperands[0];
-            const compItem = operand.evaluateToCompItemOrNull();
-            if (compItem === null) {
-                return
+            const hasHandledStatement = definition.handleInitExpression(operand);
+            if (hasHandledStatement) {
+                this.uselessStatements.add(statement);
             }
-            definition.item = compItem;
-            this.uselessStatements.add(statement);
         });
     }
     

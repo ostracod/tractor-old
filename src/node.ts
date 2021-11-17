@@ -143,6 +143,7 @@ export abstract class Node implements Displayable {
     }
     
     removeSlot(slot: NodeSlot): void {
+        slot.set(null);
         slot.parentNode = null;
         delete this.slots[slot.id];
     }

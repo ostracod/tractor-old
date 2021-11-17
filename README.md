@@ -62,12 +62,13 @@ Tractor has the following built-in storage types:
 
 * `constT` is an immutable value. A variable whose type conforms to `constT` can only be assigned a value once.
 * `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
-* `locT` is a value which has a known address in a frame or the fixed data region.
+* `locT` is a value which has an address in a frame or the fixed data region.
+* `compLocT` is a value whose address offset in the parent region is known at compile time. `compLocT` is a subtype of `locT`. Note that `compLocT` does not imply `compT`.
 * `frameT` is a value which is stored in a frame in memory. `frameT` is a subtype of `locT`. `frameT` and `compT` are mutually exclusive.
 * `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT & locT`.
 * `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
-* `valueT` is a value which occupies memory or storage. The amount of space or arrangement of bytes is unknown. `concreteT` is a subtype of `valueT`.
-* `itemT` is either a value or a type. Subtypes of `itemT` include `valueT` and `typeT`.
+* `valueT` is a value which may occupy memory or storage. The amount of space or arrangement of bytes is unknown. `concreteT` is a subtype of `valueT`.
+* `itemT` is either a value or a type. `valueT` and `typeT` are subtypes of `itemT`.
 
 Tractor has the following built-in primitive types:
 
@@ -94,7 +95,7 @@ The following types are subtypes of `concreteT`:
 * `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
 * `ptrT(<type>)` for any type `<type>`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
-* Any struct or union whose fields all conform to `concreteT`
+* Any non-soft struct or union whose fields all conform to `concreteT`
 * Any non-inline function handle
 
 ## Item Literals
