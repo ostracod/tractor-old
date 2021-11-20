@@ -10,7 +10,7 @@ import { SourceFile, TractorFile } from "./sourceFile.js";
 import { Expression } from "./expression.js";
 import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement.js";
 import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
-import { FunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
+import { InlineFunctionDefinition } from "./functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { codeGeneratorConstructorMap, TargetCodeGeneratorConstructor } from "./targetCodeGenerator.js";
 
@@ -134,16 +134,16 @@ export class Compiler extends Node {
         this.foreignFiles.push(foreignFile);
     }
     
-    extractFunctionDefinitions(): void {
+    extractFunctions(): void {
         const rootBlock = this.rootBlock.get();
         rootBlock.processBlockStatements((statement) => {
             if (statement instanceof FunctionStatement) {
-                statement.createFunctionDefinition();
+                statement.createFunction();
                 return [];
             }
             return [statement];
         });
-        if (rootBlock.initFunctionDefinition.get() === null) {
+        if (rootBlock.initFunctionBlock.get() === null) {
             throw new CompilerError("Missing INIT_FUNC statement.");
         }
     }
@@ -251,7 +251,7 @@ export class Compiler extends Node {
             this.readConfig();
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
-            this.extractFunctionDefinitions();
+            this.extractFunctions();
             console.log("Processing definitions...");
             while (true) {
                 let processCount = 0;

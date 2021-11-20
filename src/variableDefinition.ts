@@ -1,6 +1,5 @@
 
 import { Pos } from "./pos.js";
-import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
 import { Identifier } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
@@ -105,8 +104,8 @@ export class AutoVariableDefinition extends VariableDefinition {
             definition.setTypeResolver(this.typeResolver.get());
             definition.item = compItem;
             const block = this.getParentBlock();
-            block.removeIdentifierDefinition(this.identifierBehavior.identifier);
-            block.addIdentifierDefinition(definition);
+            block.removeDefinition(this.identifierBehavior.identifier);
+            block.addDefinition(definition);
             return true;
         }
         // TODO: Handle other initialization cases.

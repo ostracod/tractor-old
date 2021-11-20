@@ -1,5 +1,4 @@
 
-import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { Pos } from "./pos.js";
 import { NodeSlot } from "./node.js";
@@ -14,35 +13,19 @@ import { FunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
 import { CompFunctionHandle } from "./compValue.js";
 
-export abstract class FunctionDefinition extends Definition {
-    block: NodeSlot<StatementBlock>;
-    
-    constructor(pos: Pos, block: StatementBlock) {
-        super(pos);
-        this.block = this.addSlot(block);
-    }
-    
-    abstract getDisplayLinesHelper(): string[];
-    
-    getDisplayLines(): string[] {
-        const output = this.getDisplayLinesHelper();
-        niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
-        return output;
-    }
-}
-
 export type IdentifierFunctionDefinitionConstructor = new (
     pos: Pos,
     identifierBehavior: IdentifierBehavior,
     block: StatementBlock,
 ) => IdentifierFunctionDefinition;
 
-export abstract class IdentifierFunctionDefinition extends FunctionDefinition implements IdentifierDefinition {
-    identifierBehavior: IdentifierBehavior;
+export abstract class IdentifierFunctionDefinition extends Definition {
+    block: NodeSlot<StatementBlock>;
     signature: NodeSlot<FunctionSignature>;
     
     constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
-        super(pos, block);
+        super(pos, identifierBehavior);
+        this.block = this.addSlot(block);
         this.identifierBehavior = identifierBehavior;
         const signature = this.block.get().createFunctionSignature();
         this.signature = this.addSlot(signature);
@@ -54,12 +37,13 @@ export abstract class IdentifierFunctionDefinition extends FunctionDefinition im
         return new CompFunctionHandle(this);
     }
     
-    getDisplayLinesHelper(): string[] {
+    getDisplayLines(): string[] {
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifierBehavior.getDisplayString();
         const output = [`${typeText} identifier: ${identifierText}`];
         const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
         niceUtils.extendWithIndentation(output, returnTypeLines);
+        niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
         return output;
     }
 }
@@ -179,21 +163,6 @@ export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
             statements,
             returnItemIdentifier,
         };
-    }
-}
-
-export class InitFunctionDefinition extends FunctionDefinition {
-    
-    getDisplayLinesHelper(): string[] {
-        return ["Init function"];
-    }
-    
-    convertToUnixC(): string {
-        const codeList = ["int main(int argc, const char *argv[]) {"];
-        const block = this.block.get();
-        codeList.push(block.convertToUnixC());
-        codeList.push("return 0;\n}");
-        return codeList.join("\n");
     }
 }
 

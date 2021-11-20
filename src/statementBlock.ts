@@ -1,22 +1,21 @@
 
-import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
+import { Definition } from "./definition.js";
 import { Pos } from "./pos.js";
 import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpStatement, JumpIfStatement, LabelStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { StatementPancake } from "./statementPancake.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier } from "./identifier.js";
-import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
-import { InitFunctionDefinition } from "./functionDefinition.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
+import { DefinitionMap } from "./definitionMap.js";
 import { TypeResolver } from "./typeResolver.js";
 import { FieldDefinition } from "./singleTypeDefinition.js";
 import { FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { FunctionSignature } from "./functionSignature.js";
-import { BuiltInDefinition, createBuiltInDefinitionMap } from "./builtInDefinition.js";
+import { createBuiltInItemMap } from "./builtInItem.js";
 import { CompItem } from "./compItem.js";
 
 class IfClause {
@@ -90,14 +89,14 @@ export type StatementBlockConstructor = new (
 
 export class StatementBlock extends Node {
     statements: NodeSlot<Statement>[];
-    scope: NodeSlot<IdentifierDefinitionMap>;
+    scope: NodeSlot<DefinitionMap>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super();
         this.pos = pos;
         this.statements = [];
         this.setStatements(statements);
-        this.scope = this.addSlot(new IdentifierDefinitionMap());
+        this.scope = this.addSlot(new DefinitionMap());
     }
     
     addStatement(statement: Statement): void {
@@ -115,24 +114,33 @@ export class StatementBlock extends Node {
         });
     }
     
-    getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
+    getDefinition(identifier: Identifier): Definition {
         const definition = this.scope.get().get(identifier);
         if (definition !== null) {
             return definition;
         }
         const parentBlock = this.getParentBlock();
         if (parentBlock !== null) {
-            return parentBlock.getIdentifierDefinition(identifier);
+            return parentBlock.getDefinition(identifier);
         }
         return null;
     }
     
-    addIdentifierDefinition<T extends IdentifierDefinition>(definition: T): NodeSlot<T> {
+    addDefinition<T extends Definition>(definition: T): NodeSlot<T> {
         return this.scope.get().add(definition);
     }
     
-    removeIdentifierDefinition(identifier: Identifier): void {
+    removeDefinition(identifier: Identifier): void {
         this.scope.get().remove(identifier);
+    }
+    
+    getCompItemByIdentifier(identifier: Identifier): CompItem {
+        const definition = this.getDefinition(identifier);
+        if (definition !== null) {
+            return definition.getCompItemOrNull();
+        }
+        const rootBlock = this.getRootBlock();
+        return rootBlock.builtInItemMap.get(identifier);
     }
     
     processBlockStatements(handle: (statement: Statement) => Statement[]): number {
@@ -318,7 +326,7 @@ export class StatementBlock extends Node {
                     identifierBehavior,
                     block,
                 );
-                this.addIdentifierDefinition(definition);
+                this.addDefinition(definition);
                 return [];
             }
             return [statement];
@@ -424,39 +432,32 @@ export class StatementBlock extends Node {
 }
 
 export class RootStatementBlock extends StatementBlock {
-    initFunctionDefinition: NodeSlot<InitFunctionDefinition>;
-    builtInDefinitionMap: NodeSlot<IdentifierDefinitionMap<BuiltInDefinition>>;
+    initFunctionBlock: NodeSlot<StatementBlock>;
+    builtInItemMap: IdentifierMap<CompItem>;
     
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super(pos, statements);
-        this.initFunctionDefinition = this.addSlot();
-        const definitionMap = createBuiltInDefinitionMap();
-        this.builtInDefinitionMap = this.addSlot(definitionMap);
+        this.initFunctionBlock = this.addSlot();
+        this.builtInItemMap = createBuiltInItemMap();
     }
     
     getDisplayLines(): string[] {
         const output = super.getDisplayLines();
-        const initFunctionDefinition = this.initFunctionDefinition.get();
-        if (initFunctionDefinition !== null) {
-            niceUtils.extendList(output, initFunctionDefinition.getDisplayLines());
+        const block = this.initFunctionBlock.get();
+        if (block !== null) {
+            output.push("Init function");
+            niceUtils.extendWithIndentation(output, block.getDisplayLines());
         }
         return output;
     }
     
-    getIdentifierDefinition(identifier: Identifier): IdentifierDefinition {
-        const definition = super.getIdentifierDefinition(identifier);
-        if (definition === null) {
-            return this.builtInDefinitionMap.get().get(identifier);
-        } else {
-            return definition;
-        }
-    }
-    
     convertToUnixC(): string {
-        const initFunctionDefinition = this.initFunctionDefinition.get();
+        const block = this.initFunctionBlock.get();
         const codeList = [
             super.convertToUnixC(),
-            initFunctionDefinition.convertToUnixC(),
+            "int main(int argc, const char *argv[]) {",
+            block.convertToUnixC(),
+            "return 0;\n}",
         ];
         return codeList.join("\n");
     }

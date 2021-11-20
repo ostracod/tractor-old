@@ -1,23 +1,13 @@
 
 import { Pos } from "./pos.js";
-import { IdentifierDefinition } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
 import { FieldDefinition } from "./singleTypeDefinition.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
-import { IdentifierDefinitionMap } from "./identifierDefinitionMap.js";
+import { DefinitionMap } from "./definitionMap.js";
 import { StatementBlock } from "./statementBlock.js";
 import { FunctionSignature } from "./functionSignature.js";
-
-export abstract class TypeDefinition extends Definition implements IdentifierDefinition {
-    identifierBehavior: IdentifierBehavior;
-    
-    constructor(pos: Pos, identifierBehavior: IdentifierBehavior) {
-        super(pos);
-        this.identifierBehavior = identifierBehavior;
-    }
-}
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
     pos: Pos,
@@ -25,8 +15,8 @@ export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = ne
     fields: FieldDefinition[],
 ) => T;
 
-export abstract class FieldsTypeDefinition extends TypeDefinition {
-    fieldMap: NodeSlot<IdentifierDefinitionMap<FieldDefinition>>;
+export abstract class FieldsTypeDefinition extends Definition {
+    fieldMap: NodeSlot<DefinitionMap<FieldDefinition>>;
     
     constructor(
         pos: Pos,
@@ -34,7 +24,7 @@ export abstract class FieldsTypeDefinition extends TypeDefinition {
         fields: FieldDefinition[],
     ) {
         super(pos, identifierBehavior);
-        const fieldMap = new IdentifierDefinitionMap<FieldDefinition>(fields);
+        const fieldMap = new DefinitionMap<FieldDefinition>(fields);
         this.fieldMap = this.addSlot(fieldMap);
     }
     
@@ -63,7 +53,7 @@ export class UnionDefinition extends FieldsTypeDefinition {
     }
 }
 
-export class FunctionTypeDefinition extends TypeDefinition {
+export class FunctionTypeDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
     signature: NodeSlot<FunctionSignature>;
     

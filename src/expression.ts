@@ -1,7 +1,7 @@
 
-import { IdentifierDefinition } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
+import { Definition } from "./definition.js";
 import { CompItem } from "./compItem.js";
 import { CompArray, CompFunctionHandle } from "./compValue.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
@@ -37,14 +37,14 @@ export abstract class Expression extends Node {
         return output;
     }
     
-    getIdentifierDefinitionOrNull(): IdentifierDefinition {
+    getDefinitionOrNull(): Definition {
         return null
     }
     
-    getIdentifierDefinition(): IdentifierDefinition {
-        const output = this.getIdentifierDefinitionOrNull();
+    getDefinition(): Definition {
+        const output = this.getDefinitionOrNull();
         if (output === null) {
-            throw this.createError("Expected identifier definition.");
+            throw this.createError("Expected definition.");
         }
         return output;
     }
@@ -114,28 +114,27 @@ export class IdentifierExpression extends Expression  {
         return new IdentifierExpression(this.identifier);
     }
     
+    getCompItemOrNull(): CompItem {
+        const parentBlock = this.getParentBlock();
+        return parentBlock.getCompItemByIdentifier(this.identifier);
+    }
+    
     evaluateToIdentifierOrNull(): Identifier {
         return this.identifier;
     }
     
-    getIdentifierDefinitionOrNull(): IdentifierDefinition {
+    getDefinitionOrNull(): Definition {
         const parentBlock = this.getParentBlock();
-        return parentBlock.getIdentifierDefinition(this.identifier);
+        return parentBlock.getDefinition(this.identifier);
     }
     
     resolveCompItems(): Expression {
-        const definition = this.getIdentifierDefinitionOrNull();
-        if (definition !== null) {
-            const compItem = definition.getCompItemOrNull();
-            if (compItem !== null) {
-                return new CompItemExpression(compItem);
-            }
-        }
-        return super.resolveCompItems();
+        const item = this.getCompItemOrNull();
+        return (item === null) ? super.resolveCompItems() : new CompItemExpression(item);
     }
     
     convertToUnixC(): string {
-        const definition = this.getIdentifierDefinitionOrNull();
+        const definition = this.getDefinitionOrNull();
         return definition.identifierBehavior.getCodeString();
     }
 }

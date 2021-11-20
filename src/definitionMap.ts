@@ -1,9 +1,9 @@
 
-import { IdentifierDefinition } from "./interfaces.js";
 import { Node, NodeSlot } from "./node.js";
+import { Definition } from "./definition.js";
 import { Identifier, DisplayableIdentifierMap } from "./identifier.js";
 
-export class IdentifierDefinitionMap<T extends IdentifierDefinition = IdentifierDefinition> extends Node {
+export class DefinitionMap<T extends Definition = Definition> extends Node {
     identifierMap: DisplayableIdentifierMap<NodeSlot<T>>;
     
     constructor(definitions: T[] = []) {

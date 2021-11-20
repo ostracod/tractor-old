@@ -7,7 +7,7 @@ import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehavior.js";
-import { FunctionDefinition, IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition, InitFunctionDefinition } from "./functionDefinition.js";
+import { IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
 import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
 import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition } from "./singleTypeDefinition.js";
 import { FieldsTypeDefinition } from "./typeDefinition.js";
@@ -187,20 +187,20 @@ export class ForeignImportStatement extends ImportStatement {
     }
 }
 
-export abstract class FunctionStatement<T extends FunctionDefinition> extends Statement {
+export abstract class FunctionStatement extends Statement {
     
-    abstract createFunctionDefinitionHelper(): void;
+    abstract createFunctionHelper(): void;
     
-    createFunctionDefinition(): void {
+    createFunction(): void {
         this.tryOperation(() => {
-            this.createFunctionDefinitionHelper();
+            this.createFunctionHelper();
         });
     }
 }
 
-export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFunctionDefinition> {
+export class IdentifierFunctionStatement extends FunctionStatement {
     
-    createFunctionDefinitionHelper(): void {
+    createFunctionHelper(): void {
         const identifierBehavior = this.createIdentifierBehavior();
         let definitionConstructor: IdentifierFunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
@@ -213,19 +213,18 @@ export class IdentifierFunctionStatement extends FunctionStatement<IdentifierFun
             identifierBehavior,
             this.block.get(),
         );
-        this.getRootBlock().addIdentifierDefinition(definition);
+        this.getRootBlock().addDefinition(definition);
     }
 }
 
-export class InitFunctionStatement extends FunctionStatement<InitFunctionDefinition> {
+export class InitFunctionStatement extends FunctionStatement {
     
-    createFunctionDefinitionHelper(): void {
-        const definition = new InitFunctionDefinition(this.getPos(), this.block.get());
-        const slot = this.getRootBlock().initFunctionDefinition;
+    createFunctionHelper(): void {
+        const slot = this.getRootBlock().initFunctionBlock;
         if (slot.get() !== null) {
             throw this.createError("Expected exactly one INIT_FUNC statement.");
         }
-        slot.set(definition);
+        slot.set(this.block.get());
     }
 }
 
@@ -249,7 +248,7 @@ export class VariableStatement<T extends VariableDefinition> extends SimpleDefin
             const generator = this.createStatementGenerator(statements);
             generator.createInitStatement(identifierBehavior.identifier, this.args[2].get());
         }
-        const slot = this.getParentBlock().addIdentifierDefinition(definition);
+        const slot = this.getParentBlock().addDefinition(definition);
         return { variableDefinition: slot, statements };
     }
 }
@@ -276,7 +275,7 @@ export class FieldsTypeStatement<T extends FieldsTypeDefinition = FieldsTypeDefi
             identifierBehavior,
             fieldDefinitions,
         );
-        this.getParentBlock().addIdentifierDefinition(structDefinition);
+        this.getParentBlock().addDefinition(structDefinition);
     }
 }
 

@@ -1,6 +1,5 @@
 
 import { Pos } from "./pos.js";
-import { IdentifierDefinition } from "./interfaces.js";
 import { NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
@@ -13,8 +12,7 @@ export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = ne
     typeExpression: Expression,
 ) => T;
 
-export abstract class SingleTypeDefinition extends Definition implements IdentifierDefinition {
-    identifierBehavior: IdentifierBehavior;
+export abstract class SingleTypeDefinition extends Definition {
     typeResolver: NodeSlot<TypeResolver>;
     
     constructor(
@@ -22,8 +20,7 @@ export abstract class SingleTypeDefinition extends Definition implements Identif
         identifierBehavior: IdentifierBehavior,
         typeExpression: Expression,
     ) {
-        super(pos);
-        this.identifierBehavior = identifierBehavior;
+        super(pos, identifierBehavior);
         if (typeExpression === null) {
             this.typeResolver = null;
         } else {

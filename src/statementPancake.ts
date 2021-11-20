@@ -160,7 +160,7 @@ export class StatementPancake {
             }
             const operand1 = expression.operand1.get();
             const operand2 = expression.operand2.get();
-            const definition = operand1.getIdentifierDefinition();
+            const definition = operand1.getDefinition();
             if (!(definition instanceof VariableDefinition)) {
                 throw operand1.createError("Expected variable definition.");
             }

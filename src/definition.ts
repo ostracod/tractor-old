@@ -2,12 +2,15 @@
 import { Pos } from "./pos.js";
 import { Node } from "./node.js";
 import { CompItem } from "./compItem.js";
+import { IdentifierBehavior } from "./identifierBehavior.js";
 
 export abstract class Definition extends Node {
+    identifierBehavior: IdentifierBehavior;
     
-    constructor(pos: Pos) {
+    constructor(pos: Pos, identifierBehavior: IdentifierBehavior) {
         super();
         this.pos = pos;
+        this.identifierBehavior = identifierBehavior;
     }
     
     abstract getDisplayLines(): string[];
