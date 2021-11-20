@@ -13,13 +13,13 @@ import { FunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
 import { CompFunctionHandle } from "./compValue.js";
 
-export type IdentifierFunctionDefinitionConstructor = new (
+export type FunctionDefinitionConstructor = new (
     pos: Pos,
     identifierBehavior: IdentifierBehavior,
     block: StatementBlock,
-) => IdentifierFunctionDefinition;
+) => FunctionDefinition;
 
-export abstract class IdentifierFunctionDefinition extends Definition {
+export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
     signature: NodeSlot<FunctionSignature>;
     
@@ -48,14 +48,14 @@ export abstract class IdentifierFunctionDefinition extends Definition {
     }
 }
 
-export class NonInlineFunctionDefinition extends IdentifierFunctionDefinition {
+export class NonInlineFunctionDefinition extends FunctionDefinition {
     
     getFunctionTypeName(): string {
         return "Function";
     }
 }
 
-export class InlineFunctionDefinition extends IdentifierFunctionDefinition {
+export class InlineFunctionDefinition extends FunctionDefinition {
     
     getFunctionTypeName(): string {
         return "Inline function";

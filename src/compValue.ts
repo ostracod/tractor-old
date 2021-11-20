@@ -1,6 +1,6 @@
 
 import { CompilerError } from "./compilerError.js";
-import { IdentifierFunctionDefinition } from "./functionDefinition.js";
+import { FunctionDefinition } from "./functionDefinition.js";
 import { CompItem } from "./compItem.js";
 import { ItemType, VoidType, IntegerType, ArrayType, FunctionHandleType } from "./itemType.js";
 
@@ -89,9 +89,9 @@ export class CompArray extends CompValue {
 }
 
 export class CompFunctionHandle extends CompValue {
-    functionDefinition: IdentifierFunctionDefinition;
+    functionDefinition: FunctionDefinition;
     
-    constructor(functionDefinition: IdentifierFunctionDefinition) {
+    constructor(functionDefinition: FunctionDefinition) {
         super();
         this.functionDefinition = functionDefinition;
     }

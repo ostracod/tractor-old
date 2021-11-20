@@ -1,7 +1,5 @@
 
 import { Identifier, NameIdentifier, IdentifierMap } from "./identifier.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
-import { DefinitionMap } from "./definitionMap.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger } from "./compValue.js";
 import { ItemType, ValueType, IntegerType } from "./itemType.js";

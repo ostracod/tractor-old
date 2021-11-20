@@ -7,9 +7,9 @@ import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehavior.js";
-import { IdentifierFunctionDefinitionConstructor, IdentifierFunctionDefinition, NonInlineFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
-import { VariableDefinition, ArgVariableDefinition } from "./variableDefinition.js";
-import { SingleTypeDefinition, FieldDefinition, DataFieldDefinition } from "./singleTypeDefinition.js";
+import { FunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
+import { VariableDefinition } from "./variableDefinition.js";
+import { SingleTypeDefinition, FieldDefinition } from "./singleTypeDefinition.js";
 import { FieldsTypeDefinition } from "./typeDefinition.js";
 import { Compiler } from "./compiler.js";
 
@@ -198,11 +198,11 @@ export abstract class FunctionStatement extends Statement {
     }
 }
 
-export class IdentifierFunctionStatement extends FunctionStatement {
+export class FunctionDefinitionStatement extends FunctionStatement {
     
     createFunctionHelper(): void {
         const identifierBehavior = this.createIdentifierBehavior();
-        let definitionConstructor: IdentifierFunctionDefinitionConstructor;
+        let definitionConstructor: FunctionDefinitionConstructor;
         if (this.modifiers.includes("INLINE")) {
             definitionConstructor = InlineFunctionDefinition;
         } else {

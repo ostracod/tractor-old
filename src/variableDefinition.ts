@@ -1,10 +1,7 @@
 
 import { Pos } from "./pos.js";
-import { Node, NodeSlot } from "./node.js";
-import { Identifier } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Expression } from "./expression.js";
-import { Statement } from "./statement.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 import { CompItem } from "./compItem.js";
 

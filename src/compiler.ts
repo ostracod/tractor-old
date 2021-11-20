@@ -2,7 +2,6 @@
 import * as fs from "fs";
 import * as pathUtils from "path";
 import { Config } from "./interfaces.js";
-import * as niceUtils from "./niceUtils.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";

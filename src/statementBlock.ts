@@ -4,7 +4,7 @@ import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
 import { Pos } from "./pos.js";
-import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpStatement, JumpIfStatement, LabelStatement } from "./statement.js";
+import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpIfStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { StatementPancake } from "./statementPancake.js";
 import { Expression } from "./expression.js";

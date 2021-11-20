@@ -1,7 +1,7 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
-import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, IdentifierFunctionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement, LabelStatement, JumpStatement, JumpIfStatement, ScopeStatement } from "./statement.js";
+import { StatementConstructor, Statement, PathImportStatement, ConfigImportStatement, ForeignImportStatement, FunctionDefinitionStatement, InitFunctionStatement, SimpleDefinitionStatement, VariableStatement, FieldStatement, FieldsTypeStatement, ExpressionStatement, LabelStatement, JumpStatement, JumpIfStatement, ScopeStatement } from "./statement.js";
 import { Expression } from "./expression.js";
 import { SingleTypeDefinitionConstructor, SingleTypeDefinition, FieldDefinition, DataFieldDefinition, TypeFieldDefinition } from "./singleTypeDefinition.js";
 import { FieldsTypeDefinitionConstructor, FieldsTypeDefinition, StructDefinition, UnionDefinition } from "./typeDefinition.js";
@@ -228,7 +228,7 @@ new StatementType("FUNC_TYPE", Statement, {
     canBeSoft: true,
     hasDeclarationIdentifier: true,
 });
-new StatementType("FUNC", IdentifierFunctionStatement, {
+new StatementType("FUNC", FunctionDefinitionStatement, {
     argAmount: 1,
     isBlockStart: true,
     canRequire: true,

@@ -1,7 +1,6 @@
 
 import * as niceUtils from "./niceUtils.js";
 import { Node, NodeSlot } from "./node.js";
-import { Expression } from "./expression.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 

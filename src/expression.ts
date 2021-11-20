@@ -7,7 +7,7 @@ import { CompArray, CompFunctionHandle } from "./compValue.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
-import { IdentifierFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
+import { InlineFunctionDefinition } from "./functionDefinition.js";
 
 export abstract class Expression extends Node {
     
