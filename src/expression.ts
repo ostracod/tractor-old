@@ -3,7 +3,7 @@ import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
 import { CompItem } from "./compItem.js";
-import { CompArray, CompFunctionHandle } from "./compValue.js";
+import { CompArray, DefinitionFunctionHandle } from "./compValue.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
@@ -228,7 +228,7 @@ export class InvocationExpression extends Expression {
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
         const compItem = this.functionExpression.get().evaluateToCompItemOrNull();
-        if (!(compItem instanceof CompFunctionHandle)) {
+        if (!(compItem instanceof DefinitionFunctionHandle)) {
             return null;
         }
         const definition = compItem.functionDefinition;

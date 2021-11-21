@@ -1,8 +1,9 @@
 
 import { CompilerError } from "./compilerError.js";
 import { FunctionDefinition } from "./functionDefinition.js";
+import { FunctionSignature, DefinitionFunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, VoidType, IntegerType, ArrayType, FunctionHandleType } from "./itemType.js";
+import { ItemType, VoidType, IntegerType, ArrayType, FunctionType} from "./itemType.js";
 
 export abstract class CompValue extends CompItem {
     
@@ -88,7 +89,16 @@ export class CompArray extends CompValue {
     }
 }
 
-export class CompFunctionHandle extends CompValue {
+export abstract class FunctionHandle extends CompValue {
+    
+    abstract getSignature(): FunctionSignature;
+    
+    getType(): FunctionType {
+        return new FunctionType(this.getSignature());
+    }
+}
+
+export class DefinitionFunctionHandle extends FunctionHandle {
     functionDefinition: FunctionDefinition;
     
     constructor(functionDefinition: FunctionDefinition) {
@@ -96,9 +106,8 @@ export class CompFunctionHandle extends CompValue {
         this.functionDefinition = functionDefinition;
     }
     
-    getType(): FunctionHandleType {
-        // TODO: Implement.
-        return null;
+    getSignature(): DefinitionFunctionSignature {
+        return this.functionDefinition.signature;
     }
     
     getDisplayString(): string {
@@ -108,6 +117,10 @@ export class CompFunctionHandle extends CompValue {
     convertToUnixC(): string {
         return this.functionDefinition.identifierBehavior.getCodeString();
     }
+}
+
+export abstract class BuiltInFunctionHandle extends FunctionHandle {
+    
 }
 
 

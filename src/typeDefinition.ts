@@ -7,7 +7,7 @@ import { FieldDefinition } from "./singleTypeDefinition.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { DefinitionMap } from "./definitionMap.js";
 import { StatementBlock } from "./statementBlock.js";
-import { FunctionSignature } from "./functionSignature.js";
+import { DefinitionFunctionSignature } from "./functionSignature.js";
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
     pos: Pos,
@@ -55,18 +55,17 @@ export class UnionDefinition extends FieldsTypeDefinition {
 
 export class FunctionTypeDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
-    signature: NodeSlot<FunctionSignature>;
+    signature: DefinitionFunctionSignature;
     
     constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
         super(pos, identifierBehavior);
         this.block = this.addSlot(block);
-        const signature = this.block.get().createFunctionSignature();
-        this.signature = this.addSlot(signature);
+        this.signature = this.block.get().createFunctionSignature();
     }
     
     getDisplayLines(): string[] {
         const output = [`Function type identifier: ${this.identifierBehavior.getDisplayString()}`];
-        const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
+        const returnTypeLines = this.signature.getReturnTypeDisplayLines();
         niceUtils.extendWithIndentation(output, returnTypeLines);
         niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
         return output;

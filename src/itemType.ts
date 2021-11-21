@@ -1,7 +1,7 @@
 
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
-import { FunctionTypeDefinition } from "./typeDefinition.js";
+import { FunctionSignature } from "./functionSignature.js";
 
 export class ItemType extends CompItem {
     
@@ -92,16 +92,17 @@ export class ArrayType extends ValueType {
     }
 }
 
-export class FunctionHandleType extends ValueType {
-    functionTypeDefinition: FunctionTypeDefinition;
+export class FunctionType extends ValueType {
+    signature: FunctionSignature;
     
-    constructor(functionTypeDefinition: FunctionTypeDefinition) {
+    constructor(signature: FunctionSignature) {
         super();
-        this.functionTypeDefinition = functionTypeDefinition;
+        this.signature = signature;
     }
     
     getDisplayString(): string {
-        return this.functionTypeDefinition.identifierBehavior.getDisplayString();
+        // TODO: Implement.
+        return null;
     }
 }
 

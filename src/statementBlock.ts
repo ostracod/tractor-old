@@ -14,7 +14,7 @@ import { TypeResolver } from "./typeResolver.js";
 import { FieldDefinition } from "./singleTypeDefinition.js";
 import { FunctionTypeDefinition } from "./typeDefinition.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
-import { FunctionSignature } from "./functionSignature.js";
+import { DefinitionFunctionSignature } from "./functionSignature.js";
 import { createBuiltInItemMap } from "./builtInItem.js";
 import { CompItem } from "./compItem.js";
 
@@ -333,7 +333,7 @@ export class StatementBlock extends Node {
         });
     }
     
-    createFunctionSignature(): FunctionSignature {
+    createFunctionSignature(): DefinitionFunctionSignature {
         const argVariableDefinitions: NodeSlot<ArgVariableDefinition>[] = [];
         let returnTypeResolver: NodeSlot<TypeResolver> = this.addSlot();
         this.processBlockStatements((statement) => {
@@ -352,7 +352,7 @@ export class StatementBlock extends Node {
             }
             return [statement];
         });
-        return new FunctionSignature(argVariableDefinitions, returnTypeResolver);
+        return new DefinitionFunctionSignature(argVariableDefinitions, returnTypeResolver);
     }
     
     evaluateToCompItemOrNull(): CompItem {

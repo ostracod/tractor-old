@@ -9,9 +9,9 @@ import { StatementGenerator } from "./statementGenerator.js";
 import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { Expression, IdentifierExpression } from "./expression.js";
-import { FunctionSignature } from "./functionSignature.js";
+import { DefinitionFunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
-import { CompFunctionHandle } from "./compValue.js";
+import { DefinitionFunctionHandle } from "./compValue.js";
 
 export type FunctionDefinitionConstructor = new (
     pos: Pos,
@@ -21,27 +21,26 @@ export type FunctionDefinitionConstructor = new (
 
 export abstract class FunctionDefinition extends Definition {
     block: NodeSlot<StatementBlock>;
-    signature: NodeSlot<FunctionSignature>;
+    signature: DefinitionFunctionSignature;
     
     constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
         super(pos, identifierBehavior);
         this.block = this.addSlot(block);
         this.identifierBehavior = identifierBehavior;
-        const signature = this.block.get().createFunctionSignature();
-        this.signature = this.addSlot(signature);
+        this.signature = this.block.get().createFunctionSignature();
     }
     
     abstract getFunctionTypeName(): string;
     
     getCompItemOrNull(): CompItem {
-        return new CompFunctionHandle(this);
+        return new DefinitionFunctionHandle(this);
     }
     
     getDisplayLines(): string[] {
         const typeText = this.getFunctionTypeName();
         const identifierText = this.identifierBehavior.getDisplayString();
         const output = [`${typeText} identifier: ${identifierText}`];
-        const returnTypeLines = this.signature.get().getReturnTypeDisplayLines();
+        const returnTypeLines = this.signature.getReturnTypeDisplayLines();
         niceUtils.extendWithIndentation(output, returnTypeLines);
         niceUtils.extendWithIndentation(output, this.block.get().getDisplayLines());
         return output;
@@ -71,10 +70,9 @@ export class InlineFunctionDefinition extends FunctionDefinition {
         const generator = new StatementGenerator(pos);
         const output = new StatementBlock();
         const identifierMap = new IdentifierMap<Identifier>();
-        const signature = this.signature.get();
         
         // Create an auto variable for each argument.
-        signature.argVariableDefinitions.forEach((slot, index) => {
+        this.signature.argVariableDefinitions.forEach((slot, index) => {
             const argVariableDefinition = slot.get();
             const identifier = new NumberIdentifier();
             identifierMap.add(
@@ -139,8 +137,7 @@ export class InlineFunctionDefinition extends FunctionDefinition {
         const statements: Statement[] = [];
         const generator = new StatementGenerator(pos, statements);
         let returnItemIdentifier: Identifier;
-        const signature = this.signature.get();
-        const returnTypeResolver = signature.returnTypeResolver.get();
+        const returnTypeResolver = this.signature.returnTypeResolver.get();
         if (returnTypeResolver === null) {
             returnItemIdentifier = null;
         } else {

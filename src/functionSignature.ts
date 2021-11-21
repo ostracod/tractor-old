@@ -1,10 +1,27 @@
 
+import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
-import { Node, NodeSlot } from "./node.js";
+import { NodeSlot } from "./node.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
+import { ItemType } from "./itemType.js";
 
-export class FunctionSignature extends Node {
+export abstract class FunctionSignature {
+    
+}
+
+export class SimpleFunctionSignature extends FunctionSignature {
+    argTypes: ItemType[];
+    returnType: ItemType;
+    
+    constructor(argTypes: ItemType[], returnType: ItemType) {
+        super();
+        this.argTypes = argTypes;
+        this.returnType = returnType;
+    }
+}
+
+export class DefinitionFunctionSignature extends FunctionSignature implements Displayable {
     // argVariableDefinitions and returnTypeResolver are weak references.
     argVariableDefinitions: NodeSlot<ArgVariableDefinition>[];
     returnTypeResolver: NodeSlot<TypeResolver>;
