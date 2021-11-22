@@ -3,7 +3,7 @@ import { constructors } from "./constructors.js";
 import { Node, NodeSlot } from "./node.js";
 import { Definition } from "./definition.js";
 import { CompItem } from "./compItem.js";
-import { CompArray, DefinitionFunctionHandle } from "./compValue.js";
+import { CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "./compValue.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 import { Identifier } from "./identifier.js";
 import { Statement } from "./statement.js";
@@ -54,8 +54,8 @@ export abstract class Expression extends Node {
     }
     
     resolveCompItems(): Expression {
-        this.processExpressions((expression) => expression.resolveCompItems());
-        return null;
+        const item = this.evaluateToCompItemOrNull();
+        return (item === null) ? null : new CompItemExpression(item);
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
@@ -83,6 +83,10 @@ export class CompItemExpression extends Expression {
         } else {
             return this.item.getDisplayString();
         }
+    }
+    
+    resolveCompItems(): Expression {
+        return null;
     }
     
     convertToUnixC(): string {
@@ -114,7 +118,7 @@ export class IdentifierExpression extends Expression  {
         return new IdentifierExpression(this.identifier);
     }
     
-    getCompItemOrNull(): CompItem {
+    evaluateToCompItemOrNull(): CompItem {
         const parentBlock = this.getParentBlock();
         return parentBlock.getCompItemByIdentifier(this.identifier);
     }
@@ -126,11 +130,6 @@ export class IdentifierExpression extends Expression  {
     getDefinitionOrNull(): Definition {
         const parentBlock = this.getParentBlock();
         return parentBlock.getDefinition(this.identifier);
-    }
-    
-    resolveCompItems(): Expression {
-        const item = this.getCompItemOrNull();
-        return (item === null) ? super.resolveCompItems() : new CompItemExpression(item);
     }
     
     convertToUnixC(): string {
@@ -224,6 +223,26 @@ export class InvocationExpression extends Expression {
         super();
         this.functionExpression = this.addSlot(functionExpression);
         this.argExpressions = this.addSlots(argExpressions);
+    }
+    
+    evaluateToCompItemOrNull(): CompItem {
+        const result = super.evaluateToCompItemOrNull();
+        if (result !== null) {
+            return result;
+        }
+        const functionHandle = this.functionExpression.get().evaluateToCompItemOrNull();
+        if (!(functionHandle instanceof BuiltInFunctionHandle)) {
+            return null;
+        }
+        const args: CompItem[] = [];
+        for (const slot of this.argExpressions) {
+            const arg = slot.get().evaluateToCompItemOrNull();
+            if (arg === null) {
+                return;
+            }
+            args.push(arg);
+        }
+        return functionHandle.evaluateToCompItem(args);
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {

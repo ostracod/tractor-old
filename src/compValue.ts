@@ -1,9 +1,9 @@
 
 import { CompilerError } from "./compilerError.js";
 import { FunctionDefinition } from "./functionDefinition.js";
-import { FunctionSignature, DefinitionFunctionSignature } from "./functionSignature.js";
+import { FunctionSignature, SimpleFunctionSignature, DefinitionFunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, VoidType, IntegerType, ArrayType, FunctionType} from "./itemType.js";
+import { ItemType, TypeType, VoidType, IntegerType, ArrayType, FunctionType} from "./itemType.js";
 
 export abstract class CompValue extends CompItem {
     
@@ -121,6 +121,31 @@ export class DefinitionFunctionHandle extends FunctionHandle {
 
 export abstract class BuiltInFunctionHandle extends FunctionHandle {
     
+    // TODO: Verify argument count and types.
+    evaluateToCompItem(args: CompItem[]): CompItem {
+        return null;
+    }
+}
+
+export class ArrayTFunctionHandle extends BuiltInFunctionHandle {
+    
+    getSignature(): FunctionSignature {
+        // TODO: Return type should depend on arguments.
+        return new SimpleFunctionSignature([
+            new TypeType(new ItemType()),
+            new IntegerType(false, 64),
+        ], new TypeType(new ArrayType(new ItemType())));
+    }
+    
+    evaluateToCompItem(args: CompItem[]): CompItem {
+        const type = args[0] as ItemType;
+        const length = Number((args[1] as CompInteger).value);
+        return new ArrayType(type, length);
+    }
+    
+    getDisplayString(): string {
+        return "arrayT";
+    }
 }
 
 
