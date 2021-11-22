@@ -1,4 +1,5 @@
 
+import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { FunctionSignature } from "./functionSignature.js";
@@ -62,6 +63,36 @@ export class IntegerType extends ValueType {
         }
         const suffix = (this.bitAmount == null) ? "" : this.bitAmount.toString();
         return term + suffix + "T";
+    }
+    
+    restrictInteger(value: bigint): bigint {
+        if (this.bitAmount === null) {
+            if (this.isSigned === false && value < 0) {
+                return -value;
+            }
+            return value;
+        }
+        let minimumValue: bigint;
+        if (this.isSigned === null) {
+            minimumValue = -(1n << BigInt(this.bitAmount));
+        } else if (this.isSigned) {
+            minimumValue = -(1n << BigInt(this.bitAmount - 1));
+        } else {
+            minimumValue = 0n;
+        }
+        let maximumValue: bigint;
+        if (this.isSigned === true) {
+            maximumValue = (1n << BigInt(this.bitAmount - 1)) - 1n;
+        } else {
+            maximumValue = (1n << BigInt(this.bitAmount)) - 1n;
+        }
+        if (value < minimumValue || value > maximumValue) {
+            const divisor = (maximumValue - minimumValue) + 1n;
+            const remainder = niceUtils.betterBigIntModulus(value - minimumValue, divisor);
+            return remainder + minimumValue;
+        } else {
+            return value;
+        }
     }
     
     convertToUnixC(): string {

@@ -180,6 +180,19 @@ export class BinaryExpression extends Expression {
         return `(${this.operand1.get().getDisplayString()} ${this.operator.text} ${this.operand2.get().getDisplayString()})`;
     }
     
+    evaluateToCompItemOrNull(): CompItem {
+        const operand1 = this.operand1.get().evaluateToCompItemOrNull();
+        const operand2 = this.operand2.get().evaluateToCompItemOrNull();
+        if (operand1 === null || operand2 === null) {
+            return null;
+        }
+        let output: CompItem;
+        this.tryOperation(() => {
+             output = this.operator.calculateCompItem(operand1, operand2);
+        });
+        return output;
+    }
+    
     convertToUnixC(): string {
         return this.operator.generateUnixC(this.operand1.get(), this.operand2.get());
     }

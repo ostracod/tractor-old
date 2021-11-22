@@ -65,4 +65,17 @@ export const getDisplayStrings = (title: string, displayables: Displayable[]): s
     return lines.join("\n");
 };
 
+export const betterBigIntModulus = (dividend: bigint, divisor: bigint): bigint => {
+    if (dividend >= 0n) {
+        return dividend % divisor;
+    } else {
+        const result = (-dividend % divisor);
+        if (result === 0n) {
+            return 0n;
+        } else {
+            return divisor - result;
+        }
+    }
+};
+
 

@@ -1,4 +1,8 @@
 
+import { CompilerError } from "./compilerError.js";
+import { CompItem } from "./compItem.js";
+import { CompVoid, CompInteger } from "./compValue.js";
+import { IntegerType } from "./itemType.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -30,6 +34,7 @@ export class UnaryOperator extends Operator {
     }
 }
 
+
 export class BinaryOperator extends Operator {
     precedence: number;
     
@@ -37,6 +42,10 @@ export class BinaryOperator extends Operator {
         super(text);
         this.precedence = precedence;
         binaryOperatorMap[this.text] = this;
+    }
+    
+    calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
+        return new CompVoid();
     }
     
     generateUnixC(operand1: Expression, operand2: Expression) {
@@ -58,6 +67,52 @@ export class InitializationOperator extends BinaryOperator {
     }
 }
 
+export abstract class BinaryIntegerOperator extends BinaryOperator {
+    
+    abstract calculateInteger(operand1: bigint, operand2: bigint): bigint;
+    
+    calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
+        if (!(operand1 instanceof CompInteger) || !(operand2 instanceof CompInteger)) {
+            throw new CompilerError("Expected integer operand.");
+        }
+        const type1 = operand1.getType();
+        const type2 = operand2.getType();
+        // isSigned and bitAmount are nullable, so
+        // we need to be a little careful here.
+        let isSigned: boolean;
+        if (type1.isSigned === true || type2.isSigned === true) {
+            isSigned = true;
+        } else if (type1.isSigned === false || type2.isSigned === false) {
+            isSigned = false;
+        } else {
+            isSigned = null;
+        }
+        let bitAmount: number;
+        if (type1.bitAmount === null) {
+            bitAmount = type2.bitAmount;
+        } else if (type2.bitAmount === null) {
+            bitAmount = type1.bitAmount;
+        } else {
+            bitAmount = Math.max(type1.bitAmount, type2.bitAmount);
+        }
+        let resultInteger = this.calculateInteger(operand1.value, operand2.value);
+        const resultType = new IntegerType(isSigned, bitAmount);
+        resultInteger = resultType.restrictInteger(resultInteger);
+        return new CompInteger(resultInteger, resultType);
+    }
+}
+
+export class AdditionOperator extends BinaryIntegerOperator {
+    
+    constructor() {
+        super("+", 4);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 + operand2;
+    }
+}
+
 new UnaryOperator("-");
 new UnaryOperator("~");
 new UnaryOperator("!");
@@ -67,7 +122,7 @@ new BinaryOperator(":", 2);
 new BinaryOperator("*", 3);
 new BinaryOperator("/", 3);
 new BinaryOperator("%", 3);
-new BinaryOperator("+", 4);
+new AdditionOperator();
 new BinaryOperator("-", 4);
 new BinaryOperator(">>", 5);
 new BinaryOperator("<<", 5);
