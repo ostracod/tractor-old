@@ -71,12 +71,22 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
     
     abstract calculateInteger(operand1: bigint, operand2: bigint): bigint;
     
+    abstract getType(type1: IntegerType, type2: IntegerType): IntegerType;
+    
     calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
         if (!(operand1 instanceof CompInteger) || !(operand2 instanceof CompInteger)) {
             throw new CompilerError("Expected integer operand.");
         }
-        const type1 = operand1.getType();
-        const type2 = operand2.getType();
+        const resultType = this.getType(operand1.getType(), operand2.getType());
+        let resultInteger = this.calculateInteger(operand1.value, operand2.value);
+        resultInteger = resultType.restrictInteger(resultInteger);
+        return new CompInteger(resultInteger, resultType);
+    }
+}
+
+export abstract class BinaryArithmeticOperator extends BinaryIntegerOperator {
+    
+    getType(type1: IntegerType, type2: IntegerType): IntegerType {
         // isSigned and bitAmount are nullable, so
         // we need to be a little careful here.
         let isSigned: boolean;
@@ -95,14 +105,44 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
         } else {
             bitAmount = Math.max(type1.bitAmount, type2.bitAmount);
         }
-        let resultInteger = this.calculateInteger(operand1.value, operand2.value);
-        const resultType = new IntegerType(isSigned, bitAmount);
-        resultInteger = resultType.restrictInteger(resultInteger);
-        return new CompInteger(resultInteger, resultType);
+        return new IntegerType(isSigned, bitAmount);
     }
 }
 
-export class AdditionOperator extends BinaryIntegerOperator {
+export class MultiplicationOperator extends BinaryArithmeticOperator {
+    
+    constructor() {
+        super("*", 3);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 * operand2;
+    }
+}
+
+export class DivisionOperator extends BinaryArithmeticOperator {
+    
+    constructor() {
+        super("/", 3);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 * operand2;
+    }
+}
+
+export class ModulusOperator extends BinaryArithmeticOperator {
+    
+    constructor() {
+        super("%", 3);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 * operand2;
+    }
+}
+
+export class AdditionOperator extends BinaryArithmeticOperator {
     
     constructor() {
         super("+", 4);
@@ -113,19 +153,63 @@ export class AdditionOperator extends BinaryIntegerOperator {
     }
 }
 
+export class SubtractionOperator extends BinaryArithmeticOperator {
+    
+    constructor() {
+        super("-", 4);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 - operand2;
+    }
+}
+
+export abstract class BitshiftOperator extends BinaryIntegerOperator {
+    
+    constructor(text: string) {
+        super(text, 5);
+    }
+    
+    getType(type1: IntegerType, type2: IntegerType): IntegerType {
+        return type1;
+    }
+}
+
+export class BitshiftRightOperator extends BitshiftOperator {
+    
+    constructor() {
+        super(">>");
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 >> operand2;
+    }
+}
+
+export class BitshiftLeftOperator extends BitshiftOperator {
+    
+    constructor() {
+        super("<<");
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 << operand2;
+    }
+}
+
 new UnaryOperator("-");
 new UnaryOperator("~");
 new UnaryOperator("!");
 
 new BinaryOperator(".", 0);
 new BinaryOperator(":", 2);
-new BinaryOperator("*", 3);
-new BinaryOperator("/", 3);
-new BinaryOperator("%", 3);
+new MultiplicationOperator();
+new DivisionOperator();
+new ModulusOperator();
 new AdditionOperator();
-new BinaryOperator("-", 4);
-new BinaryOperator(">>", 5);
-new BinaryOperator("<<", 5);
+new SubtractionOperator();
+new BitshiftRightOperator();
+new BitshiftLeftOperator();
 new BinaryOperator(">", 6);
 new BinaryOperator(">=", 6);
 new BinaryOperator("<", 6);

@@ -87,8 +87,10 @@ Tractor has the following built-in parameterizable types:
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of items with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
+* `elementT(<arrayType>)` is the type of an element in the given array type.
 * `fieldNameT(<type>)` is the name of a field in the given struct or union type. `fieldNameT(<type>)` is a subtype of `softArrayT(uInt8T) & compT`.
-* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT` is a subtype of `compT`.
+* `fieldT(<type>, <name>)` is the type of the field with name `<name>` in the given struct or union type. `<name>` must conform to `fieldNameT(<type>)`.
+* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT(<item>)` is a subtype of `compT`.
 
 The following types are subtypes of `concreteT`:
 
@@ -142,9 +144,9 @@ The expression `<item>:<type>` casts item `<item>` to type `<type>`. For example
 
 The expression `<array>[<index>]` accesses the element in array `<array>` with index `<index>`. For example, the expression `myArray[3]` accesses the fourth value of `myArray`.
 
-The expression `<struct>.<name>` accesses the field in struct `<struct>` with name `<name>`. For example, the expression `myStruct.x` accesses the field with name `x` in `myStruct`.
+The expression `<value>.<name>` accesses the field with name `<name>` in the given struct or union value. For example, the expression `myStruct.x` accesses the field with name `x` in `myStruct`.
 
-The expression `<struct>[<nameString>]` also accesses the field in struct `<struct>` with name `<nameString>`. `<nameString>` must conform to `fieldNameT(typeT(<struct>))`. For example, the expression `myStruct["x"]` accesses the field with name `x` in `myStruct`.
+The expression `<value>[<nameString>]` also accesses the field with name `<nameString>` in the given struct or union value. `<nameString>` must conform to `fieldNameT(typeT(<value>))`. For example, the expression `myStruct["x"]` accesses the field with name `x` in `myStruct`.
 
 Function invocation has the format `<function>(<item>, <item>, <item>...)`, where each `<item>` is an argument of the invocation. For example, the expression `myFunction(10, 20)` invokes `myFunction` with argument values 10 and 20.
 
@@ -152,7 +154,7 @@ Function invocation has the format `<function>(<item>, <item>, <item>...)`, wher
 
 Tractor has the following built-in functions:
 
-* The parameterizable types `ptrT`, `arrayT`, `softArrayT`, `fieldNameT`, and `typeT`.
+* The parameterizable types `ptrT`, `arrayT`, `softArrayT`, `elementT`, `fieldNameT`, `fieldT`, and `typeT`.
 * `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
 * `getLen(<arrayType>)` returns the number of elements in the given array type.
 * `getFieldOffset(<structType>, <nameString>)` returns the byte offset of the field with name `<nameString>` in the given struct type. `<nameString>` must conform to `fieldNameT(<structType>)`.
