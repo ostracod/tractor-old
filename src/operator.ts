@@ -22,11 +22,25 @@ export class Operator {
     }
 }
 
-export class UnaryOperator extends Operator {
+export abstract class UnaryOperator extends Operator {
     
     constructor(text: string) {
         super(text);
         unaryOperatorMap[this.text] = this;
+    }
+    
+    abstract calculateInteger(operand: bigint): bigint;
+    
+    abstract getType(type: IntegerType): IntegerType;
+    
+    calculateCompItem(operand: CompItem): CompItem {
+        if (!(operand instanceof CompInteger)) {
+            throw new CompilerError("Expected integer operand.");
+        }
+        const resultType = this.getType(operand.getType());
+        let resultInteger = this.calculateInteger(operand.value);
+        resultInteger = resultType.restrictInteger(resultInteger);
+        return new CompInteger(resultInteger, resultType);
     }
     
     generateUnixC(operand: Expression) {
@@ -34,6 +48,49 @@ export class UnaryOperator extends Operator {
     }
 }
 
+export abstract class UnaryTypeCopyOperator extends UnaryOperator {
+    
+    getType(type: IntegerType): IntegerType {
+        return type;
+    }
+}
+
+export class NegationOperator extends UnaryTypeCopyOperator {
+    
+    constructor() {
+        super("-");
+    }
+    
+    calculateInteger(operand: bigint): bigint {
+        return -operand;
+    }
+}
+
+export class BitwiseInversionOperator extends UnaryTypeCopyOperator {
+    
+    constructor() {
+        super("~");
+    }
+    
+    calculateInteger(operand: bigint): bigint {
+        return ~operand;
+    }
+}
+
+export class BooleanInversionOperator extends UnaryOperator {
+    
+    constructor() {
+        super("!");
+    }
+    
+    calculateInteger(operand: bigint): bigint {
+        return (operand === 0n) ? 1n : 0n;
+    }
+    
+    getType(type: IntegerType): IntegerType {
+        return new IntegerType(false, 8)
+    }
+}
 
 export class BinaryOperator extends Operator {
     precedence: number;
@@ -84,7 +141,7 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
     }
 }
 
-export abstract class BinaryArithmeticOperator extends BinaryIntegerOperator {
+export abstract class BinaryTypeMergeOperator extends BinaryIntegerOperator {
     
     getType(type1: IntegerType, type2: IntegerType): IntegerType {
         // isSigned and bitAmount are nullable, so
@@ -109,7 +166,7 @@ export abstract class BinaryArithmeticOperator extends BinaryIntegerOperator {
     }
 }
 
-export class MultiplicationOperator extends BinaryArithmeticOperator {
+export class MultiplicationOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("*", 3);
@@ -120,29 +177,35 @@ export class MultiplicationOperator extends BinaryArithmeticOperator {
     }
 }
 
-export class DivisionOperator extends BinaryArithmeticOperator {
+export class DivisionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("/", 3);
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
-        return operand1 * operand2;
+        if (operand2 === 0n) {
+            throw new CompilerError("Division by zero.");
+        }
+        return operand1 / operand2;
     }
 }
 
-export class ModulusOperator extends BinaryArithmeticOperator {
+export class ModulusOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("%", 3);
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
-        return operand1 * operand2;
+        if (operand2 === 0n) {
+            throw new CompilerError("Division by zero.");
+        }
+        return operand1 % operand2;
     }
 }
 
-export class AdditionOperator extends BinaryArithmeticOperator {
+export class AdditionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("+", 4);
@@ -153,7 +216,7 @@ export class AdditionOperator extends BinaryArithmeticOperator {
     }
 }
 
-export class SubtractionOperator extends BinaryArithmeticOperator {
+export class SubtractionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("-", 4);
@@ -197,9 +260,161 @@ export class BitshiftLeftOperator extends BitshiftOperator {
     }
 }
 
-new UnaryOperator("-");
-new UnaryOperator("~");
-new UnaryOperator("!");
+export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
+    
+    abstract calculateBoolean(operand1: bigint, operand2: bigint): boolean;
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return this.calculateBoolean(operand1, operand2) ? 1n : 0n;
+    }
+    
+    getType(type1: IntegerType, type2: IntegerType): IntegerType {
+        return new IntegerType(false, 8);
+    }
+}
+
+export class GreaterThanOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super(">", 6);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 > operand2);
+    }
+}
+
+export class GreaterOrEqualOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super(">=", 6);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 >= operand2);
+    }
+}
+
+export class LessThanOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("<", 6);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 < operand2);
+    }
+}
+
+export class LessOrEqualOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("<=", 6);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 <= operand2);
+    }
+}
+
+export class EqualityOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("==", 7);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 === operand2);
+    }
+}
+
+export class InequalityOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("!=", 7);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return (operand1 !== operand2);
+    }
+}
+
+export class BitwiseAndOperator extends BinaryTypeMergeOperator {
+    
+    constructor() {
+        super("&", 8);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 & operand2;
+    }
+}
+
+export class BitwiseXorOperator extends BinaryTypeMergeOperator {
+    
+    constructor() {
+        super("^", 9);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 ^ operand2;
+    }
+}
+
+export class BitwiseOrOperator extends BinaryTypeMergeOperator {
+    
+    constructor() {
+        super("|", 10);
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        return operand1 | operand2;
+    }
+}
+
+export class BooleanAndOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("&&", 11);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return ((operand1 !== 0n) && (operand2 !== 0n));
+    }
+}
+
+export class BooleanXorOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("^^", 12);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return ((operand1 !== 0n) !== (operand2 !== 0n));
+    }
+    
+    // If only C had a boolean XOR operator...
+    generateUnixC(operand1: Expression, operand2: Expression) {
+        const code1 = operand1.convertToUnixC();
+        const code2 = operand2.convertToUnixC();
+        return `(!(${code1}) == !(${code2}))`;
+    }
+}
+
+export class BooleanOrOperator extends BinaryBooleanOperator {
+    
+    constructor() {
+        super("||", 13);
+    }
+    
+    calculateBoolean(operand1: bigint, operand2: bigint): boolean {
+        return ((operand1 !== 0n) || (operand2 !== 0n));
+    }
+}
+
+new NegationOperator();
+new BitwiseInversionOperator();
+new BooleanInversionOperator();
 
 new BinaryOperator(".", 0);
 new BinaryOperator(":", 2);
@@ -210,18 +425,18 @@ new AdditionOperator();
 new SubtractionOperator();
 new BitshiftRightOperator();
 new BitshiftLeftOperator();
-new BinaryOperator(">", 6);
-new BinaryOperator(">=", 6);
-new BinaryOperator("<", 6);
-new BinaryOperator("<=", 6);
-new BinaryOperator("==", 7);
-new BinaryOperator("!=", 7);
-new BinaryOperator("&", 8);
-new BinaryOperator("^", 9);
-new BinaryOperator("|", 10);
-new BinaryOperator("&&", 11);
-new BinaryOperator("^^", 12);
-new BinaryOperator("||", 13);
+new GreaterThanOperator();
+new GreaterOrEqualOperator();
+new LessThanOperator();
+new LessOrEqualOperator();
+new EqualityOperator();
+new InequalityOperator();
+new BitwiseAndOperator();
+new BitwiseXorOperator();
+new BitwiseOrOperator();
+new BooleanAndOperator();
+new BooleanXorOperator();
+new BooleanOrOperator();
 new BinaryOperator("=", 14);
 new BinaryOperator("+=", 14);
 new BinaryOperator("-=", 14);

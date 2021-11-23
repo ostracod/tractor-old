@@ -152,6 +152,18 @@ export class UnaryExpression extends Expression {
         return `${this.operator.text}(${this.operand.get().getDisplayString()})`;
     }
     
+    evaluateToCompItemOrNull(): CompItem {
+        const operand = this.operand.get().evaluateToCompItemOrNull();
+        if (operand === null) {
+            return null;
+        }
+        let output: CompItem;
+        this.tryOperation(() => {
+            output = this.operator.calculateCompItem(operand);
+        });
+        return output;
+    }
+    
     convertToUnixC(): string {
         return this.operator.generateUnixC(this.operand.get());
     }
