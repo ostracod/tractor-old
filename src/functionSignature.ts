@@ -4,21 +4,17 @@ import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
-import { ItemType } from "./itemType.js";
+import { CompItem } from "./compItem.js";
+import { ItemType, TypeType, IntegerType, ArrayType } from "./itemType.js";
+import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, ArrayTFunctionContext } from "./builtInFunctionContext.js";
 
 export abstract class FunctionSignature {
     
-}
-
-export class SimpleFunctionSignature extends FunctionSignature {
-    argTypes: ItemType[];
-    returnType: ItemType;
+    abstract getArgTypes(): ItemType[];
     
-    constructor(argTypes: ItemType[], returnType: ItemType) {
-        super();
-        this.argTypes = argTypes;
-        this.returnType = returnType;
-    }
+    abstract getReturnType(): ItemType;
+    
+    abstract getReturnTypeByArgs(args: CompItem[]): ItemType;
 }
 
 export class DefinitionFunctionSignature extends FunctionSignature implements Displayable {
@@ -56,6 +52,52 @@ export class DefinitionFunctionSignature extends FunctionSignature implements Di
     getDisplayString(): string {
         return this.getDisplayLines().join("\n");
     }
+    
+    // TODO: Implement all of these methods.
+    
+    getArgTypes(): ItemType[] {
+        return null;
+    }
+    
+    getReturnType(): ItemType {
+        return null;
+    }
+    
+    getReturnTypeByArgs(args: CompItem[]): ItemType {
+        return null;
+    }
 }
+
+export abstract class BuiltInFunctionSignature extends FunctionSignature {
+    
+    abstract getContextConstructor(): BuiltInFunctionContextConstructor;
+    
+    createContext(args: CompItem[]): BuiltInFunctionContext {
+        const contextConstructor = this.getContextConstructor();
+        return new contextConstructor(args);
+    }
+    
+    getReturnTypeByArgs(args: CompItem[]): ItemType {
+        const context = this.createContext(args);
+        return context.getReturnType();
+    }
+}
+
+class ArrayTFunctionSignature extends BuiltInFunctionSignature {
+    
+    getArgTypes(): ItemType[] {
+        return [new TypeType(new ItemType()), new IntegerType()];
+    }
+    
+    getReturnType(): ItemType {
+        return new TypeType(new ArrayType(new ItemType()));
+    }
+    
+    getContextConstructor(): BuiltInFunctionContextConstructor {
+        return ArrayTFunctionContext;
+    }
+}
+
+export const arrayTFunctionSignature = new ArrayTFunctionSignature();
 
 
