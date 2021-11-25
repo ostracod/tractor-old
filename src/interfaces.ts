@@ -1,4 +1,6 @@
 
+import { ItemType } from "./itemType.js";
+
 export interface Config {
     name: string;
     description: string;
@@ -11,6 +13,11 @@ export interface Config {
 
 export interface Displayable {
     getDisplayString(): string;
+}
+
+export interface ResolvedField {
+    name: string;
+    type: ItemType;
 }
 
 

@@ -3,7 +3,7 @@ import { CompilerError } from "./compilerError.js";
 import { FunctionDefinition } from "./functionDefinition.js";
 import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, VoidType, IntegerType, ArrayType, FunctionType } from "./itemType.js";
+import { ItemType, VoidType, IntegerType, ArrayType, FieldsType, StructType, UnionType, FunctionType } from "./itemType.js";
 
 export abstract class CompValue extends CompItem {
     
@@ -87,6 +87,38 @@ export class CompArray extends CompValue {
         const textList = this.elements.map((element) => element.getDisplayString());
         return `{${textList.join(", ")}}:${this.type.getDisplayString()}`;
     }
+}
+
+export abstract class CompFieldsValue<T extends FieldsType> extends CompValue {
+    type: T;
+    itemMap: { [name: string]: CompItem };
+    
+    constructor(type: T, itemMap: { [name: string]: CompItem }) {
+        super();
+        this.type = type;
+        this.itemMap = itemMap;
+    }
+    
+    getType(): T {
+        return this.type;
+    }
+    
+    getDisplayString(): string {
+        const textList: string[] = [];
+        for (const name in this.itemMap) {
+            const item = this.itemMap[name];
+            textList.push(item.getDisplayString());
+        }
+        return `{${textList.join(", ")}}:${this.type.getDisplayString()}`;
+    }
+}
+
+export class CompStruct extends CompFieldsValue<StructType> {
+    
+}
+
+export class CompUnion extends CompFieldsValue<UnionType> {
+    
 }
 
 export abstract class FunctionHandle extends CompValue {

@@ -1,4 +1,5 @@
 
+import { ResolvedField } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
@@ -121,6 +122,39 @@ export class ArrayType extends ValueType {
             return `arrayT(${typeDisplayString}, ${this.length})`;
         }
     }
+}
+
+export type FieldsTypeConstructor<T extends FieldsType> = new (
+    name: string,
+    fields: ResolvedField[],
+) => T;
+
+export abstract class FieldsType extends ValueType {
+    name: string;
+    fields: ResolvedField[];
+    nameTypeMap: { [name: string]: ItemType };
+    
+    constructor(name: string, fields: ResolvedField[]) {
+        super();
+        this.name = name;
+        this.fields = fields;
+        this.nameTypeMap = {};
+        this.fields.forEach((field) => {
+            this.nameTypeMap[field.name] = field.type;
+        });
+    }
+    
+    getDisplayString(): string {
+        return this.name;
+    }
+}
+
+export class StructType extends FieldsType {
+    
+}
+
+export class UnionType extends FieldsType {
+    
 }
 
 export class FunctionType extends ValueType {

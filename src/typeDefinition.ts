@@ -1,4 +1,5 @@
 
+import { ResolvedField } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
@@ -8,6 +9,7 @@ import { IdentifierBehavior } from "./identifierBehavior.js";
 import { DefinitionMap } from "./definitionMap.js";
 import { StatementBlock } from "./statementBlock.js";
 import { DefinitionFunctionSignature } from "./functionSignature.js";
+import { FieldsTypeConstructor, FieldsType, StructType, UnionType } from "./itemType.js";
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
     pos: Pos,
@@ -15,7 +17,7 @@ export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = ne
     fields: FieldDefinition[],
 ) => T;
 
-export abstract class FieldsTypeDefinition extends Definition {
+export abstract class FieldsTypeDefinition<T extends FieldsType = FieldsType> extends Definition {
     fieldMap: NodeSlot<DefinitionMap<FieldDefinition>>;
     
     constructor(
@@ -30,6 +32,29 @@ export abstract class FieldsTypeDefinition extends Definition {
     
     abstract getDefinitionName(): string;
     
+    abstract getFieldsTypeConstructor(): FieldsTypeConstructor<T>;
+    
+    getCompItemOrNull(): T {
+        const fields: ResolvedField[] = [];
+        let hasUnresolvedField = false;
+        this.fieldMap.get().iterate((definition) => {
+            const { type } = definition.typeResolver.get();
+            if (type === null) {
+                hasUnresolvedField = true;
+            } else {
+                const { identifier } = definition.identifierBehavior;
+                const name = identifier.getFieldNameString();
+                fields.push({ name, type });
+            }
+        });
+        if (hasUnresolvedField) {
+            return null;
+        }
+        const fieldsTypeConstructor = this.getFieldsTypeConstructor();
+        const name = this.identifierBehavior.getDisplayString();
+        return new fieldsTypeConstructor(name, fields);
+    }
+    
     getDisplayLines(): string[] {
         const output = [`${this.getDefinitionName()} identifier: ${this.identifierBehavior.getDisplayString()}`];
         this.fieldMap.get().iterate((definition) => {
@@ -39,17 +64,25 @@ export abstract class FieldsTypeDefinition extends Definition {
     }
 }
 
-export class StructDefinition extends FieldsTypeDefinition {
+export class StructDefinition extends FieldsTypeDefinition<StructType> {
     
     getDefinitionName(): string {
         return "Struct";
     }
+    
+    getFieldsTypeConstructor(): FieldsTypeConstructor<StructType> {
+        return StructType;
+    }
 }
 
-export class UnionDefinition extends FieldsTypeDefinition {
+export class UnionDefinition extends FieldsTypeDefinition<UnionType> {
     
     getDefinitionName(): string {
         return "Union";
+    }
+    
+    getFieldsTypeConstructor(): FieldsTypeConstructor<UnionType> {
+        return UnionType;
     }
 }
 
