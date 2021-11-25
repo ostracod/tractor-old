@@ -87,9 +87,7 @@ Tractor has the following built-in parameterizable types:
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
 * `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of items with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
-* `elementT(<arrayType>)` is the type of an element in the given array type.
 * `fieldNameT(<type>)` is the name of a field in the given struct or union type. `fieldNameT(<type>)` is a subtype of `softArrayT(uInt8T) & compT`.
-* `fieldT(<type>, <name>)` is the type of the field with name `<name>` in the given struct or union type. `<name>` must conform to `fieldNameT(<type>)`.
 * `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT(<item>)` is a subtype of `compT`.
 
 The following types are subtypes of `concreteT`:
@@ -154,10 +152,18 @@ Function invocation has the format `<function>(<item>, <item>, <item>...)`, wher
 
 Tractor has the following built-in functions:
 
-* The parameterizable types `ptrT`, `arrayT`, `softArrayT`, `elementT`, `fieldNameT`, `fieldT`, and `typeT`.
+* The parameterizable types `ptrT`, `arrayT`, `softArrayT`, `fieldNameT`, and `typeT`.
 * `getSize(<type>)` returns the number of bytes which type `<type>` occupies.
-* `getLen(<arrayType>)` returns the number of elements in the given array type.
+* `getLen(<type1>)` may exhibit one of the following behaviors:
+    * If `<type1>` conforms to `arrayT(<type2>, <length>)`, `getLen(<type1>)` returns `<length>`.
+    * If `<type1>` conforms to `funcT`, `getLen(<type1>)` returns the number of arguments which `<type1>` accepts.
+* `getElemType(<type1>)` may exhibit one of the following behaviors:
+    * If `<type1>` conforms to `ptrT(<type2>)`, `getElemType(<type1>)` returns `<type2>`.
+    * If `<type1>` conforms to `softArrayT(<type2>)`, `getElemType(<type1>)` returns `<type2>`.
+* `getFieldType(<type>, <nameString>)` returns the type of the field with name `<nameString>` in the given struct or union type. `<nameString>` must conform to `fieldNameT(<type>)`.
 * `getFieldOffset(<structType>, <nameString>)` returns the byte offset of the field with name `<nameString>` in the given struct type. `<nameString>` must conform to `fieldNameT(<structType>)`.
+* `getArgType(<funcType>, <index>)` returns the type of the argument with index `<index>` in function type `<funcType>`.
+* `getReturnType(<funcType>)` returns the return type of function type `<funcType>`.
 * `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
 * `newPtr(<value>)` returns a native pointer to value `<value>`. The argument value must conform to `locT`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.

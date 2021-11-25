@@ -1,7 +1,7 @@
 
 import { CompilerError } from "./compilerError.js";
 import { FunctionDefinition } from "./functionDefinition.js";
-import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature, arrayTFunctionSignature } from "./functionSignature.js";
+import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature } from "./functionSignature.js";
 import { CompItem } from "./compItem.js";
 import { ItemType, VoidType, IntegerType, ArrayType, FunctionType } from "./itemType.js";
 
@@ -119,25 +119,26 @@ export class DefinitionFunctionHandle extends FunctionHandle {
     }
 }
 
-export abstract class BuiltInFunctionHandle extends FunctionHandle {
+export class BuiltInFunctionHandle extends FunctionHandle {
+    signature: BuiltInFunctionSignature;
     
-    abstract getSignature(): BuiltInFunctionSignature;
+    constructor(signature: BuiltInFunctionSignature) {
+        super();
+        this.signature = signature;
+    }
+    
+    getSignature(): BuiltInFunctionSignature {
+        return this.signature;
+    }
+    
+    getDisplayString(): string {
+        return this.signature.name;
+    }
     
     evaluateToCompItem(args: CompItem[]): CompItem {
         const signature = this.getSignature();
         const context = signature.createContext(args);
         return context.getReturnItem();
-    }
-}
-
-export class ArrayTFunctionHandle extends BuiltInFunctionHandle {
-    
-    getSignature(): BuiltInFunctionSignature {
-        return arrayTFunctionSignature;
-    }
-    
-    getDisplayString(): string {
-        return "arrayT";
     }
 }
 

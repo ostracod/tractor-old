@@ -6,7 +6,9 @@ import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem.js";
 import { ItemType, TypeType, IntegerType, ArrayType } from "./itemType.js";
-import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, ArrayTFunctionContext } from "./builtInFunctionContext.js";
+import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetLenFunctionContext } from "./builtInFunctionContext.js";
+
+export const builtInFunctionSignatures: BuiltInFunctionSignature[] = [];
 
 export abstract class FunctionSignature {
     
@@ -68,13 +70,36 @@ export class DefinitionFunctionSignature extends FunctionSignature implements Di
     }
 }
 
-export abstract class BuiltInFunctionSignature extends FunctionSignature {
+export class BuiltInFunctionSignature extends FunctionSignature {
+    name: string;
+    argTypes: ItemType[];
+    returnType: ItemType;
+    contextConstructor: BuiltInFunctionContextConstructor;
     
-    abstract getContextConstructor(): BuiltInFunctionContextConstructor;
+    constructor(
+        name: string,
+        argTypes: ItemType[],
+        returnType: ItemType,
+        contextConstructor: BuiltInFunctionContextConstructor,
+    ) {
+        super();
+        this.name = name;
+        this.argTypes = argTypes;
+        this.returnType = returnType;
+        this.contextConstructor = contextConstructor;
+        builtInFunctionSignatures.push(this);
+    }
+    
+    getArgTypes(): ItemType[] {
+        return this.argTypes;
+    }
+    
+    getReturnType(): ItemType {
+        return this.returnType;
+    }
     
     createContext(args: CompItem[]): BuiltInFunctionContext {
-        const contextConstructor = this.getContextConstructor();
-        return new contextConstructor(args);
+        return new this.contextConstructor(args);
     }
     
     getReturnTypeByArgs(args: CompItem[]): ItemType {
@@ -83,21 +108,30 @@ export abstract class BuiltInFunctionSignature extends FunctionSignature {
     }
 }
 
-class ArrayTFunctionSignature extends BuiltInFunctionSignature {
-    
-    getArgTypes(): ItemType[] {
-        return [new TypeType(new ItemType()), new IntegerType()];
-    }
-    
-    getReturnType(): ItemType {
-        return new TypeType(new ArrayType(new ItemType()));
-    }
-    
-    getContextConstructor(): BuiltInFunctionContextConstructor {
-        return ArrayTFunctionContext;
-    }
-}
-
-export const arrayTFunctionSignature = new ArrayTFunctionSignature();
+new BuiltInFunctionSignature(
+    "softArrayT",
+    [new TypeType(new ItemType())],
+    new TypeType(new ArrayType(new ItemType())),
+    SoftArrayTFunctionContext,
+);
+new BuiltInFunctionSignature(
+    "arrayT",
+    [new TypeType(new ItemType()), new IntegerType()],
+    new TypeType(new ArrayType(new ItemType())),
+    ArrayTFunctionContext,
+);
+new BuiltInFunctionSignature(
+    "typeT",
+    [new ItemType()],
+    new TypeType(new ItemType()),
+    TypeTFunctionContext,
+);
+new BuiltInFunctionSignature(
+    "getLen",
+    // TODO: Express this as a union of arrayT and funcT.
+    [new TypeType(new ItemType())],
+    new IntegerType(),
+    GetLenFunctionContext,
+);
 
 

@@ -1,8 +1,9 @@
 
 import { Identifier, NameIdentifier, IdentifierMap } from "./identifier.js";
 import { CompItem } from "./compItem.js";
-import { CompInteger, ArrayTFunctionHandle } from "./compValue.js";
+import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
 import { ItemType, ValueType, IntegerType } from "./itemType.js";
+import { builtInFunctionSignatures } from "./functionSignature.js";
 
 interface BuiltInItem {
     identifier: Identifier;
@@ -31,7 +32,10 @@ export const initializeBuiltInItems = (): void => {
             addBuiltInItem(new IntegerType(isSigned, bitAmount));
         });
     });
-    addBuiltInItem(new ArrayTFunctionHandle());
+    
+    builtInFunctionSignatures.forEach((signature) => {
+        addBuiltInItem(new BuiltInFunctionHandle(signature));
+    });
 };
 
 export const createBuiltInItemMap = (): IdentifierMap<CompItem> => {
