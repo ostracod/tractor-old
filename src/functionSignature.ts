@@ -5,8 +5,8 @@ import { NodeSlot } from "./node.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, TypeType, IntegerType, ArrayType } from "./itemType.js";
-import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetLenFunctionContext } from "./builtInFunctionContext.js";
+import { ItemType, TypeType, IntegerType, PointerType, ArrayType } from "./itemType.js";
+import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./builtInFunctionContext.js";
 
 export const builtInFunctionSignatures: BuiltInFunctionSignature[] = [];
 
@@ -109,6 +109,12 @@ export class BuiltInFunctionSignature extends FunctionSignature {
 }
 
 new BuiltInFunctionSignature(
+    "ptrT",
+    [new TypeType(new ItemType())],
+    new TypeType(new PointerType(new ItemType())),
+    PtrTFunctionContext,
+);
+new BuiltInFunctionSignature(
     "softArrayT",
     [new TypeType(new ItemType())],
     new TypeType(new ArrayType(new ItemType())),
@@ -132,6 +138,13 @@ new BuiltInFunctionSignature(
     [new TypeType(new ItemType())],
     new IntegerType(),
     GetLenFunctionContext,
+);
+new BuiltInFunctionSignature(
+    "getElemType",
+    // TODO: Express this as a union of ptrT and arrayT.
+    [new TypeType(new ItemType())],
+    new TypeType(new ItemType()),
+    GetElemTypeFunctionContext,
 );
 
 

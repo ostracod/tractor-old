@@ -3,7 +3,7 @@ import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger } from "./compValue.js";
-import { ItemType, TypeType, IntegerType, ArrayType, FunctionType } from "./itemType.js";
+import { ItemType, TypeType, IntegerType, ElementCompositeType, PointerType, ArrayType, FunctionType } from "./itemType.js";
 
 export type BuiltInFunctionContextConstructor<T extends BuiltInFunctionContext = BuiltInFunctionContext> = new (args: CompItem[]) => T;
 
@@ -23,9 +23,8 @@ export abstract class BuiltInFunctionContext {
     }
 }
 
-export class SoftArrayTFunctionContext extends BuiltInFunctionContext {
+abstract class TypeFunctionContext extends BuiltInFunctionContext {
     type: ItemType;
-    length: number;
     
     constructor(args: CompItem[]) {
         super(args);
@@ -34,6 +33,21 @@ export class SoftArrayTFunctionContext extends BuiltInFunctionContext {
             throw new CompilerError("First argument must conform to typeT(itemT).");
         }
         this.type = typeArg;
+    }
+}
+
+export class PtrTFunctionContext extends TypeFunctionContext {
+    
+    getReturnItem(): CompItem {
+        return new PointerType(this.type);
+    }
+}
+
+export class SoftArrayTFunctionContext extends TypeFunctionContext {
+    length: number;
+    
+    constructor(args: CompItem[]) {
+        super(args);
         this.length = null;
     }
     
@@ -97,6 +111,23 @@ export class GetLenFunctionContext extends BuiltInFunctionContext {
             length = argTypes.length;
         }
         return new CompInteger(BigInt(length), new IntegerType());
+    }
+}
+
+export class GetElemTypeFunctionContext extends BuiltInFunctionContext {
+    compositeType: ElementCompositeType;
+    
+    constructor(args: CompItem[]) {
+        super(args);
+        const typeArg = args[0];
+        if (!(typeArg instanceof ElementCompositeType)) {
+            throw new CompilerError("Argument must conform to ptrT or softArrayT.");
+        }
+        this.compositeType = typeArg;
+    }
+    
+    getReturnItem(): CompItem {
+        return this.compositeType.type;
     }
 }
 

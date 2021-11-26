@@ -104,13 +104,27 @@ export class IntegerType extends ValueType {
     }
 }
 
-export class ArrayType extends ValueType {
+export class ElementCompositeType extends ValueType {
     type: ItemType;
+    
+    constructor(type: ItemType) {
+        super();
+        this.type = type;
+    }
+}
+
+export class PointerType extends ElementCompositeType {
+    
+    getDisplayString(): string {
+        return `ptrT(${this.type.getDisplayString()})`;
+    }
+}
+
+export class ArrayType extends ElementCompositeType {
     length: number;
     
     constructor(type: ItemType, length: number = null) {
-        super();
-        this.type = type;
+        super(type);
         this.length = length;
     }
     
