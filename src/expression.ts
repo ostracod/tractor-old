@@ -263,7 +263,7 @@ export class InvocationExpression extends Expression {
         for (const slot of this.argExpressions) {
             const arg = slot.get().evaluateToCompItemOrNull();
             if (arg === null) {
-                return;
+                return null;
             }
             args.push(arg);
         }

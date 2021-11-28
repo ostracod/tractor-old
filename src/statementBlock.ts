@@ -352,7 +352,11 @@ export class StatementBlock extends Node {
             }
             return [statement];
         });
-        return new DefinitionFunctionSignature(argVariableDefinitions, returnTypeResolver);
+        return new DefinitionFunctionSignature(
+            this.getTargetLanguage(),
+            argVariableDefinitions,
+            returnTypeResolver,
+        );
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -438,7 +442,12 @@ export class RootStatementBlock extends StatementBlock {
     constructor(pos: Pos = null, statements: Statement[] = []) {
         super(pos, statements);
         this.initFunctionBlock = this.addSlot();
-        this.builtInItemMap = createBuiltInItemMap();
+    }
+    
+    initialize(): void {
+        super.initialize();
+        const targetLanguage = this.getTargetLanguage();
+        this.builtInItemMap = createBuiltInItemMap(targetLanguage);
     }
     
     getDisplayLines(): string[] {

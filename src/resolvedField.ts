@@ -14,14 +14,22 @@ export abstract class ResolvedField {
         this.name = name;
         this.type = type;
     }
+    
+    abstract getSize(): number;
 }
 
 export class DataField extends ResolvedField {
     
+    getSize(): number {
+        return this.type.getSize();
+    }
 }
 
 export class TypeField extends ResolvedField {
     
+    getSize(): number {
+        return 0;
+    }
 }
 
 

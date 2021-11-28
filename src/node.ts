@@ -4,6 +4,7 @@ import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Pos } from "./pos.js";
 import { Compiler } from "./compiler.js";
+import { TargetLanguage } from "./targetLanguage.js";
 import { Statement } from "./statement.js";
 import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { StatementGenerator } from "./statementGenerator.js";
@@ -32,14 +33,21 @@ export abstract class Node implements Displayable {
     parentSlot: NodeSlot;
     slots: { [slotId: string]: NodeSlot };
     pos: Pos;
+    hasInitialized: boolean;
     
     constructor() {
         this.parentSlot = null;
         this.slots = {};
         this.pos = null;
+        this.hasInitialized = false;
     }
     
     abstract getDisplayString(): string;
+    
+    // Called when assigning a parent node.
+    initialize(): void {
+        this.hasInitialized = true;
+    }
     
     getParentNode(): Node {
         if (this.parentSlot === null) {
@@ -67,9 +75,16 @@ export abstract class Node implements Displayable {
         return this.getParentByClass(constructors.StatementBlock);
     }
     
+    getCompiler(): Compiler {
+        return this.getParentByClass(constructors.Compiler);
+    }
+    
+    getTargetLanguage(): TargetLanguage {
+        return this.getCompiler().targetLanguage;
+    }
+    
     getRootBlock(): RootStatementBlock {
-        const compiler = this.getParentByClass(constructors.Compiler);
-        return compiler.rootBlock.get();
+        return this.getCompiler().rootBlock.get();
     }
     
     // If handle returns a node:
@@ -211,6 +226,9 @@ export class NodeSlot<T extends Node = Node> implements Displayable {
                 node.parentSlot.node = null;
             }
             node.parentSlot = this;
+            if (!node.hasInitialized) {
+                node.initialize();
+            }
         }
         this.node = node;
     }

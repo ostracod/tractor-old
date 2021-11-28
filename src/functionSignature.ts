@@ -2,15 +2,19 @@
 import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
+import { TargetLanguage } from "./targetLanguage.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, TypeType, IntegerType, PointerType, ArrayType } from "./itemType.js";
-import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./builtInFunctionContext.js";
-
-export const builtInFunctionSignatures: BuiltInFunctionSignature[] = [];
+import { ItemType, TypeType, IntegerType, ArrayType } from "./itemType.js";
+import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetSizeFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./builtInFunctionContext.js";
 
 export abstract class FunctionSignature {
+    targetLanguage: TargetLanguage;
+    
+    constructor(targetLanguage: TargetLanguage) {
+        this.targetLanguage = targetLanguage;
+    }
     
     abstract getArgTypes(): ItemType[];
     
@@ -25,10 +29,11 @@ export class DefinitionFunctionSignature extends FunctionSignature implements Di
     returnTypeResolver: NodeSlot<TypeResolver>;
     
     constructor(
+        targetLanguage: TargetLanguage,
         argVariableDefinitions: NodeSlot<ArgVariableDefinition>[],
         returnTypeResolver: NodeSlot<TypeResolver>,
     ) {
-        super();
+        super(targetLanguage);
         this.argVariableDefinitions = argVariableDefinitions;
         this.returnTypeResolver = returnTypeResolver;
     }
@@ -77,17 +82,17 @@ export class BuiltInFunctionSignature extends FunctionSignature {
     contextConstructor: BuiltInFunctionContextConstructor;
     
     constructor(
+        targetLanguage: TargetLanguage,
         name: string,
         argTypes: ItemType[],
         returnType: ItemType,
         contextConstructor: BuiltInFunctionContextConstructor,
     ) {
-        super();
+        super(targetLanguage);
         this.name = name;
         this.argTypes = argTypes;
         this.returnType = returnType;
         this.contextConstructor = contextConstructor;
-        builtInFunctionSignatures.push(this);
     }
     
     getArgTypes(): ItemType[] {
@@ -99,7 +104,7 @@ export class BuiltInFunctionSignature extends FunctionSignature {
     }
     
     createContext(args: CompItem[]): BuiltInFunctionContext {
-        return new this.contextConstructor(args);
+        return new this.contextConstructor(this.targetLanguage, args);
     }
     
     getReturnTypeByArgs(args: CompItem[]): ItemType {
@@ -108,43 +113,73 @@ export class BuiltInFunctionSignature extends FunctionSignature {
     }
 }
 
-new BuiltInFunctionSignature(
-    "ptrT",
-    [new TypeType(new ItemType())],
-    new TypeType(new PointerType(new ItemType())),
-    PtrTFunctionContext,
-);
-new BuiltInFunctionSignature(
-    "softArrayT",
-    [new TypeType(new ItemType())],
-    new TypeType(new ArrayType(new ItemType())),
-    SoftArrayTFunctionContext,
-);
-new BuiltInFunctionSignature(
-    "arrayT",
-    [new TypeType(new ItemType()), new IntegerType()],
-    new TypeType(new ArrayType(new ItemType())),
-    ArrayTFunctionContext,
-);
-new BuiltInFunctionSignature(
-    "typeT",
-    [new ItemType()],
-    new TypeType(new ItemType()),
-    TypeTFunctionContext,
-);
-new BuiltInFunctionSignature(
-    "getLen",
-    // TODO: Express this as a union of arrayT and funcT.
-    [new TypeType(new ItemType())],
-    new IntegerType(),
-    GetLenFunctionContext,
-);
-new BuiltInFunctionSignature(
-    "getElemType",
-    // TODO: Express this as a union of ptrT and arrayT.
-    [new TypeType(new ItemType())],
-    new TypeType(new ItemType()),
-    GetElemTypeFunctionContext,
-);
+export const createBuiltInSignatures = (
+    targetLanguage: TargetLanguage,
+): BuiltInFunctionSignature[] => {
+    
+    const output: BuiltInFunctionSignature[] = [];
+    const addBuiltInSignature = (
+        name: string,
+        argTypes: ItemType[],
+        returnType: ItemType,
+        contextConstructor: BuiltInFunctionContextConstructor,
+    ): void => {
+        output.push(new BuiltInFunctionSignature(
+            targetLanguage,
+            name,
+            argTypes,
+            returnType,
+            contextConstructor,
+        ));
+    };
+    
+    addBuiltInSignature(
+        "ptrT",
+        [new TypeType(new ItemType())],
+        new TypeType(targetLanguage.createPointerType(new ItemType())),
+        PtrTFunctionContext,
+    );
+    addBuiltInSignature(
+        "softArrayT",
+        [new TypeType(new ItemType())],
+        new TypeType(new ArrayType(new ItemType())),
+        SoftArrayTFunctionContext,
+    );
+    addBuiltInSignature(
+        "arrayT",
+        [new TypeType(new ItemType()), new IntegerType()],
+        new TypeType(new ArrayType(new ItemType())),
+        ArrayTFunctionContext,
+    );
+    addBuiltInSignature(
+        "typeT",
+        [new ItemType()],
+        new TypeType(new ItemType()),
+        TypeTFunctionContext,
+    );
+    
+    addBuiltInSignature(
+        "getSize",
+        [new TypeType(new ItemType())],
+        new IntegerType(),
+        GetSizeFunctionContext,
+    );
+    addBuiltInSignature(
+        "getLen",
+        // TODO: Express this as a union of arrayT and funcT.
+        [new TypeType(new ItemType())],
+        new IntegerType(),
+        GetLenFunctionContext,
+    );
+    addBuiltInSignature(
+        "getElemType",
+        // TODO: Express this as a union of ptrT and arrayT.
+        [new TypeType(new ItemType())],
+        new TypeType(new ItemType()),
+        GetElemTypeFunctionContext,
+    );
+    
+    return output;
+};
 
 

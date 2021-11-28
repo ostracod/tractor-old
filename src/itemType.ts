@@ -11,6 +11,10 @@ export class ItemType extends CompItem {
         return new TypeType(this);
     }
     
+    getSize(): number {
+        return null;
+    }
+    
     getDisplayString(): string {
         return "itemT";
     }
@@ -38,6 +42,10 @@ export class ValueType extends ItemType {
 
 export class VoidType extends ValueType {
     
+    getSize(): number {
+        return 0;
+    }
+    
     getDisplayString(): string {
         return "voidT";
     }
@@ -51,6 +59,10 @@ export class IntegerType extends ValueType {
         super();
         this.isSigned = isSigned;
         this.bitAmount = bitAmount;
+    }
+    
+    getSize(): number {
+        return (this.bitAmount === null) ? null : Math.ceil(this.bitAmount / 8);
     }
     
     getDisplayString(): string {
@@ -114,6 +126,17 @@ export class ElementCompositeType extends ValueType {
 }
 
 export class PointerType extends ElementCompositeType {
+    size: number;
+    
+    // size is the size of the pointer, not the referenced type.
+    constructor(type: ItemType, size: number) {
+        super(type);
+        this.size = size;
+    }
+    
+    getSize(): number {
+        return this.size;
+    }
     
     getDisplayString(): string {
         return `ptrT(${this.type.getDisplayString()})`;
@@ -126,6 +149,14 @@ export class ArrayType extends ElementCompositeType {
     constructor(type: ItemType, length: number = null) {
         super(type);
         this.length = length;
+    }
+    
+    getSize(): number {
+        if (this.length === null) {
+            return null;
+        }
+        const elementSize = this.type.getSize();
+        return (elementSize === null) ? null : elementSize * this.length;
     }
     
     getDisplayString(): string {
@@ -165,10 +196,34 @@ export abstract class FieldsType extends ValueType {
 
 export class StructType extends FieldsType {
     
+    getSize(): number {
+        let output = 0;
+        for (const field of this.fieldList) {
+            const size = field.getSize();
+            if (size === null) {
+                return null;
+            }
+            output += size;
+        }
+        return output;
+    }
 }
 
 export class UnionType extends FieldsType {
     
+    getSize(): number {
+        let output = 0;
+        for (const field of this.fieldList) {
+            const size = field.getSize();
+            if (size === null) {
+                return null;
+            }
+            if (size > output) {
+                output = size;
+            }
+        }
+        return output;
+    }
 }
 
 export class FunctionType extends ValueType {
@@ -177,6 +232,10 @@ export class FunctionType extends ValueType {
     constructor(signature: FunctionSignature) {
         super();
         this.signature = signature;
+    }
+    
+    getSize(): number {
+        return this.signature.targetLanguage.pointerSize;
     }
     
     getDisplayString(): string {

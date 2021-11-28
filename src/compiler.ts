@@ -11,19 +11,18 @@ import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement.
 import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
 import { InlineFunctionDefinition } from "./functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
-import { codeGeneratorConstructorMap, TargetCodeGeneratorConstructor } from "./targetCodeGenerator.js";
+import { targetLanguageMap, TargetLanguage } from "./targetLanguage.js";
 
 export class Compiler extends Node {
     projectPath: string;
     srcPath: string;
     configNames: string[];
     configImportMap: { [name: string]: string };
-    targetLanguage: string;
+    targetLanguage: TargetLanguage;
     buildFileName: string;
     importedPaths: Set<string>;
     foreignFiles: SourceFile[];
     rootBlock: NodeSlot<RootStatementBlock>;
-    codeGeneratorConstructor: TargetCodeGeneratorConstructor;
     
     constructor(projectPath: string, configNames: string[]) {
         super();
@@ -32,7 +31,7 @@ export class Compiler extends Node {
         this.configNames = configNames;
         this.importedPaths = new Set();
         this.foreignFiles = [];
-        this.rootBlock = this.addSlot(new RootStatementBlock());
+        this.rootBlock = this.addSlot();
     }
     
     readConfig(): void {
@@ -45,14 +44,19 @@ export class Compiler extends Node {
         
         let index = 0;
         while (true) {
-            const { importMap, targetLanguage, buildFileName, configs } = config;
+            const targetLanguageName = config.targetLanguage;
+            if (typeof targetLanguageName !== "undefined") {
+                const targetLanguage = targetLanguageMap[targetLanguageName];
+                if (typeof targetLanguage === "undefined") {
+                    throw new CompilerError(`Unknown target language "${targetLanguageName}".`);
+                }
+                this.targetLanguage = targetLanguage;
+            }
+            const { importMap, buildFileName, configs } = config;
             if (typeof importMap !== "undefined") {
                 for (const name in importMap) {
                     this.configImportMap[name] = importMap[name];
                 }
-            }
-            if (typeof targetLanguage !== "undefined") {
-                this.targetLanguage = targetLanguage;
             }
             if (typeof buildFileName !== "undefined") {
                 this.buildFileName = buildFileName;
@@ -87,11 +91,6 @@ export class Compiler extends Node {
         }
         if (this.buildFileName === null) {
             throw new CompilerError("Missing buildFileName in config.");
-        }
-        
-        this.codeGeneratorConstructor = codeGeneratorConstructorMap[this.targetLanguage];
-        if (typeof this.codeGeneratorConstructor === "undefined") {
-            throw new CompilerError(`Unknown target language "${this.targetLanguage}".`);
         }
     }
     
@@ -248,6 +247,7 @@ export class Compiler extends Node {
         try {
             console.log("Reading config...");
             this.readConfig();
+            this.rootBlock.set(new RootStatementBlock());
             console.log("Reading source files...");
             this.importTractorFile("./main.trtr");
             this.extractFunctions();
@@ -268,7 +268,8 @@ export class Compiler extends Node {
             }
             console.log(`\n${this.getDisplayString()}\n`);
             console.log("Generating target code...");
-            const codeGenerator = new this.codeGeneratorConstructor(this);
+            const generatorConstructor = this.targetLanguage.codeGeneratorConstructor;
+            const codeGenerator = new generatorConstructor(this);
             codeGenerator.generateCode();
             console.log("Finished.");
         } catch (error) {

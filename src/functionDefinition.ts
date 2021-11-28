@@ -27,6 +27,9 @@ export abstract class FunctionDefinition extends Definition {
         super(pos, identifierBehavior);
         this.block = this.addSlot(block);
         this.identifierBehavior = identifierBehavior;
+    }
+    
+    initialize(): void {
         this.signature = this.block.get().createFunctionSignature();
     }
     

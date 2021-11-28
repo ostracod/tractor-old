@@ -3,24 +3,26 @@ import { Identifier, NameIdentifier, IdentifierMap } from "./identifier.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
 import { ItemType, ValueType, IntegerType } from "./itemType.js";
-import { builtInFunctionSignatures } from "./functionSignature.js";
+import { createBuiltInSignatures } from "./functionSignature.js";
+import { TargetLanguage } from "./targetLanguage.js";
 
 interface BuiltInItem {
     identifier: Identifier;
     item: CompItem;
 }
 
-const builtInItems: BuiltInItem[] = [];
-
-const addBuiltInItem = (item: CompItem, name: string = null): void => {
-    if (name === null) {
-        name = item.getDisplayString();
-    }
-    const identifier = new NameIdentifier(name);
-    builtInItems.push({ identifier, item });
-};
-
-export const initializeBuiltInItems = (): void => {
+export const createBuiltInItemMap = (
+    targetLanguage: TargetLanguage,
+): IdentifierMap<CompItem> => {
+    
+    const builtInItems: BuiltInItem[] = [];
+    const addBuiltInItem = (item: CompItem, name: string = null): void => {
+        if (name === null) {
+            name = item.getDisplayString();
+        }
+        const identifier = new NameIdentifier(name);
+        builtInItems.push({ identifier, item });
+    };
     
     addBuiltInItem(new CompInteger(1n), "TRUE");
     addBuiltInItem(new CompInteger(0n), "FALSE");
@@ -33,12 +35,11 @@ export const initializeBuiltInItems = (): void => {
         });
     });
     
-    builtInFunctionSignatures.forEach((signature) => {
+    const signatures = createBuiltInSignatures(targetLanguage);
+    signatures.forEach((signature) => {
         addBuiltInItem(new BuiltInFunctionHandle(signature));
     });
-};
-
-export const createBuiltInItemMap = (): IdentifierMap<CompItem> => {
+    
     const output = new IdentifierMap<CompItem>();
     builtInItems.forEach((builtInItem) => {
         output.add(builtInItem.identifier, builtInItem.item);

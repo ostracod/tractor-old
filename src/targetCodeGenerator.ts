@@ -22,7 +22,7 @@ export abstract class TargetCodeGenerator {
     abstract generateCode(): void;
 }
 
-class UnixCGenerator extends TargetCodeGenerator {
+export class UnixCGenerator extends TargetCodeGenerator {
     
     generateCode(): void {
         const { projectPath, buildFileName } = this.compiler;
@@ -40,11 +40,5 @@ class UnixCGenerator extends TargetCodeGenerator {
         fs.writeFileSync(buildFilePath, codeList.join("\n") + "\n");
     }
 }
-
-export const codeGeneratorConstructorMap: {
-    [targetLanguage: string]: TargetCodeGeneratorConstructor
-} = {
-    unixC: UnixCGenerator,
-};
 
 

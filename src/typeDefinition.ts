@@ -91,6 +91,10 @@ export class FunctionTypeDefinition extends Definition {
     constructor(pos: Pos, identifierBehavior: IdentifierBehavior, block: StatementBlock) {
         super(pos, identifierBehavior);
         this.block = this.addSlot(block);
+    }
+    
+    initialize(): void {
+        super.initialize();
         this.signature = this.block.get().createFunctionSignature();
     }
     
