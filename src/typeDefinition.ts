@@ -1,5 +1,4 @@
 
-import { ResolvedField } from "./interfaces.js";
 import { Pos } from "./pos.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
@@ -8,6 +7,7 @@ import { FieldDefinition } from "./singleTypeDefinition.js";
 import { IdentifierBehavior } from "./identifierBehavior.js";
 import { DefinitionMap } from "./definitionMap.js";
 import { StatementBlock } from "./statementBlock.js";
+import { ResolvedField } from "./resolvedField.js";
 import { DefinitionFunctionSignature } from "./functionSignature.js";
 import { FieldsTypeConstructor, FieldsType, StructType, UnionType } from "./itemType.js";
 
@@ -38,13 +38,11 @@ export abstract class FieldsTypeDefinition<T extends FieldsType = FieldsType> ex
         const fields: ResolvedField[] = [];
         let hasUnresolvedField = false;
         this.fieldMap.get().iterate((definition) => {
-            const { type } = definition.typeResolver.get();
-            if (type === null) {
+            const resolvedField = definition.resolve();
+            if (resolvedField === null) {
                 hasUnresolvedField = true;
             } else {
-                const { identifier } = definition.identifierBehavior;
-                const name = identifier.getFieldNameString();
-                fields.push({ name, type });
+                fields.push(resolvedField);
             }
         });
         if (hasUnresolvedField) {

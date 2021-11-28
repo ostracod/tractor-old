@@ -1,8 +1,8 @@
 
-import { ResolvedField } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
+import { ResolvedField } from "./resolvedField.js";
 import { FunctionSignature } from "./functionSignature.js";
 
 export class ItemType extends CompItem {
@@ -145,16 +145,16 @@ export type FieldsTypeConstructor<T extends FieldsType> = new (
 
 export abstract class FieldsType extends ValueType {
     name: string;
-    fields: ResolvedField[];
-    nameTypeMap: { [name: string]: ItemType };
+    fieldList: ResolvedField[];
+    fieldMap: { [name: string]: ResolvedField };
     
     constructor(name: string, fields: ResolvedField[]) {
         super();
         this.name = name;
-        this.fields = fields;
-        this.nameTypeMap = {};
-        this.fields.forEach((field) => {
-            this.nameTypeMap[field.name] = field.type;
+        this.fieldList = fields;
+        this.fieldMap = {};
+        this.fieldList.forEach((field) => {
+            this.fieldMap[field.name] = field;
         });
     }
     

@@ -15,9 +15,4 @@ export interface Displayable {
     getDisplayString(): string;
 }
 
-export interface ResolvedField {
-    name: string;
-    type: ItemType;
-}
-
 
