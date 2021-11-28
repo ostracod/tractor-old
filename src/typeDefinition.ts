@@ -50,7 +50,7 @@ export abstract class FieldsTypeDefinition<T extends FieldsType = FieldsType> ex
         }
         const fieldsTypeConstructor = this.getFieldsTypeConstructor();
         const name = this.identifierBehavior.getDisplayString();
-        return new fieldsTypeConstructor(name, fields);
+        return new fieldsTypeConstructor(name, false, fields);
     }
     
     getDisplayLines(): string[] {

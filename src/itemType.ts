@@ -116,12 +116,14 @@ export class IntegerType extends ValueType {
     }
 }
 
+export const characterType = new IntegerType(false, 8);
+
 export class ElementCompositeType extends ValueType {
-    type: ItemType;
+    elementType: ItemType;
     
-    constructor(type: ItemType) {
+    constructor(elementType: ItemType) {
         super();
-        this.type = type;
+        this.elementType = elementType;
     }
 }
 
@@ -129,8 +131,8 @@ export class PointerType extends ElementCompositeType {
     size: number;
     
     // size is the size of the pointer, not the referenced type.
-    constructor(type: ItemType, size: number) {
-        super(type);
+    constructor(elementType: ItemType, size: number) {
+        super(elementType);
         this.size = size;
     }
     
@@ -139,15 +141,15 @@ export class PointerType extends ElementCompositeType {
     }
     
     getDisplayString(): string {
-        return `ptrT(${this.type.getDisplayString()})`;
+        return `ptrT(${this.elementType.getDisplayString()})`;
     }
 }
 
 export class ArrayType extends ElementCompositeType {
     length: number;
     
-    constructor(type: ItemType, length: number = null) {
-        super(type);
+    constructor(elementType: ItemType, length: number = null) {
+        super(elementType);
         this.length = length;
     }
     
@@ -155,12 +157,12 @@ export class ArrayType extends ElementCompositeType {
         if (this.length === null) {
             return null;
         }
-        const elementSize = this.type.getSize();
+        const elementSize = this.elementType.getSize();
         return (elementSize === null) ? null : elementSize * this.length;
     }
     
     getDisplayString(): string {
-        const typeDisplayString = this.type.getDisplayString();
+        const typeDisplayString = this.elementType.getDisplayString();
         if (this.length === null) {
             return `softArrayT(${typeDisplayString})`;
         } else {
@@ -169,19 +171,36 @@ export class ArrayType extends ElementCompositeType {
     }
 }
 
+export class FieldNameType extends ArrayType {
+    fieldsType: FieldsType;
+    
+    constructor(fieldsType: FieldsType) {
+        super(characterType);
+        this.fieldsType = fieldsType;
+    }
+    
+    getDisplayString(): string {
+        const typeDisplayString = this.fieldsType.getDisplayString();
+        return `fieldNameT(${this.fieldsType.getDisplayString()})`;
+    }
+}
+
 export type FieldsTypeConstructor<T extends FieldsType> = new (
     name: string,
+    isSoft: boolean,
     fields: ResolvedField[],
 ) => T;
 
 export abstract class FieldsType extends ValueType {
     name: string;
+    isSoft: boolean;
     fieldList: ResolvedField[];
     fieldMap: { [name: string]: ResolvedField };
     
-    constructor(name: string, fields: ResolvedField[]) {
+    constructor(name: string, isSoft: boolean, fields: ResolvedField[]) {
         super();
         this.name = name;
+        this.isSoft = isSoft;
         this.fieldList = fields;
         this.fieldMap = {};
         this.fieldList.forEach((field) => {

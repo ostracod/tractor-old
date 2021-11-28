@@ -6,8 +6,8 @@ import { TargetLanguage } from "./targetLanguage.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, TypeType, IntegerType, ArrayType } from "./itemType.js";
-import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, TypeTFunctionContext, GetSizeFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./builtInFunctionContext.js";
+import { ItemType, TypeType, IntegerType, characterType, ArrayType } from "./itemType.js";
+import { BuiltInFunctionContextConstructor, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, FieldNameTFunctionContext, TypeTFunctionContext, GetSizeFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./builtInFunctionContext.js";
 
 export abstract class FunctionSignature {
     targetLanguage: TargetLanguage;
@@ -150,6 +150,14 @@ export const createBuiltInSignatures = (
         [new TypeType(new ItemType()), new IntegerType()],
         new TypeType(new ArrayType(new ItemType())),
         ArrayTFunctionContext,
+    );
+    addBuiltInSignature(
+        "fieldNameT",
+        // TODO: Express this as an intersection of
+        // soft struct and union types.
+        [new TypeType(new ItemType())],
+        new TypeType(new ArrayType(characterType)),
+        FieldNameTFunctionContext,
     );
     addBuiltInSignature(
         "typeT",

@@ -4,7 +4,7 @@ import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger } from "./compValue.js";
-import { ItemType, TypeType, IntegerType, ElementCompositeType, PointerType, ArrayType, FunctionType } from "./itemType.js";
+import { ItemType, TypeType, IntegerType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, FunctionType } from "./itemType.js";
 
 export type BuiltInFunctionContextConstructor<T extends BuiltInFunctionContext = BuiltInFunctionContext> = new (
     targetLanguage: TargetLanguage,
@@ -75,6 +75,22 @@ export class ArrayTFunctionContext extends SoftArrayTFunctionContext {
     }
 }
 
+export class FieldNameTFunctionContext extends BuiltInFunctionContext {
+    type: FieldsType;
+    
+    initialize(args: CompItem[]): void {
+        const typeArg = args[0];
+        if (!(typeArg instanceof FieldsType)) {
+            throw new CompilerError("First argument must conform to typeT(structT) or typeT(unionT).");
+        }
+        this.type = typeArg;
+    }
+    
+    getReturnItem(): CompItem {
+        return new FieldNameType(this.type);
+    }
+}
+
 export class TypeTFunctionContext extends BuiltInFunctionContext {
     item: CompItem;
     
@@ -142,7 +158,7 @@ export class GetElemTypeFunctionContext extends BuiltInFunctionContext {
     }
     
     getReturnItem(): CompItem {
-        return this.compositeType.type;
+        return this.compositeType.elementType;
     }
 }
 

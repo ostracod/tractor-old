@@ -88,7 +88,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
     
     getType(type: IntegerType): IntegerType {
-        return new IntegerType(false, 8)
+        return new IntegerType(false, 8);
     }
 }
 

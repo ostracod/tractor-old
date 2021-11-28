@@ -7,7 +7,7 @@ import { CompInteger, CompArray } from "./compValue.js";
 import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "./expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "./operator.js";
 import { NameIdentifier } from "./identifier.js";
-import { IntegerType } from "./itemType.js";
+import { characterType } from "./itemType.js";
 
 interface TokenResult {
     token: Token;
@@ -218,14 +218,13 @@ const assertDelimiter = (tokens: Token[], index: number, text: string): void => 
 
 const parseStringToken = (token: StringToken): CompArray => {
     const { text } = token;
-    const charType = new IntegerType(false, 8);
     const elements = [];
     for (let index = 0; index < text.length; index++) {
         const charCode = text.charCodeAt(index);
-        const compItem = new CompInteger(BigInt(charCode), charType);
+        const compItem = new CompInteger(BigInt(charCode), characterType);
         elements.push(compItem);
     }
-    return new CompArray(elements, charType);
+    return new CompArray(elements, characterType);
 };
 
 const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult => {
