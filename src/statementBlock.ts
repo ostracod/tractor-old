@@ -354,6 +354,7 @@ export class StatementBlock extends Node {
         });
         return new DefinitionFunctionSignature(
             this.getTargetLanguage(),
+            false,
             argVariableDefinitions,
             returnTypeResolver,
         );

@@ -6,12 +6,12 @@ import { CompItem } from "./compItem.js";
 import { CompInteger } from "./compValue.js";
 import { ItemType, TypeType, IntegerType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, FunctionType } from "./itemType.js";
 
-export type BuiltInFunctionContextConstructor<T extends BuiltInFunctionContext = BuiltInFunctionContext> = new (
+export type FunctionContextConstructor<T extends FunctionContext = FunctionContext> = new (
     targetLanguage: TargetLanguage,
     args: CompItem[],
 ) => T;
 
-export abstract class BuiltInFunctionContext {
+export abstract class FunctionContext {
     targetLanguage: TargetLanguage;
     
     constructor(targetLanguage: TargetLanguage, args: CompItem[]) {
@@ -20,6 +20,22 @@ export abstract class BuiltInFunctionContext {
     }
     
     abstract initialize(args: CompItem[]): void;
+    
+    abstract getReturnType(): ItemType;
+}
+
+export class GenericFunctionContext extends FunctionContext {
+    
+    initialize(args: CompItem[]): void {
+        // Do nothing.
+    }
+    
+    getReturnType(): ItemType {
+        return new ItemType();
+    }
+}
+
+export abstract class BuiltInFunctionContext extends FunctionContext {
     
     abstract getReturnItem(): CompItem;
     

@@ -2,7 +2,7 @@
 import { Identifier, NameIdentifier, IdentifierMap } from "./identifier.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
-import { ItemType, ValueType, IntegerType } from "./itemType.js";
+import { ItemType, ValueType, VoidType, IntegerType, structType, unionType } from "./itemType.js";
 import { createBuiltInSignatures } from "./functionSignature.js";
 import { TargetLanguage } from "./targetLanguage.js";
 
@@ -29,11 +29,15 @@ export const createBuiltInItemMap = (
     
     addBuiltInItem(new ItemType());
     addBuiltInItem(new ValueType());
+    addBuiltInItem(new VoidType());
     [null, 8, 16, 32, 64].forEach((bitAmount) => {
         [null, false, true].forEach((isSigned) => {
             addBuiltInItem(new IntegerType(isSigned, bitAmount));
         });
     });
+    addBuiltInItem(structType);
+    addBuiltInItem(unionType);
+    addBuiltInItem(targetLanguage.functionType);
     
     const signatures = createBuiltInSignatures(targetLanguage);
     signatures.forEach((signature) => {
