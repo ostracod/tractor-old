@@ -196,6 +196,7 @@ export abstract class FieldsType extends ValueType {
     isSoft: boolean;
     fieldList: ResolvedField[];
     fieldMap: { [name: string]: ResolvedField };
+    size: number;
     
     constructor(name: string, isSoft: boolean, fields: ResolvedField[]) {
         super();
@@ -203,9 +204,34 @@ export abstract class FieldsType extends ValueType {
         this.isSoft = isSoft;
         this.fieldList = fields;
         this.fieldMap = {};
+        let shouldPopulateFieldOffsets = true;
         this.fieldList.forEach((field) => {
             this.fieldMap[field.name] = field;
+            if (field.getSize() === null) {
+                shouldPopulateFieldOffsets = false;
+            }
         });
+        this.size = null;
+        if (shouldPopulateFieldOffsets) {
+            let nextOffset = 0;
+            let maximumOffset = 0;
+            this.fieldList.forEach((field) => {
+                const offset = nextOffset;
+                field.registerOffset(offset);
+                const fieldSize = field.getSize();
+                maximumOffset = Math.max(maximumOffset, offset + fieldSize);
+                nextOffset = this.getNextFieldOffset(offset, fieldSize);
+            });
+            if (!this.isSoft) {
+                this.size = maximumOffset;
+            }
+        }
+    }
+    
+    abstract getNextFieldOffset(offset: number, fieldSize: number): number;
+    
+    getSize(): number {
+        return this.size;
     }
     
     getDisplayString(): string {
@@ -215,16 +241,8 @@ export abstract class FieldsType extends ValueType {
 
 export class StructType extends FieldsType {
     
-    getSize(): number {
-        let output = 0;
-        for (const field of this.fieldList) {
-            const size = field.getSize();
-            if (size === null) {
-                return null;
-            }
-            output += size;
-        }
-        return output;
+    getNextFieldOffset(offset: number, fieldSize: number): number {
+        return offset + fieldSize;
     }
 }
 
@@ -232,18 +250,8 @@ export const structType = new StructType("structT", true, []);
 
 export class UnionType extends FieldsType {
     
-    getSize(): number {
-        let output = 0;
-        for (const field of this.fieldList) {
-            const size = field.getSize();
-            if (size === null) {
-                return null;
-            }
-            if (size > output) {
-                output = size;
-            }
-        }
-        return output;
+    getNextFieldOffset(offset: number, fieldSize: number): number {
+        return 0;
     }
 }
 

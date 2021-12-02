@@ -3,8 +3,10 @@ import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem } from "./compItem.js";
-import { CompInteger } from "./compValue.js";
-import { ItemType, TypeType, IntegerType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, FunctionType } from "./itemType.js";
+import { CompInteger, CompArray } from "./compValue.js";
+import { ItemType, TypeType, ValueType, IntegerType, characterType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType, OrType } from "./itemType.js";
+import { ResolvedField, DataField } from "./resolvedField.js";
+import { BuiltInFunctionSignature } from "./functionSignature.js";
 
 export type FunctionContextConstructor<T extends FunctionContext = FunctionContext> = new (
     targetLanguage: TargetLanguage,
@@ -59,14 +61,14 @@ abstract class TypeFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-export class PtrTFunctionContext extends TypeFunctionContext {
+class PtrTFunctionContext extends TypeFunctionContext {
     
     getReturnItem(): CompItem {
         return this.targetLanguage.createPointerType(this.type);
     }
 }
 
-export class SoftArrayTFunctionContext extends TypeFunctionContext {
+class SoftArrayTFunctionContext extends TypeFunctionContext {
     length: number;
     
     initialize(args: CompItem[]): void {
@@ -79,7 +81,7 @@ export class SoftArrayTFunctionContext extends TypeFunctionContext {
     }
 }
 
-export class ArrayTFunctionContext extends SoftArrayTFunctionContext {
+class ArrayTFunctionContext extends SoftArrayTFunctionContext {
     
     initialize(args: CompItem[]): void {
         super.initialize(args);
@@ -91,7 +93,7 @@ export class ArrayTFunctionContext extends SoftArrayTFunctionContext {
     }
 }
 
-export class FieldNameTFunctionContext extends BuiltInFunctionContext {
+class FieldNameTFunctionContext extends BuiltInFunctionContext {
     type: FieldsType;
     
     initialize(args: CompItem[]): void {
@@ -107,7 +109,7 @@ export class FieldNameTFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-export class TypeTFunctionContext extends BuiltInFunctionContext {
+class TypeTFunctionContext extends BuiltInFunctionContext {
     item: CompItem;
     
     initialize(args: CompItem[]): void {
@@ -119,18 +121,18 @@ export class TypeTFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-export class GetSizeFunctionContext extends TypeFunctionContext {
+class GetSizeFunctionContext extends TypeFunctionContext {
     
     getReturnItem(): CompItem {
         const size = this.type.getSize();
         if (size === null) {
             throw new CompilerError(`Cannot get size of ${this.type.getDisplayString()}.`);
         }
-        return new CompInteger(BigInt(size), new IntegerType());
+        return new CompInteger(BigInt(size));
     }
 }
 
-export class GetLenFunctionContext extends BuiltInFunctionContext {
+class GetLenFunctionContext extends BuiltInFunctionContext {
     arrayType: ArrayType;
     functionType: FunctionType;
     
@@ -146,7 +148,7 @@ export class GetLenFunctionContext extends BuiltInFunctionContext {
             this.functionType = arg;
             this.arrayType = null;
         } else {
-            throw new CompilerError("Argument must conform to arrayT or funcT.");
+            throw new CompilerError("Argument must conform to typeT(arrayT) or typeT(funcT).");
         }
     }
     
@@ -158,17 +160,17 @@ export class GetLenFunctionContext extends BuiltInFunctionContext {
             const argTypes = this.functionType.signature.getArgTypes();
             length = argTypes.length;
         }
-        return new CompInteger(BigInt(length), new IntegerType());
+        return new CompInteger(BigInt(length));
     }
 }
 
-export class GetElemTypeFunctionContext extends BuiltInFunctionContext {
+class GetElemTypeFunctionContext extends BuiltInFunctionContext {
     compositeType: ElementCompositeType;
     
     initialize(args: CompItem[]): void {
         const typeArg = args[0];
         if (!(typeArg instanceof ElementCompositeType)) {
-            throw new CompilerError("Argument must conform to ptrT or softArrayT.");
+            throw new CompilerError("Argument must conform to typeT(ptrT) or typeT(softArrayT).");
         }
         this.compositeType = typeArg;
     }
@@ -177,5 +179,154 @@ export class GetElemTypeFunctionContext extends BuiltInFunctionContext {
         return this.compositeType.elementType;
     }
 }
+
+abstract class FieldFunctionContext extends BuiltInFunctionContext {
+    field: ResolvedField;
+    
+    verifyTypeArg(arg: CompItem): FieldsType {
+        if (!(arg instanceof FieldsType)) {
+            throw new CompilerError("First argument must conform to typeT(structT) or typeT(unionT).");
+        }
+        return arg;
+    }
+    
+    initialize(args: CompItem[]): void {
+        const typeArg = args[0];
+        const fieldsType = this.verifyTypeArg(typeArg);
+        const nameArg = args[1];
+        if (!(nameArg instanceof CompArray)) {
+            throw new CompilerError("Second argument must conform to arrayT(uInt8T).");
+        }
+        const name = nameArg.convertToString();
+        this.field = fieldsType.fieldMap[name];
+        if (typeof this.field === "undefined") {
+            throw new CompilerError("Second argument must be field name of first argument.");
+        }
+    }
+}
+
+class GetFieldTypeFunctionContext extends FieldFunctionContext {
+    
+    getReturnItem(): CompItem {
+        return this.field.type;
+    }
+}
+
+class GetFieldOffsetFunctionContext extends FieldFunctionContext {
+    dataField: DataField;
+    
+    verifyTypeArg(arg: CompItem): FieldsType {
+        if (!(arg instanceof StructType)) {
+            throw new CompilerError("First argument must conform to typeT(structT).");
+        }
+        return arg;
+    }
+    
+    initialize(args: CompItem[]): void {
+        super.initialize(args);
+        const field = this.field;
+        if (!(field instanceof DataField)) {
+            throw new CompilerError("Field must be a data field.");
+        }
+        this.dataField = field;
+    }
+    
+    getReturnItem(): CompItem {
+        const { offset } = this.dataField;
+        if (offset === null) {
+            throw new CompilerError("Field does not have a known offset.");
+        }
+        return new CompInteger(BigInt(offset));
+    }
+}
+
+export const createBuiltInSignatures = (
+    targetLanguage: TargetLanguage,
+): BuiltInFunctionSignature[] => {
+    
+    const output: BuiltInFunctionSignature[] = [];
+    const addBuiltInSignature = (
+        name: string,
+        argTypes: ItemType[],
+        returnType: ItemType,
+        contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>,
+    ): void => {
+        output.push(new BuiltInFunctionSignature(
+            targetLanguage,
+            argTypes,
+            returnType,
+            contextConstructor,
+            name,
+        ));
+    };
+    
+    addBuiltInSignature(
+        "ptrT",
+        [new TypeType(new ItemType())],
+        new TypeType(targetLanguage.createPointerType(new ItemType())),
+        PtrTFunctionContext,
+    );
+    addBuiltInSignature(
+        "softArrayT",
+        [new TypeType(new ItemType())],
+        new TypeType(new ArrayType(new ItemType())),
+        SoftArrayTFunctionContext,
+    );
+    addBuiltInSignature(
+        "arrayT",
+        [new TypeType(new ItemType()), new IntegerType()],
+        new TypeType(new ArrayType(new ItemType())),
+        ArrayTFunctionContext,
+    );
+    addBuiltInSignature(
+        "fieldNameT",
+        [new TypeType(new OrType(structType, unionType))],
+        new TypeType(new ArrayType(characterType)),
+        FieldNameTFunctionContext,
+    );
+    addBuiltInSignature(
+        "typeT",
+        [new ItemType()],
+        new TypeType(new ItemType()),
+        TypeTFunctionContext,
+    );
+    
+    addBuiltInSignature(
+        "getSize",
+        [new TypeType(new ItemType())],
+        new IntegerType(),
+        GetSizeFunctionContext,
+    );
+    addBuiltInSignature(
+        "getLen",
+        [new TypeType(new OrType(
+            new ArrayType(new ItemType()), targetLanguage.functionType,
+        ))],
+        new IntegerType(),
+        GetLenFunctionContext,
+    );
+    addBuiltInSignature(
+        "getElemType",
+        [new TypeType(new OrType(
+            targetLanguage.createPointerType(new ValueType()), new ArrayType(new ItemType()),
+        ))],
+        new TypeType(new ItemType()),
+        GetElemTypeFunctionContext,
+    );
+    addBuiltInSignature(
+        "getFieldType",
+        [new TypeType(new OrType(structType, unionType)), new ArrayType(characterType)],
+        new TypeType(new ItemType()),
+        GetFieldTypeFunctionContext,
+    );
+    addBuiltInSignature(
+        "getFieldOffset",
+        [new TypeType(structType), new ArrayType(characterType)],
+        new IntegerType(),
+        GetFieldOffsetFunctionContext,
+    );
+    
+    return output;
+};
 
 

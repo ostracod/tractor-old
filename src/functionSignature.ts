@@ -6,8 +6,8 @@ import { TargetLanguage } from "./targetLanguage.js";
 import { ArgVariableDefinition } from "./variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, TypeType, ValueType, IntegerType, characterType, ArrayType, structType, unionType, OrType } from "./itemType.js";
-import { FunctionContextConstructor, FunctionContext, BuiltInFunctionContext, PtrTFunctionContext, SoftArrayTFunctionContext, ArrayTFunctionContext, FieldNameTFunctionContext, TypeTFunctionContext, GetSizeFunctionContext, GetLenFunctionContext, GetElemTypeFunctionContext } from "./functionContext.js";
+import { ItemType } from "./itemType.js";
+import { FunctionContextConstructor, FunctionContext, BuiltInFunctionContext } from "./functionContext.js";
 
 export abstract class FunctionSignature {
     targetLanguage: TargetLanguage;
@@ -128,84 +128,5 @@ export class BuiltInFunctionSignature extends ContextFunctionSignature<BuiltInFu
         this.name = name;
     }
 }
-
-export const createBuiltInSignatures = (
-    targetLanguage: TargetLanguage,
-): BuiltInFunctionSignature[] => {
-    
-    const output: BuiltInFunctionSignature[] = [];
-    const addBuiltInSignature = (
-        name: string,
-        argTypes: ItemType[],
-        returnType: ItemType,
-        contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>,
-    ): void => {
-        output.push(new BuiltInFunctionSignature(
-            targetLanguage,
-            argTypes,
-            returnType,
-            contextConstructor,
-            name,
-        ));
-    };
-    
-    addBuiltInSignature(
-        "ptrT",
-        [new TypeType(new ItemType())],
-        new TypeType(targetLanguage.createPointerType(new ItemType())),
-        PtrTFunctionContext,
-    );
-    addBuiltInSignature(
-        "softArrayT",
-        [new TypeType(new ItemType())],
-        new TypeType(new ArrayType(new ItemType())),
-        SoftArrayTFunctionContext,
-    );
-    addBuiltInSignature(
-        "arrayT",
-        [new TypeType(new ItemType()), new IntegerType()],
-        new TypeType(new ArrayType(new ItemType())),
-        ArrayTFunctionContext,
-    );
-    addBuiltInSignature(
-        "fieldNameT",
-        [new TypeType(new OrType(structType, unionType))],
-        new TypeType(new ArrayType(characterType)),
-        FieldNameTFunctionContext,
-    );
-    addBuiltInSignature(
-        "typeT",
-        [new ItemType()],
-        new TypeType(new ItemType()),
-        TypeTFunctionContext,
-    );
-    
-    addBuiltInSignature(
-        "getSize",
-        [new TypeType(new ItemType())],
-        new IntegerType(),
-        GetSizeFunctionContext,
-    );
-    addBuiltInSignature(
-        "getLen",
-        // TODO: Express this as a union of arrayT and funcT.
-        [new TypeType(new OrType(
-            new ArrayType(new ItemType()), targetLanguage.functionType,
-        ))],
-        new IntegerType(),
-        GetLenFunctionContext,
-    );
-    addBuiltInSignature(
-        "getElemType",
-        // TODO: Express this as a union of ptrT and arrayT.
-        [new TypeType(new OrType(
-            targetLanguage.createPointerType(new ValueType()), new ArrayType(new ItemType()),
-        ))],
-        new TypeType(new ItemType()),
-        GetElemTypeFunctionContext,
-    );
-    
-    return output;
-};
 
 

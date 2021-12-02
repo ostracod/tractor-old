@@ -267,7 +267,11 @@ export class InvocationExpression extends Expression {
             }
             args.push(arg);
         }
-        return functionHandle.evaluateToCompItem(args);
+        let output: CompItem;
+        this.tryOperation(() => {
+            output = functionHandle.evaluateToCompItem(args);
+        });
+        return output;
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {

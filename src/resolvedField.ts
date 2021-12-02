@@ -16,12 +16,26 @@ export abstract class ResolvedField {
     }
     
     abstract getSize(): number;
+    
+    registerOffset(offset: number): void {
+        // Do nothing.
+    }
 }
 
 export class DataField extends ResolvedField {
+    offset: number;
+    
+    constructor(name: string, type: ItemType) {
+        super(name, type);
+        this.offset = null;
+    }
     
     getSize(): number {
         return this.type.getSize();
+    }
+    
+    registerOffset(offset: number): void {
+        this.offset = offset;
     }
 }
 
