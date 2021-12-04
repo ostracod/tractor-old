@@ -4,7 +4,7 @@ import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger, CompArray } from "./compValue.js";
-import { ItemType, TypeType, ValueType, IntegerType, characterType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType, OrType } from "./itemType.js";
+import { ItemType, TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType, OrType } from "./itemType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
 import { BuiltInFunctionSignature } from "./functionSignature.js";
 
@@ -280,6 +280,29 @@ class GetReturnTypeFunctionContext extends FunctionTypeFunctionContext {
     }
 }
 
+class TypeConformsFunctionContext extends BuiltInFunctionContext {
+    type1: ItemType;
+    type2: ItemType;
+    
+    initialize(args: CompItem[]): void {
+        const typeArg1 = args[0];
+        if (!(typeArg1 instanceof ItemType)) {
+            throw new CompilerError("First argument must conform to typeT(itemT).");
+        }
+        this.type1 = typeArg1;
+        const typeArg2 = args[1];
+        if (!(typeArg2 instanceof ItemType)) {
+            throw new CompilerError("Second argument must conform to typeT(itemT).");
+        }
+        this.type2 = typeArg2;
+    }
+    
+    getReturnItem(): CompItem {
+        const typeConforms = this.type2.containsType(this.type1);
+        return new CompInteger(BigInt(typeConforms), booleanType);
+    }
+}
+
 export const createBuiltInSignatures = (
     targetLanguage: TargetLanguage,
 ): BuiltInFunctionSignature[] => {
@@ -376,6 +399,12 @@ export const createBuiltInSignatures = (
         [new TypeType(targetLanguage.functionType)],
         new TypeType(new ItemType()),
         GetReturnTypeFunctionContext,
+    );
+    addBuiltInSignature(
+        "typeConforms",
+        [new TypeType(new ItemType()), new TypeType(new ItemType())],
+        booleanType,
+        TypeConformsFunctionContext,
     );
     
     return output;

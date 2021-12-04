@@ -15,6 +15,10 @@ export class ItemType extends CompItem {
         return null;
     }
     
+    containsType(type: ItemType): boolean {
+        return (type instanceof this.constructor);
+    }
+    
     getDisplayString(): string {
         return "itemT";
     }
@@ -26,6 +30,14 @@ export class TypeType extends ItemType {
     constructor(type: ItemType) {
         super();
         this.type = type;
+    }
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const typeType = type as TypeType;
+        return this.type.containsType(typeType.type);
     }
     
     getDisplayString(): string {
@@ -63,6 +75,17 @@ export class IntegerType extends ValueType {
     
     getSize(): number {
         return (this.bitAmount === null) ? null : Math.ceil(this.bitAmount / 8);
+    }
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const intType = type as IntegerType;
+        if (this.isSigned !== null && this.isSigned !== intType.isSigned) {
+            return false;
+        }
+        return (this.bitAmount === null || this.bitAmount === intType.bitAmount);
     }
     
     getDisplayString(): string {
@@ -116,6 +139,7 @@ export class IntegerType extends ValueType {
     }
 }
 
+export const booleanType = new IntegerType(false, 8);
 export const characterType = new IntegerType(false, 8);
 
 export class ElementCompositeType extends ValueType {
@@ -124,6 +148,14 @@ export class ElementCompositeType extends ValueType {
     constructor(elementType: ItemType) {
         super();
         this.elementType = elementType;
+    }
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const compositeType = type as ElementCompositeType;
+        return this.elementType.containsType(compositeType.elementType);
     }
 }
 
@@ -161,6 +193,14 @@ export class ArrayType extends ElementCompositeType {
         return (elementSize === null) ? null : elementSize * this.length;
     }
     
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const arrayType = type as ArrayType;
+        return (this.length === null || this.length === arrayType.length);
+    }
+    
     getDisplayString(): string {
         const typeDisplayString = this.elementType.getDisplayString();
         if (this.length === null) {
@@ -177,6 +217,27 @@ export class FieldNameType extends ArrayType {
     constructor(fieldsType: FieldsType) {
         super(characterType);
         this.fieldsType = fieldsType;
+    }
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const nameType = type as FieldNameType;
+        const fieldsType1 = this.fieldsType;
+        const fieldsType2 = nameType.fieldsType;
+        if (fieldsType1.isSoft) {
+            return true;
+        }
+        if (fieldsType2.isSoft) {
+            return false;
+        }
+        for (const name in fieldsType2.fieldMap) {
+            if (!(name in fieldsType1.fieldMap)) {
+                return false;
+            }
+        }
+        return true;
     }
     
     getDisplayString(): string {
@@ -234,12 +295,60 @@ export abstract class FieldsType extends ValueType {
         return this.size;
     }
     
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const fieldsType = type as FieldsType;
+        const fieldMap1 = this.fieldMap;
+        const fieldMap2 = fieldsType.fieldMap;
+        if (!this.isSoft) {
+            if (fieldsType.isSoft) {
+                return false;
+            }
+            for (const name in fieldMap1) {
+                if (!(name in fieldMap2)) {
+                    return false;
+                }
+            }
+        }
+        for (const name in fieldMap2) {
+            const field1 = fieldMap1[name];
+            const field2 = fieldMap2[name];
+            if (typeof field1 === "undefined" && !this.isSoft) {
+                return false;
+            }
+            if (!field1.type.containsType(field2.type)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
     getDisplayString(): string {
         return this.name;
     }
 }
 
 export class StructType extends FieldsType {
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const structType = type as StructType;
+        const fieldList1 = this.fieldList;
+        const fieldList2 = structType.fieldList;
+        const endIndex = Math.min(fieldList1.length, fieldList2.length);
+        for (let index = 0; index < endIndex; index++) {
+            const field1 = fieldList1[index];
+            const field2 = fieldList2[index];
+            if (field1.name !== field2.name) {
+                return false;
+            }
+        }
+        return true;
+    }
     
     getNextFieldOffset(offset: number, fieldSize: number): number {
         return offset + fieldSize;
@@ -267,6 +376,39 @@ export class FunctionType extends ValueType {
     
     getSize(): number {
         return this.signature.targetLanguage.pointerSize;
+    }
+    
+    containsType(type: ItemType): boolean {
+        if (!super.containsType(type)) {
+            return false;
+        }
+        const functionType = type as FunctionType;
+        const signature1 = this.signature;
+        const signature2 = functionType.signature;
+        const argTypes1 = signature1.getArgTypes();
+        const argTypes2 = signature2.getArgTypes();
+        if (signature1.isSoft) {
+            if (argTypes1.length > argTypes2.length) {
+                return false;
+            }
+        } else {
+            if (signature2.isSoft) {
+                return false;
+            }
+            if (argTypes1.length !== argTypes2.length) {
+                return false;
+            }
+        }
+        for (let index = 0; index < argTypes1.length; index++) {
+            const argType1 = argTypes1[index];
+            const argType2 = argTypes2[index];
+            if (!argType1.containsType(argType2)) {
+                return false;
+            }
+        }
+        const returnType1 = signature1.getReturnType();
+        const returnType2 = signature2.getReturnType();
+        return returnType1.containsType(returnType2);
     }
     
     getDisplayString(): string {

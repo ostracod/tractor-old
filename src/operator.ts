@@ -2,7 +2,7 @@
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { CompVoid, CompInteger } from "./compValue.js";
-import { IntegerType } from "./itemType.js";
+import { IntegerType, booleanType } from "./itemType.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -88,7 +88,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
     
     getType(type: IntegerType): IntegerType {
-        return new IntegerType(false, 8);
+        return booleanType;
     }
 }
 
@@ -269,7 +269,7 @@ export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
     }
     
     getType(type1: IntegerType, type2: IntegerType): IntegerType {
-        return new IntegerType(false, 8);
+        return booleanType;
     }
 }
 
