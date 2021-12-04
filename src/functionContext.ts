@@ -240,6 +240,46 @@ class GetFieldOffsetFunctionContext extends FieldFunctionContext {
     }
 }
 
+abstract class FunctionTypeFunctionContext extends BuiltInFunctionContext {
+    functionType: FunctionType;
+    
+    initialize(args: CompItem[]): void {
+        const typeArg = args[0];
+        if (!(typeArg instanceof FunctionType)) {
+            throw new CompilerError("First argument must conform to typeT(funcT).");
+        }
+        this.functionType = typeArg;
+    }
+}
+
+class GetArgTypeFunctionContext extends FunctionTypeFunctionContext {
+    index: number;
+    
+    initialize(args: CompItem[]): void {
+        super.initialize(args);
+        const indexArg = args[1];
+        if (!(indexArg instanceof CompInteger)) {
+            throw new CompilerError("Second argument must conform to intT.");
+        }
+        this.index = Number(indexArg.value);
+    }
+    
+    getReturnItem(): CompItem {
+        const argTypes = this.functionType.signature.getArgTypes();
+        if (this.index < 0 || this.index >= argTypes.length) {
+            throw new CompilerError("Invalid function argument index.");
+        }
+        return argTypes[this.index];
+    }
+}
+
+class GetReturnTypeFunctionContext extends FunctionTypeFunctionContext {
+    
+    getReturnItem(): CompItem {
+        return this.functionType.signature.getReturnType();
+    }
+}
+
 export const createBuiltInSignatures = (
     targetLanguage: TargetLanguage,
 ): BuiltInFunctionSignature[] => {
@@ -324,6 +364,18 @@ export const createBuiltInSignatures = (
         [new TypeType(structType), new ArrayType(characterType)],
         new IntegerType(),
         GetFieldOffsetFunctionContext,
+    );
+    addBuiltInSignature(
+        "getArgType",
+        [new TypeType(targetLanguage.functionType), new IntegerType()],
+        new TypeType(new ItemType()),
+        GetArgTypeFunctionContext,
+    );
+    addBuiltInSignature(
+        "getReturnType",
+        [new TypeType(targetLanguage.functionType)],
+        new TypeType(new ItemType()),
+        GetReturnTypeFunctionContext,
     );
     
     return output;
