@@ -2,7 +2,7 @@
 import { CompilerError } from "./compilerError.js";
 import { CompItem } from "./compItem.js";
 import { CompVoid, CompInteger } from "./compValue.js";
-import { IntegerType, booleanType } from "./itemType.js";
+import { ItemType, IntegerType, booleanType, NotType, OrType, AndType, XorType, typesAreEqual } from "./itemType.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -31,13 +31,17 @@ export abstract class UnaryOperator extends Operator {
     
     abstract calculateInteger(operand: bigint): bigint;
     
-    abstract getType(type: IntegerType): IntegerType;
+    abstract getIntegerType(type: IntegerType): IntegerType;
+    
+    getErrorMessage(): string {
+        return "Expected integer operand.";
+    }
     
     calculateCompItem(operand: CompItem): CompItem {
         if (!(operand instanceof CompInteger)) {
-            throw new CompilerError("Expected integer operand.");
+            throw new CompilerError(this.getErrorMessage());
         }
-        const resultType = this.getType(operand.getType());
+        const resultType = this.getIntegerType(operand.getType());
         let resultInteger = this.calculateInteger(operand.value);
         resultInteger = resultType.restrictInteger(resultInteger);
         return new CompInteger(resultInteger, resultType);
@@ -50,7 +54,7 @@ export abstract class UnaryOperator extends Operator {
 
 export abstract class UnaryTypeCopyOperator extends UnaryOperator {
     
-    getType(type: IntegerType): IntegerType {
+    getIntegerType(type: IntegerType): IntegerType {
         return type;
     }
 }
@@ -72,6 +76,17 @@ export class BitwiseInversionOperator extends UnaryTypeCopyOperator {
         super("~");
     }
     
+    getErrorMessage(): string {
+        return "Expected integer or type operand.";
+    }
+    
+    calculateCompItem(operand: CompItem): CompItem {
+        if (!(operand instanceof ItemType)) {
+            return super.calculateCompItem(operand);
+        }
+        return new NotType(operand);
+    }
+    
     calculateInteger(operand: bigint): bigint {
         return ~operand;
     }
@@ -87,7 +102,7 @@ export class BooleanInversionOperator extends UnaryOperator {
         return (operand === 0n) ? 1n : 0n;
     }
     
-    getType(type: IntegerType): IntegerType {
+    getIntegerType(type: IntegerType): IntegerType {
         return booleanType;
     }
 }
@@ -128,22 +143,36 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
     
     abstract calculateInteger(operand1: bigint, operand2: bigint): bigint;
     
-    abstract getType(type1: IntegerType, type2: IntegerType): IntegerType;
+    abstract getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType;
+    
+    isTypeOperator(): boolean {
+        return false;
+    }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        throw new Error("Not implemented.");
+    }
     
     calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
-        if (!(operand1 instanceof CompInteger) || !(operand2 instanceof CompInteger)) {
-            throw new CompilerError("Expected integer operand.");
+        if (operand1 instanceof CompInteger && operand2 instanceof CompInteger) {
+            const resultType = this.getIntegerType(operand1.getType(), operand2.getType());
+            let resultInteger = this.calculateInteger(operand1.value, operand2.value);
+            resultInteger = resultType.restrictInteger(resultInteger);
+            return new CompInteger(resultInteger, resultType);
         }
-        const resultType = this.getType(operand1.getType(), operand2.getType());
-        let resultInteger = this.calculateInteger(operand1.value, operand2.value);
-        resultInteger = resultType.restrictInteger(resultInteger);
-        return new CompInteger(resultInteger, resultType);
+        if (!this.isTypeOperator()) {
+            throw new CompilerError("Expected integer operands.");
+        }
+        if (operand1 instanceof ItemType && operand2 instanceof ItemType) {
+            return this.calculateItemByTypes(operand1, operand2);
+        }
+        throw new CompilerError("Expected integer or type operands.");
     }
 }
 
 export abstract class BinaryTypeMergeOperator extends BinaryIntegerOperator {
     
-    getType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
         // isSigned and bitAmount are nullable, so
         // we need to be a little careful here.
         let isSigned: boolean;
@@ -233,7 +262,7 @@ export abstract class BitshiftOperator extends BinaryIntegerOperator {
         super(text, 5);
     }
     
-    getType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
         return type1;
     }
 }
@@ -268,7 +297,7 @@ export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
         return this.calculateBoolean(operand1, operand2) ? 1n : 0n;
     }
     
-    getType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
         return booleanType;
     }
 }
@@ -323,8 +352,17 @@ export class EqualityOperator extends BinaryBooleanOperator {
         super("==", 7);
     }
     
+    isTypeOperator(): boolean {
+        return true;
+    }
+    
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
         return (operand1 === operand2);
+    }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        const value = typesAreEqual(operand1, operand2) ? 1n : 0n;
+        return new CompInteger(value, booleanType);
     }
 }
 
@@ -334,12 +372,28 @@ export class InequalityOperator extends BinaryBooleanOperator {
         super("!=", 7);
     }
     
+    isTypeOperator(): boolean {
+        return true;
+    }
+    
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
         return (operand1 !== operand2);
     }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        const value = typesAreEqual(operand1, operand2) ? 0n : 1n;
+        return new CompInteger(value, booleanType);
+    }
 }
 
-export class BitwiseAndOperator extends BinaryTypeMergeOperator {
+export abstract class BitwiseOperator extends BinaryTypeMergeOperator {
+    
+    isTypeOperator(): boolean {
+        return true;
+    }
+}
+
+export class BitwiseAndOperator extends BitwiseOperator {
     
     constructor() {
         super("&", 8);
@@ -348,9 +402,13 @@ export class BitwiseAndOperator extends BinaryTypeMergeOperator {
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
         return operand1 & operand2;
     }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        return new AndType(operand1, operand2);
+    }
 }
 
-export class BitwiseXorOperator extends BinaryTypeMergeOperator {
+export class BitwiseXorOperator extends BitwiseOperator {
     
     constructor() {
         super("^", 9);
@@ -359,9 +417,13 @@ export class BitwiseXorOperator extends BinaryTypeMergeOperator {
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
         return operand1 ^ operand2;
     }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        return new XorType(operand1, operand2);
+    }
 }
 
-export class BitwiseOrOperator extends BinaryTypeMergeOperator {
+export class BitwiseOrOperator extends BitwiseOperator {
     
     constructor() {
         super("|", 10);
@@ -369,6 +431,10 @@ export class BitwiseOrOperator extends BinaryTypeMergeOperator {
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
         return operand1 | operand2;
+    }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        return new OrType(operand1, operand2);
     }
 }
 

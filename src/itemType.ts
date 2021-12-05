@@ -426,7 +426,7 @@ export class NotType extends ItemType {
     }
     
     getDisplayString(): string {
-        return `~(this.type.getDisplayString())`;
+        return `~(${this.type.getDisplayString()})`;
     }
 }
 
@@ -475,5 +475,9 @@ export class XorType extends BinaryType {
         return "^";
     }
 }
+
+export const typesAreEqual = (type1: ItemType, type2: ItemType) => (
+    type1.containsType(type2) && type2.containsType(type1)
+);
 
 
