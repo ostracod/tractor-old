@@ -280,26 +280,32 @@ class GetReturnTypeFunctionContext extends FunctionTypeFunctionContext {
     }
 }
 
-class TypeConformsFunctionContext extends BuiltInFunctionContext {
-    type1: ItemType;
+abstract class TwoTypesFunctionContext extends TypeFunctionContext {
     type2: ItemType;
     
     initialize(args: CompItem[]): void {
-        const typeArg1 = args[0];
-        if (!(typeArg1 instanceof ItemType)) {
-            throw new CompilerError("First argument must conform to typeT(itemT).");
-        }
-        this.type1 = typeArg1;
-        const typeArg2 = args[1];
-        if (!(typeArg2 instanceof ItemType)) {
+        super.initialize(args);
+        const typeArg = args[1];
+        if (!(typeArg instanceof ItemType)) {
             throw new CompilerError("Second argument must conform to typeT(itemT).");
         }
-        this.type2 = typeArg2;
+        this.type2 = typeArg;
     }
+}
+
+class TypeConformsFunctionContext extends TwoTypesFunctionContext {
     
     getReturnItem(): CompItem {
-        const typeConforms = this.type2.containsType(this.type1);
+        const typeConforms = this.type.conformsToType(this.type2);
         return new CompInteger(BigInt(typeConforms), booleanType);
+    }
+}
+
+class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
+    
+    getReturnItem(): CompItem {
+        const typeIntersects = this.type.intersectsWithType(this.type2);
+        return new CompInteger(BigInt(typeIntersects), booleanType);
     }
 }
 
@@ -405,6 +411,13 @@ export const createBuiltInSignatures = (
         [new TypeType(new ItemType()), new TypeType(new ItemType())],
         booleanType,
         TypeConformsFunctionContext,
+    );
+    // It's a secret to everybody.
+    addBuiltInSignature(
+        "typeIntersects",
+        [new TypeType(new ItemType()), new TypeType(new ItemType())],
+        booleanType,
+        TypeIntersectsFunctionContext,
     );
     
     return output;

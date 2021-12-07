@@ -23,6 +23,25 @@ export abstract class FunctionSignature {
     abstract getReturnType(): ItemType;
     
     abstract getReturnTypeByArgs(args: CompItem[]): ItemType;
+    
+    checkTypes(
+        signature: FunctionSignature,
+        checkTypes: (type1: ItemType, type2: ItemType) => boolean,
+    ): boolean {
+        const argTypes1 = this.getArgTypes();
+        const argTypes2 = signature.getArgTypes();
+        const endIndex = Math.min(argTypes1.length, argTypes2.length);
+        for (let index = 0; index < endIndex; index++) {
+            const argType1 = argTypes1[index];
+            const argType2 = argTypes2[index];
+            if (!checkTypes(argType1, argType2)) {
+                return false;
+            }
+        }
+        const returnType1 = this.getReturnType();
+        const returnType2 = signature.getReturnType();
+        return checkTypes(returnType1, returnType2);
+    }
 }
 
 export class DefinitionFunctionSignature extends FunctionSignature implements Displayable {
