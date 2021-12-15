@@ -1,6 +1,4 @@
 
-import { ItemType } from "./compItem/itemType.js";
-
 export interface Config {
     name: string;
     description: string;

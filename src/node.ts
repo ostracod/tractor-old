@@ -57,6 +57,7 @@ export abstract class Node implements Displayable {
     }
     
     getParentByFilter(filter: (node: Node) => boolean): Node {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         let node: Node = this;
         while (node !== null) {
             node = node.getParentNode();
@@ -164,6 +165,7 @@ export abstract class Node implements Displayable {
     }
     
     getPos(): Pos {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         let node: Node = this;
         while (node !== null) {
             const { pos } = node;

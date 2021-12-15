@@ -104,7 +104,7 @@ export class Statement extends Node {
     }
     
     getDisplayLines(): string[] {
-        let textList = this.modifiers.slice();
+        const textList = this.modifiers.slice();
         const { directive } = this.type;
         if (directive !== null) {
             textList.push(directive);
@@ -235,15 +235,12 @@ export abstract class SimpleDefinitionStatement<T extends SingleTypeDefinition> 
 
 export class VariableStatement<T extends VariableDefinition> extends SimpleDefinitionStatement<T> {
     
-    createVariableDefinition(): {
-        variableDefinition: NodeSlot<T>,
-        statements: Statement[],
-    } {
+    createVariableDefinition(): { variableDefinition: NodeSlot<T>, statements: Statement[] } {
         const constructor = this.type.definitionConstructor;
         const identifierBehavior = this.createIdentifierBehavior();
         const typeExpression = this.args[1].get();
         const definition = new constructor(this.getPos(), identifierBehavior, typeExpression);
-        let statements: Statement[] = [];
+        const statements: Statement[] = [];
         if (this.args.length > 2) {
             const generator = this.createStatementGenerator(statements);
             generator.createInitStatement(identifierBehavior.identifier, this.args[2].get());

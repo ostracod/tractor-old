@@ -1,5 +1,4 @@
 
-import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { Expression } from "./statement/expression.js";
 import { Statement } from "./statement/statement.js";

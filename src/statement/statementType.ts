@@ -216,7 +216,7 @@ new FieldsTypeStatementType("UNION", UnionDefinition, {
 });
 new VariableStatementType("ARG", ArgVariableDefinition, {
     argAmount: 2,
-    hasDeclarationIdentifier: true
+    hasDeclarationIdentifier: true,
 });
 new StatementType("RET_TYPE", Statement, { argAmount: 1 });
 new StatementType("RET", Statement, { maximumArgAmount: 1 });

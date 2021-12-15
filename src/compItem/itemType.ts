@@ -1,9 +1,5 @@
 
-import * as niceUtils from "../niceUtils.js";
 import { constructors } from "../constructors.js";
-import { CompilerError } from "../compilerError.js";
-import { ResolvedField } from "../resolvedField.js";
-import { FunctionSignature } from "../functionSignature.js";
 import { CompItem } from "./compItem.js";
 import { TypeType } from "./basicType.js";
 

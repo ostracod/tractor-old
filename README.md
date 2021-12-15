@@ -8,12 +8,14 @@ A programming language by Jack Eisenmann
 This application has the following system-wide dependencies:
 
 * Node.js version ^16.4
-* TypeScript version ^4.3
+* TypeScript version ^4.5
+* pnpm version ^6.24
 
 To install this application:
 
 1. Clone this repository on your machine.
 1. Set your working directory to this repository: `cd tractor`
+1. Install dependencies of this application: `pnpm install`
 1. Compile TypeScript code: `tsc`
 
 To compile a Tractor project:

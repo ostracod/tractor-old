@@ -57,7 +57,7 @@ const skipCharacters = (
     while (index < text.length) {
         const character = text.charAt(index);
         if (!shouldSkip(character)) {
-            break
+            break;
         }
         index += 1;
     }
@@ -96,7 +96,7 @@ const readCharacterToken = (text: string, index: number): TokenResult => {
     return {
         token: new CharacterToken(character),
         index,
-    }
+    };
 };
 
 const readStringToken = (text: string, index: number): TokenResult => {
@@ -283,7 +283,7 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
             return {
                 expression: result.expression,
                 index,
-            }
+            };
         }
         if (token.text === "{") {
             const result = readExpressions(tokens, index);
@@ -293,7 +293,7 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
             return {
                 expression: new ListExpression(result.expressions),
                 index,
-            }
+            };
         }
     }
     return null;
@@ -344,7 +344,7 @@ const readExpression = (
             if (token.text === "[") {
                 const result = readExpression(tokens, index);
                 if (result === null) {
-                    throw new CompilerError(`Expected expression after "[".`);
+                    throw new CompilerError("Expected expression after \"[\".");
                 }
                 const operand = result.expression;
                 index = result.index;
@@ -408,7 +408,7 @@ export const parseTokens = (tokens: Token[]): Statement => {
             modifiers.push(token.text);
             index += 1;
         } else {
-            break
+            break;
         }
     }
     let statementType: StatementType = expressionStatementType;

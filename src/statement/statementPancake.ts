@@ -122,7 +122,6 @@ export class StatementPancake {
     
     markUselessJumpStatements(): void {
         let lastUsefulStatement: Statement = null;
-        let lastUsefulIndex: number = null;
         this.statements.forEach((statement, index) => {
             if (this.uselessStatements.has(statement)) {
                 return;
@@ -139,10 +138,8 @@ export class StatementPancake {
             if (pairIsUseless) {
                 this.uselessStatements.add(lastUsefulStatement);
                 lastUsefulStatement = null;
-                lastUsefulIndex = null;
             } else {
                 lastUsefulStatement = statement;
-                lastUsefulIndex = index;
             }
         });
     }

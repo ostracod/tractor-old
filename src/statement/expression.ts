@@ -38,7 +38,7 @@ export abstract class Expression extends Node {
     }
     
     getDefinitionOrNull(): Definition {
-        return null
+        return null;
     }
     
     getDefinition(): Definition {
@@ -200,7 +200,7 @@ export class BinaryExpression extends Expression {
         }
         let output: CompItem;
         this.tryOperation(() => {
-             output = this.operator.calculateCompItem(operand1, operand2);
+            output = this.operator.calculateCompItem(operand1, operand2);
         });
         return output;
     }

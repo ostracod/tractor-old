@@ -1,11 +1,10 @@
 
-import * as niceUtils from "./niceUtils.js";
 import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem } from "./compItem/compItem.js";
 import { CompInteger, CompArray } from "./compItem/compValue.js";
 import { ItemType } from "./compItem/itemType.js";
-import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
+import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
 import { OrType } from "./compItem/manipulationType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
 import { BuiltInFunctionSignature } from "./functionSignature.js";
@@ -226,7 +225,7 @@ class GetFieldOffsetFunctionContext extends FieldFunctionContext {
     
     initialize(args: CompItem[]): void {
         super.initialize(args);
-        const field = this.field;
+        const { field } = this;
         if (!(field instanceof DataField)) {
             throw new CompilerError("Field must be a data field.");
         }

@@ -3,6 +3,13 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
+        "lint": "eslint . --ext .ts",
         "build": "tsc"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^5.7.0",
+        "@typescript-eslint/parser": "^5.7.0",
+        "eslint": "^8.4.1",
+        "typescript": "^4.5.4"
     }
 }

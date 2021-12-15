@@ -17,7 +17,7 @@ export class DefinitionMap<T extends Definition = Definition> extends Node {
     get(identifier: Identifier): T {
         const slot = this.identifierMap.get(identifier);
         if (slot === null) {
-            return null
+            return null;
         } else {
             return slot.get();
         }

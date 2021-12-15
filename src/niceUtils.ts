@@ -38,9 +38,9 @@ export const getDictionaryWithDefaults = (
     return output;
 };
 
-export const getNumberPhrase = (amount: number, noun: string): string => {
-    return (amount === 1) ? `${amount} ${noun}` : `${amount} ${noun}s`;
-};
+export const getNumberPhrase = (amount: number, noun: string): string => (
+    (amount === 1) ? `${amount} ${noun}` : `${amount} ${noun}s`
+);
 
 export const getIndentation = (indentationLevel: number): string => {
     const textList = [];
@@ -55,7 +55,7 @@ export const extendWithIndentation = (destination: string[], source: string[]): 
     source.forEach((text) => {
         destination.push(indentation + text);
     });
-}
+};
 
 export const getDisplayStrings = (title: string, displayables: Displayable[]): string => {
     const lines = [`\n= = = ${title} = = =\n`];

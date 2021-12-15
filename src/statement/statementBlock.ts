@@ -335,7 +335,7 @@ export class StatementBlock extends Node {
     
     createFunctionSignature(): DefinitionFunctionSignature {
         const argVariableDefinitions: NodeSlot<ArgVariableDefinition>[] = [];
-        let returnTypeResolver: NodeSlot<TypeResolver> = this.addSlot();
+        const returnTypeResolver: NodeSlot<TypeResolver> = this.addSlot();
         this.processBlockStatements((statement) => {
             const { directive } = statement.type;
             if (directive === "ARG") {
@@ -400,10 +400,10 @@ export class StatementBlock extends Node {
     getDisplayLines(): string[] {
         const output = [];
         this.scope.get().iterate((definition) => {
-            niceUtils.extendList(output, definition.getDisplayLines())
+            niceUtils.extendList(output, definition.getDisplayLines());
         });
         this.statements.forEach((slot) => {
-            niceUtils.extendList(output, slot.get().getDisplayLines())
+            niceUtils.extendList(output, slot.get().getDisplayLines());
         });
         return output;
     }

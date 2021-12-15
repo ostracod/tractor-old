@@ -104,7 +104,7 @@ export class IntegerType extends ValueType {
         } else {
             term = "uInt";
         }
-        const suffix = (this.bitAmount == null) ? "" : this.bitAmount.toString();
+        const suffix = (this.bitAmount === null) ? "" : this.bitAmount.toString();
         return term + suffix + "T";
     }
     
@@ -284,7 +284,7 @@ export class FieldNameType extends ArrayType {
     
     getDisplayString(): string {
         const typeDisplayString = this.fieldsType.getDisplayString();
-        return `fieldNameT(${this.fieldsType.getDisplayString()})`;
+        return `fieldNameT(${typeDisplayString})`;
     }
 }
 
