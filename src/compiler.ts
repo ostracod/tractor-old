@@ -5,11 +5,11 @@ import { Config } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
-import { SourceFile, TractorFile } from "./sourceFile.js";
-import { Expression } from "./expression.js";
-import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement.js";
-import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
-import { InlineFunctionDefinition } from "./functionDefinition.js";
+import { SourceFile, TractorFile } from "./parse/sourceFile.js";
+import { Expression } from "./statement/expression.js";
+import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement/statement.js";
+import { StatementBlock, RootStatementBlock } from "./statement/statementBlock.js";
+import { InlineFunctionDefinition } from "./definition/functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { targetLanguageMap, TargetLanguage } from "./targetLanguage.js";
 

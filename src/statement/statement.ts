@@ -1,17 +1,17 @@
 
-import * as niceUtils from "./niceUtils.js";
-import { constructors } from "./constructors.js";
-import { Node, NodeSlot, processNodeList } from "./node.js";
+import * as niceUtils from "../niceUtils.js";
+import { constructors } from "../constructors.js";
+import { Node, NodeSlot, processNodeList } from "../node.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "../identifier.js";
+import { IdentifierBehavior, ForeignIdentifierBehavior } from "../identifierBehavior.js";
+import { Compiler } from "../compiler.js";
+import { FunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition } from "../definition/functionDefinition.js";
+import { VariableDefinition } from "../definition/variableDefinition.js";
+import { SingleTypeDefinition, FieldDefinition } from "../definition/singleTypeDefinition.js";
+import { FieldsTypeDefinition } from "../definition/typeDefinition.js";
 import { StatementType, SimpleDefinitionStatementType, FieldsTypeStatementType } from "./statementType.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression } from "./expression.js";
-import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
-import { IdentifierBehavior, ForeignIdentifierBehavior } from "./identifierBehavior.js";
-import { FunctionDefinitionConstructor, NonInlineFunctionDefinition, InlineFunctionDefinition } from "./functionDefinition.js";
-import { VariableDefinition } from "./variableDefinition.js";
-import { SingleTypeDefinition, FieldDefinition } from "./singleTypeDefinition.js";
-import { FieldsTypeDefinition } from "./typeDefinition.js";
-import { Compiler } from "./compiler.js";
 
 export type StatementConstructor<T extends Statement = Statement> = new (
     type: T["type"],

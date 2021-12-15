@@ -1,9 +1,9 @@
 
-import { Pos } from "./pos.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
-import { Expression } from "./expression.js";
+import { IdentifierBehavior } from "../identifierBehavior.js";
+import { Pos } from "../parse/pos.js";
+import { Expression } from "../statement/expression.js";
+import { CompItem } from "../compItem/compItem.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
-import { CompItem } from "./compItem.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     

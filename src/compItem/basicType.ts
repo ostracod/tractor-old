@@ -1,47 +1,16 @@
 
-import * as niceUtils from "./niceUtils.js";
-import { CompilerError } from "./compilerError.js";
-import { CompItem } from "./compItem.js";
-import { ResolvedField } from "./resolvedField.js";
-import { FunctionSignature } from "./functionSignature.js";
+import * as niceUtils from "../niceUtils.js";
+import { constructors } from "../constructors.js";
+import { CompilerError } from "../compilerError.js";
+import { ResolvedField } from "../resolvedField.js";
+import { FunctionSignature } from "../functionSignature.js";
+import { ItemType } from "./itemType.js";
 
-export class ItemType extends CompItem {
+export abstract class BasicType extends ItemType {
     
-    getType(): TypeType {
-        return new TypeType(this);
-    }
-    
-    getSize(): number {
-        return null;
-    }
-    
-    containsType(type: ItemType): boolean {
-        return (type instanceof this.constructor);
-    }
-    
-    conformsToType(type: ItemType): boolean {
-        return type.containsType(this);
-    }
-    
-    // Should return false if any superclass returns false.
-    intersectsHelper(type: ItemType): boolean {
-        return (type instanceof this.constructor);
-    }
-    
-    // Override intersectsHelper to control behavior of subclasses.
-    intersectsWithType(type: ItemType): boolean {
-        if (this.containsType(type) || type.containsType(this)) {
-            return true;
-        }
-        return this.intersectsHelper(type);
-    }
-    
-    getDisplayString(): string {
-        return "itemT";
-    }
 }
 
-export class TypeType extends ItemType {
+export class TypeType extends BasicType {
     type: ItemType;
     
     constructor(type: ItemType) {
@@ -70,7 +39,7 @@ export class TypeType extends ItemType {
     }
 }
 
-export class ValueType extends ItemType {
+export class ValueType extends BasicType {
     
     getDisplayString(): string {
         return "valueT";
@@ -533,67 +502,6 @@ export class FunctionType extends ValueType {
     }
 }
 
-export class NotType extends ItemType {
-    type: ItemType;
-    
-    constructor(type: ItemType) {
-        super();
-        this.type = type;
-    }
-    
-    getDisplayString(): string {
-        return `~(${this.type.getDisplayString()})`;
-    }
-}
-
-export abstract class BinaryType extends ItemType {
-    type1: ItemType;
-    type2: ItemType;
-    
-    constructor(type1: ItemType, type2: ItemType) {
-        super();
-        this.type1 = type1;
-        this.type2 = type2;
-    }
-    
-    abstract getOperatorText(): string;
-    
-    getSize(): number {
-        const size1 = this.type1.getSize();
-        const size2 = this.type2.getSize();
-        return (size1 === size2) ? size1 : null;
-    }
-    
-    getDisplayString(): string {
-        const typeText1 = this.type1.getDisplayString();
-        const typeText2 = this.type2.getDisplayString();
-        return `(${typeText1} ${this.getOperatorText()} ${typeText2})`;
-    }
-}
-
-export class OrType extends BinaryType {
-    
-    getOperatorText(): string {
-        return "|";
-    }
-}
-
-export class AndType extends BinaryType {
-    
-    getOperatorText(): string {
-        return "&";
-    }
-}
-
-export class XorType extends BinaryType {
-    
-    getOperatorText(): string {
-        return "^";
-    }
-}
-
-export const typesAreEqual = (type1: ItemType, type2: ItemType) => (
-    type1.containsType(type2) && type2.containsType(type1)
-);
+constructors.TypeType = TypeType;
 
 

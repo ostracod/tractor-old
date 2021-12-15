@@ -1,8 +1,8 @@
 
-import { Pos } from "./pos.js";
-import { Node } from "./node.js";
-import { CompItem } from "./compItem.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
+import { Node } from "../node.js";
+import { IdentifierBehavior } from "../identifierBehavior.js";
+import { Pos } from "../parse/pos.js";
+import { CompItem } from "../compItem/compItem.js";
 
 export abstract class Definition extends Node {
     identifierBehavior: IdentifierBehavior;

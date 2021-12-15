@@ -1,15 +1,15 @@
 
-import { Pos } from "./pos.js";
-import * as niceUtils from "./niceUtils.js";
-import { NodeSlot } from "./node.js";
+import * as niceUtils from "../niceUtils.js";
+import { NodeSlot } from "../node.js";
+import { IdentifierBehavior } from "../identifierBehavior.js";
+import { DefinitionFunctionSignature } from "../functionSignature.js";
+import { ResolvedField } from "../resolvedField.js";
+import { Pos } from "../parse/pos.js";
+import { StatementBlock } from "../statement/statementBlock.js";
+import { FieldsTypeConstructor, FieldsType, StructType, UnionType } from "../compItem/basicType.js";
 import { Definition } from "./definition.js";
 import { FieldDefinition } from "./singleTypeDefinition.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
 import { DefinitionMap } from "./definitionMap.js";
-import { StatementBlock } from "./statementBlock.js";
-import { ResolvedField } from "./resolvedField.js";
-import { DefinitionFunctionSignature } from "./functionSignature.js";
-import { FieldsTypeConstructor, FieldsType, StructType, UnionType } from "./itemType.js";
 
 export type FieldsTypeDefinitionConstructor<T extends FieldsTypeDefinition> = new (
     pos: Pos,

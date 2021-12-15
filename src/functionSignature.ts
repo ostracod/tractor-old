@@ -3,10 +3,10 @@ import { Displayable } from "./interfaces.js";
 import * as niceUtils from "./niceUtils.js";
 import { NodeSlot } from "./node.js";
 import { TargetLanguage } from "./targetLanguage.js";
-import { ArgVariableDefinition } from "./variableDefinition.js";
+import { ArgVariableDefinition } from "./definition/variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
-import { CompItem } from "./compItem.js";
-import { ItemType } from "./itemType.js";
+import { CompItem } from "./compItem/compItem.js";
+import { ItemType } from "./compItem/itemType.js";
 import { FunctionContextConstructor, FunctionContext, BuiltInFunctionContext } from "./functionContext.js";
 
 export abstract class FunctionSignature {

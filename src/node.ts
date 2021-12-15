@@ -2,13 +2,13 @@
 import { Displayable } from "./interfaces.js";
 import { constructors } from "./constructors.js";
 import { CompilerError } from "./compilerError.js";
-import { Pos } from "./pos.js";
+import { Pos } from "./parse/pos.js";
 import { Compiler } from "./compiler.js";
 import { TargetLanguage } from "./targetLanguage.js";
-import { Statement } from "./statement.js";
-import { StatementBlock, RootStatementBlock } from "./statementBlock.js";
-import { StatementGenerator } from "./statementGenerator.js";
-import { Expression } from "./expression.js";
+import { Statement } from "./statement/statement.js";
+import { StatementBlock, RootStatementBlock } from "./statement/statementBlock.js";
+import { StatementGenerator } from "./statement/statementGenerator.js";
+import { Expression } from "./statement/expression.js";
 
 export const processNodeList = <T extends Node>(
     nodes: NodeSlot<T>[],

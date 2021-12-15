@@ -92,6 +92,7 @@ Tractor has the following built-in parameterizable types:
 
 The following types are subtypes of `concreteT`:
 
+* `voidT`
 * `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
 * `ptrT(<type>)` for any type `<type>`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
@@ -125,7 +126,7 @@ Tractor has the following integer operators:
 
 Tractor has the following type operators:
 
-* `~`, `&`, `|`, and `^` perform type manipulation. For example, `intT & compT` returns the type of an integer known at compile time.
+* `~`, `&`, and `|` perform type manipulation. For example, `intT & compT` returns the type of an integer known at compile time.
 * `==` and `!=` perform type comparison. For example, `uInt8T != uInt16T` returns `TRUE`.
 
 Tractor has the following assignment operators:

@@ -1,22 +1,22 @@
 
-import * as niceUtils from "./niceUtils.js";
-import { constructors } from "./constructors.js";
-import { Node, NodeSlot } from "./node.js";
-import { Definition } from "./definition.js";
-import { Pos } from "./pos.js";
+import * as niceUtils from "../niceUtils.js";
+import { constructors } from "../constructors.js";
+import { Node, NodeSlot } from "../node.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "../identifier.js";
+import { DefinitionFunctionSignature } from "../functionSignature.js";
+import { TypeResolver } from "../typeResolver.js";
+import { Pos } from "../parse/pos.js";
+import { DefinitionMap } from "../definition/definitionMap.js";
+import { Definition } from "../definition/definition.js";
+import { FieldDefinition } from "../definition/singleTypeDefinition.js";
+import { FunctionTypeDefinition } from "../definition/typeDefinition.js";
+import { ArgVariableDefinition } from "../definition/variableDefinition.js";
+import { CompItem } from "../compItem/compItem.js";
+import { createBuiltInItemMap } from "../compItem/builtInItem.js";
 import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpIfStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
 import { StatementPancake } from "./statementPancake.js";
 import { Expression } from "./expression.js";
-import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
-import { DefinitionMap } from "./definitionMap.js";
-import { TypeResolver } from "./typeResolver.js";
-import { FieldDefinition } from "./singleTypeDefinition.js";
-import { FunctionTypeDefinition } from "./typeDefinition.js";
-import { ArgVariableDefinition } from "./variableDefinition.js";
-import { DefinitionFunctionSignature } from "./functionSignature.js";
-import { createBuiltInItemMap } from "./builtInItem.js";
-import { CompItem } from "./compItem.js";
 
 class IfClause {
     condition: Expression;

@@ -1,6 +1,6 @@
 
-import { Displayable } from "./interfaces.js";
-import { CompilerError } from "./compilerError.js";
+import { Displayable } from "../interfaces.js";
+import { CompilerError } from "../compilerError.js";
 import { ItemType } from "./itemType.js";
 
 export abstract class CompItem implements Displayable {

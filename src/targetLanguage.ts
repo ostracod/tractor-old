@@ -1,6 +1,7 @@
 
 import { TargetCodeGeneratorConstructor, UnixCGenerator } from "./targetCodeGenerator.js";
-import { ItemType, PointerType, FunctionType } from "./itemType.js";
+import { ItemType } from "./compItem/itemType.js";
+import { PointerType, FunctionType } from "./compItem/basicType.js";
 import { GenericFunctionContext } from "./functionContext.js";
 import { ContextFunctionSignature } from "./functionSignature.js";
 

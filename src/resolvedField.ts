@@ -1,5 +1,5 @@
 
-import { ItemType } from "./itemType.js";
+import { ItemType } from "./compItem/itemType.js";
 
 export type ResolvedFieldConstructor<T extends ResolvedField = ResolvedField> = new (
     name: string,

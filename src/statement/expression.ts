@@ -1,13 +1,13 @@
 
-import { constructors } from "./constructors.js";
-import { Node, NodeSlot } from "./node.js";
-import { Definition } from "./definition.js";
-import { CompItem } from "./compItem.js";
-import { CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "./compValue.js";
-import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
-import { Identifier } from "./identifier.js";
+import { constructors } from "../constructors.js";
+import { Node, NodeSlot } from "../node.js";
+import { Identifier } from "../identifier.js";
+import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
+import { Definition } from "../definition/definition.js";
+import { CompItem } from "../compItem/compItem.js";
+import { CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
-import { InlineFunctionDefinition } from "./functionDefinition.js";
+import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 
 export abstract class Expression extends Node {
     

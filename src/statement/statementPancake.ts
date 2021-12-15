@@ -1,13 +1,13 @@
 
-import * as niceUtils from "./niceUtils.js";
-import { IdentifierMap } from "./identifier.js";
+import * as niceUtils from "../niceUtils.js";
+import { IdentifierMap } from "../identifier.js";
+import { VariableDefinition } from "../definition/variableDefinition.js";
+import { CompItem } from "../compItem/compItem.js";
+import { CompVoid } from "../compItem/compValue.js";
 import { initializationOperator } from "./operator.js";
 import { Expression, BinaryExpression } from "./expression.js";
 import { Statement, LabelStatement, JumpStatement, JumpIfStatement, ExpressionStatement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
-import { CompItem } from "./compItem.js";
-import { CompVoid } from "./compValue.js";
-import { VariableDefinition } from "./variableDefinition.js";
 
 interface StatementOperand {
     statement: ExpressionStatement;

@@ -1,6 +1,6 @@
 
 import { Displayable } from "./interfaces.js";
-import { Pos } from "./pos.js";
+import { Pos } from "./parse/pos.js";
 
 export class CompilerError extends Error implements Displayable {
     message: string;

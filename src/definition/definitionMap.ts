@@ -1,7 +1,7 @@
 
-import { Node, NodeSlot } from "./node.js";
+import { Node, NodeSlot } from "../node.js";
+import { Identifier, DisplayableIdentifierMap } from "../identifier.js";
 import { Definition } from "./definition.js";
-import { Identifier, DisplayableIdentifierMap } from "./identifier.js";
 
 export class DefinitionMap<T extends Definition = Definition> extends Node {
     identifierMap: DisplayableIdentifierMap<NodeSlot<T>>;

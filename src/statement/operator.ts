@@ -1,8 +1,10 @@
 
-import { CompilerError } from "./compilerError.js";
-import { CompItem } from "./compItem.js";
-import { CompVoid, CompInteger } from "./compValue.js";
-import { ItemType, IntegerType, booleanType, NotType, OrType, AndType, XorType, typesAreEqual } from "./itemType.js";
+import { CompilerError } from "../compilerError.js";
+import { CompItem } from "../compItem/compItem.js";
+import { CompVoid, CompInteger } from "../compItem/compValue.js";
+import { ItemType, typesAreEqual } from "../compItem/itemType.js";
+import { IntegerType, booleanType } from "../compItem/basicType.js";
+import { NotType, OrType, AndType, XorType } from "../compItem/manipulationType.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();

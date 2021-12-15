@@ -1,10 +1,11 @@
 
-import { Identifier, NameIdentifier, IdentifierMap } from "./identifier.js";
+import { Identifier, NameIdentifier, IdentifierMap } from "../identifier.js";
+import { createBuiltInSignatures } from "../functionContext.js";
+import { TargetLanguage } from "../targetLanguage.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
-import { ItemType, ValueType, VoidType, IntegerType, structType, unionType } from "./itemType.js";
-import { createBuiltInSignatures } from "./functionContext.js";
-import { TargetLanguage } from "./targetLanguage.js";
+import { ItemType } from "./itemType.js";
+import { ValueType, VoidType, IntegerType, structType, unionType } from "./basicType.js";
 
 interface BuiltInItem {
     identifier: Identifier;

@@ -1,17 +1,17 @@
 
-import * as niceUtils from "./niceUtils.js";
-import { Pos } from "./pos.js";
-import { NodeSlot } from "./node.js";
+import * as niceUtils from "../niceUtils.js";
+import { NodeSlot } from "../node.js";
+import { Identifier, NumberIdentifier, IdentifierMap } from "../identifier.js";
+import { DefinitionFunctionSignature } from "../functionSignature.js";
+import { Pos } from "../parse/pos.js";
+import { Statement } from "../statement/statement.js";
+import { StatementBlock } from "../statement/statementBlock.js";
+import { StatementGenerator } from "../statement/statementGenerator.js";
+import { IdentifierBehavior } from "../identifierBehavior.js";
+import { Expression, IdentifierExpression } from "../statement/expression.js";
+import { CompItem } from "../compItem/compItem.js";
+import { DefinitionFunctionHandle } from "../compItem/compValue.js";
 import { Definition } from "./definition.js";
-import { Statement } from "./statement.js";
-import { StatementBlock } from "./statementBlock.js";
-import { StatementGenerator } from "./statementGenerator.js";
-import { Identifier, NumberIdentifier, IdentifierMap } from "./identifier.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
-import { Expression, IdentifierExpression } from "./expression.js";
-import { DefinitionFunctionSignature } from "./functionSignature.js";
-import { CompItem } from "./compItem.js";
-import { DefinitionFunctionHandle } from "./compValue.js";
 
 export type FunctionDefinitionConstructor = new (
     pos: Pos,

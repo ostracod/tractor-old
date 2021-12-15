@@ -1,10 +1,10 @@
 
 import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
-import { Expression } from "./expression.js";
-import { Statement } from "./statement.js";
-import { StatementBlock } from "./statementBlock.js";
-import { ItemType } from "./itemType.js";
+import { Expression } from "./statement/expression.js";
+import { Statement } from "./statement/statement.js";
+import { StatementBlock } from "./statement/statementBlock.js";
+import { ItemType } from "./compItem/itemType.js";
 
 export class TypeResolver extends Node {
     expression: NodeSlot<Expression>;

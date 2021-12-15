@@ -1,12 +1,12 @@
 
 import * as fs from "fs";
+import { Displayable } from "../interfaces.js";
+import { CompilerError } from "../compilerError.js";
+import { Statement } from "../statement/statement.js";
 import * as parseUtils from "./parseUtils.js";
-import { Displayable } from "./interfaces.js";
 import { Pos } from "./pos.js";
-import { CompilerError } from "./compilerError.js";
 import { Token } from "./token.js";
 import { TokenLine } from "./tokenLine.js";
-import { Statement } from "./statement.js";
 
 export class SourceFile implements Displayable {
     path: string;

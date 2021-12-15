@@ -1,9 +1,10 @@
 
-import { CompilerError } from "./compilerError.js";
-import { FunctionDefinition } from "./functionDefinition.js";
-import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature } from "./functionSignature.js";
+import { CompilerError } from "../compilerError.js";
+import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature } from "../functionSignature.js";
+import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { CompItem } from "./compItem.js";
-import { ItemType, VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./itemType.js";
+import { ItemType } from "./itemType.js";
+import { VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./basicType.js";
 
 export abstract class CompValue extends CompItem {
     

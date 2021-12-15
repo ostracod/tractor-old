@@ -1,11 +1,11 @@
 
-import { constructors } from "./constructors.js";
-import { Pos } from "./pos.js";
+import { constructors } from "../constructors.js";
+import { Identifier } from "../identifier.js";
+import { Pos } from "../parse/pos.js";
 import { StatementType, directiveStatementTypeMap, expressionStatementType } from "./statementType.js";
 import { Statement } from "./statement.js";
 import { StatementBlock } from "./statementBlock.js";
 import { Expression, IdentifierExpression, BinaryExpression } from "./expression.js";
-import { Identifier } from "./identifier.js";
 import { binaryOperatorMap } from "./operator.js";
 
 export class StatementGenerator {

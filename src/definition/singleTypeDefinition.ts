@@ -1,11 +1,11 @@
 
-import { Pos } from "./pos.js";
-import { NodeSlot } from "./node.js";
+import { NodeSlot } from "../node.js";
+import { IdentifierBehavior } from "../identifierBehavior.js";
+import { TypeResolver } from "../typeResolver.js";
+import { ResolvedFieldConstructor, ResolvedField, DataField, TypeField } from "../resolvedField.js";
+import { Pos } from "../parse/pos.js";
+import { Expression } from "../statement/expression.js";
 import { Definition } from "./definition.js";
-import { IdentifierBehavior } from "./identifierBehavior.js";
-import { Expression } from "./expression.js";
-import { TypeResolver } from "./typeResolver.js";
-import { ResolvedFieldConstructor, ResolvedField, DataField, TypeField } from "./resolvedField.js";
 
 export type SingleTypeDefinitionConstructor<T extends SingleTypeDefinition> = new (
     pos: Pos,
