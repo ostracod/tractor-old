@@ -34,13 +34,13 @@ export class ItemType extends CompItem {
         return this.intersectsHelper(type);
     }
     
+    equalsType(type: ItemType): boolean {
+        return this.containsType(type) && type.containsType(this);
+    }
+    
     getDisplayString(): string {
         return "itemT";
     }
 }
-
-export const typesAreEqual = (type1: ItemType, type2: ItemType) => (
-    type1.containsType(type2) && type2.containsType(type1)
-);
 
 

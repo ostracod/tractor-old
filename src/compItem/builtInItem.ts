@@ -6,6 +6,7 @@ import { CompItem } from "./compItem.js";
 import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
 import { ItemType } from "./itemType.js";
 import { ValueType, VoidType, IntegerType, structType, unionType } from "./basicType.js";
+import { storageTypeConstructors } from "./storageType.js";
 
 interface BuiltInItem {
     identifier: Identifier;
@@ -39,6 +40,10 @@ export const createBuiltInItemMap = (
     addBuiltInItem(structType);
     addBuiltInItem(unionType);
     addBuiltInItem(targetLanguage.functionType);
+    
+    storageTypeConstructors.forEach((constructor) => {
+        addBuiltInItem(new constructor(false));
+    });
     
     const signatures = createBuiltInSignatures(targetLanguage);
     signatures.forEach((signature) => {

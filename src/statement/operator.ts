@@ -2,7 +2,7 @@
 import { CompilerError } from "../compilerError.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
-import { ItemType, typesAreEqual } from "../compItem/itemType.js";
+import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType, XorType } from "../compItem/manipulationType.js";
 import { Expression } from "./expression.js";
@@ -363,7 +363,7 @@ export class EqualityOperator extends BinaryBooleanOperator {
     }
     
     calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
-        const value = typesAreEqual(operand1, operand2) ? 1n : 0n;
+        const value = operand1.equalsType(operand2) ? 1n : 0n;
         return new CompInteger(value, booleanType);
     }
 }
@@ -383,7 +383,7 @@ export class InequalityOperator extends BinaryBooleanOperator {
     }
     
     calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
-        const value = typesAreEqual(operand1, operand2) ? 0n : 1n;
+        const value = operand1.equalsType(operand2) ? 0n : 1n;
         return new CompInteger(value, booleanType);
     }
 }
