@@ -13,10 +13,19 @@ export class NotType extends ManipulationType {
         this.type = type;
     }
     
+    copy(): ItemType {
+        return new NotType(this.type.copy());
+    }
+    
     getDisplayString(): string {
         return `~(${this.type.getDisplayString()})`;
     }
 }
+
+export type BinaryTypeConstructor<T extends BinaryType = BinaryType> = new (
+    type1: ItemType,
+    type2: ItemType,
+) => T;
 
 export abstract class BinaryType extends ManipulationType {
     type1: ItemType;
@@ -29,6 +38,13 @@ export abstract class BinaryType extends ManipulationType {
     }
     
     abstract getOperatorText(): string;
+    
+    copy(): ItemType {
+        return new (this.constructor as BinaryTypeConstructor)(
+            this.type1.copy(),
+            this.type2.copy(),
+        );
+    }
     
     getSize(): number {
         const size1 = this.type1.getSize();
@@ -54,13 +70,6 @@ export class AndType extends BinaryType {
     
     getOperatorText(): string {
         return "&";
-    }
-}
-
-export class XorType extends BinaryType {
-    
-    getOperatorText(): string {
-        return "^";
     }
 }
 

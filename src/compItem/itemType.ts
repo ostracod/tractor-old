@@ -13,6 +13,10 @@ export class ItemType extends CompItem {
         return null;
     }
     
+    copy(): ItemType {
+        return new ItemType();
+    }
+    
     containsType(type: ItemType): boolean {
         return (type instanceof this.constructor);
     }

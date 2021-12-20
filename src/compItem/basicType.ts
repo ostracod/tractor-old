@@ -5,9 +5,46 @@ import { CompilerError } from "../compilerError.js";
 import { ResolvedField } from "../resolvedField.js";
 import { FunctionSignature } from "../functionSignature.js";
 import { ItemType } from "./itemType.js";
+import { StorageType } from "./storageType.js";
 
-export abstract class BasicType extends ItemType {
+export class BasicType extends ItemType {
+    // The intersection of all elements in this.storageTypes
+    // describes the storage type of this basic type.
+    storageTypes: StorageType[];
     
+    constructor() {
+        super();
+        this.storageTypes = [];
+    }
+    
+    copyStorageTypes(type: BasicType) {
+        
+    }
+    
+    copyHelper(): BasicType {
+        return new BasicType();
+    }
+    
+    copy(): ItemType {
+        const output = this.copyHelper();
+        output.storageTypes = this.storageTypes.map((type) => (type.copy() as StorageType));
+        return output;
+    }
+    
+    getDisplayStringHelper(): string {
+        return "itemT";
+    }
+    
+    getDisplayString(): string {
+        const text = this.getDisplayStringHelper();
+        if (this.storageTypes.length > 0) {
+            const textList = this.storageTypes.map((type) => type.getDisplayString());
+            textList.unshift(text);
+            return "(" + textList.join(" & ") + ")";
+        } else {
+            return text;
+        }
+    }
 }
 
 export class TypeType extends BasicType {
@@ -16,6 +53,10 @@ export class TypeType extends BasicType {
     constructor(type: ItemType) {
         super();
         this.type = type;
+    }
+    
+    copyHelper(): BasicType {
+        return new TypeType(this.type);
     }
     
     containsType(type: ItemType): boolean {
@@ -34,25 +75,33 @@ export class TypeType extends BasicType {
         return this.type.intersectsWithType(typeType.type);
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         return `typeT(${this.type.getDisplayString()})`;
     }
 }
 
 export class ValueType extends BasicType {
     
-    getDisplayString(): string {
+    copyHelper(): BasicType {
+        return new ValueType();
+    }
+    
+    getDisplayStringHelper(): string {
         return "valueT";
     }
 }
 
 export class VoidType extends ValueType {
     
+    copyHelper(): BasicType {
+        return new VoidType();
+    }
+    
     getSize(): number {
         return 0;
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         return "voidT";
     }
 }
@@ -65,6 +114,10 @@ export class IntegerType extends ValueType {
         super();
         this.isSigned = isSigned;
         this.bitAmount = bitAmount;
+    }
+    
+    copyHelper(): BasicType {
+        return new IntegerType(this.isSigned, this.bitAmount);
     }
     
     getSize(): number {
@@ -95,7 +148,7 @@ export class IntegerType extends ValueType {
             || this.bitAmount === intType.bitAmount);
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         let term: string;
         if (this.isSigned === null) {
             term = "int";
@@ -183,11 +236,15 @@ export class PointerType extends ElementCompositeType {
         this.size = size;
     }
     
+    copyHelper(): BasicType {
+        return new PointerType(this.elementType, this.size);
+    }
+    
     getSize(): number {
         return this.size;
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         return `ptrT(${this.elementType.getDisplayString()})`;
     }
 }
@@ -198,6 +255,10 @@ export class ArrayType extends ElementCompositeType {
     constructor(elementType: ItemType, length: number = null) {
         super(elementType);
         this.length = length;
+    }
+    
+    copyHelper(): BasicType {
+        return new ArrayType(this.elementType, this.length);
     }
     
     getSize(): number {
@@ -225,7 +286,7 @@ export class ArrayType extends ElementCompositeType {
             || this.length === arrayType.length);
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         const typeDisplayString = this.elementType.getDisplayString();
         if (this.length === null) {
             return `softArrayT(${typeDisplayString})`;
@@ -241,6 +302,10 @@ export class FieldNameType extends ArrayType {
     constructor(fieldsType: FieldsType) {
         super(characterType);
         this.fieldsType = fieldsType;
+    }
+    
+    copyHelper(): BasicType {
+        return new FieldNameType(this.fieldsType);
     }
     
     containsType(type: ItemType): boolean {
@@ -282,13 +347,13 @@ export class FieldNameType extends ArrayType {
         return false;
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         const typeDisplayString = this.fieldsType.getDisplayString();
         return `fieldNameT(${typeDisplayString})`;
     }
 }
 
-export type FieldsTypeConstructor<T extends FieldsType> = new (
+export type FieldsTypeConstructor<T extends FieldsType = FieldsType> = new (
     name: string,
     isSoft: boolean,
     fields: ResolvedField[],
@@ -332,6 +397,14 @@ export abstract class FieldsType extends ValueType {
     }
     
     abstract getNextFieldOffset(offset: number, fieldSize: number): number;
+    
+    copyHelper(): BasicType {
+        return new (this.constructor as FieldsTypeConstructor)(
+            this.name,
+            this.isSoft,
+            this.fieldList,
+        );
+    }
     
     getSize(): number {
         return this.size;
@@ -386,7 +459,7 @@ export abstract class FieldsType extends ValueType {
         );
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         return this.name;
     }
 }
@@ -447,6 +520,10 @@ export class FunctionType extends ValueType {
         this.signature = signature;
     }
     
+    copyHelper(): BasicType {
+        return new FunctionType(this.signature);
+    }
+    
     getSize(): number {
         return this.signature.targetLanguage.pointerSize;
     }
@@ -496,7 +573,7 @@ export class FunctionType extends ValueType {
         );
     }
     
-    getDisplayString(): string {
+    getDisplayStringHelper(): string {
         // TODO: Implement.
         return null;
     }

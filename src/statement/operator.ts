@@ -4,7 +4,7 @@ import { CompItem } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType } from "../compItem/basicType.js";
-import { NotType, OrType, AndType, XorType } from "../compItem/manipulationType.js";
+import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -418,10 +418,6 @@ export class BitwiseXorOperator extends BitwiseOperator {
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
         return operand1 ^ operand2;
-    }
-    
-    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
-        return new XorType(operand1, operand2);
     }
 }
 

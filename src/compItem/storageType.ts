@@ -13,6 +13,10 @@ export abstract class StorageType extends ItemType {
         this.isComplement = isComplement;
     }
     
+    copy(): ItemType {
+        return new (this.constructor as StorageTypeConstructor)(this.isComplement);
+    }
+    
     abstract getDisplayStringHelper(): string;
     
     getDisplayString(): string {
