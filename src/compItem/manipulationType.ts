@@ -1,5 +1,10 @@
 
+import { constructors } from "../constructors.js";
+import { CompilerError } from "../compilerError.js";
+import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
+import { StorageType } from "./storageType.js";
+import { BasicType } from "./basicType.js";
 
 export abstract class ManipulationType extends ItemType {
     
@@ -15,6 +20,17 @@ export class NotType extends ManipulationType {
     
     copy(): ItemType {
         return new NotType(this.type.copy());
+    }
+    
+    getBasicTypes(): BasicType[] {
+        if (!(this.type instanceof StorageType)) {
+            throw new CompilerError("Type inversion is only implemented for storage types.");
+        }
+        const storageType = this.type.copy() as StorageType;
+        storageType.isComplement = !storageType.isComplement;
+        const basicType = new BasicType();
+        basicType.storageTypes = [storageType];
+        return [basicType];
     }
     
     getDisplayString(): string {
@@ -61,6 +77,11 @@ export abstract class BinaryType extends ManipulationType {
 
 export class OrType extends BinaryType {
     
+    getBasicTypes(): BasicType[] {
+        const basicTypes = [...this.type1.getBasicTypes(), ...this.type2.getBasicTypes()];
+        return typeUtils.mergeBasicTypes(basicTypes);
+    }
+    
     getOperatorText(): string {
         return "|";
     }
@@ -68,9 +89,15 @@ export class OrType extends BinaryType {
 
 export class AndType extends BinaryType {
     
+    getBasicTypes(): BasicType[] {
+        return this.type1.intersectTypeHelper(this.type2);
+    }
+    
     getOperatorText(): string {
         return "&";
     }
 }
+
+constructors.OrType = OrType;
 
 

@@ -1,5 +1,6 @@
 
 import { ItemType } from "./itemType.js";
+import { BasicType } from "./basicType.js";
 
 export type StorageTypeConstructor<T extends StorageType = StorageType> = new (
     isComplement?: boolean,
@@ -13,11 +14,17 @@ export abstract class StorageType extends ItemType {
         this.isComplement = isComplement;
     }
     
+    abstract getDisplayStringHelper(): string;
+    
     copy(): ItemType {
         return new (this.constructor as StorageTypeConstructor)(this.isComplement);
     }
     
-    abstract getDisplayStringHelper(): string;
+    getBasicTypes(): BasicType[] {
+        const basicType = new BasicType();
+        basicType.storageTypes = [this];
+        return [basicType];
+    }
     
     getDisplayString(): string {
         let output = this.getDisplayStringHelper();

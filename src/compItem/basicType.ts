@@ -17,10 +17,6 @@ export class BasicType extends ItemType {
         this.storageTypes = [];
     }
     
-    copyStorageTypes(type: BasicType) {
-        
-    }
-    
     copyHelper(): BasicType {
         return new BasicType();
     }
@@ -29,6 +25,48 @@ export class BasicType extends ItemType {
         const output = this.copyHelper();
         output.storageTypes = this.storageTypes.map((type) => (type.copy() as StorageType));
         return output;
+    }
+    
+    getBasicTypes(): BasicType[] {
+        return [this];
+    }
+    
+    // Should ignore storage types.
+    containsBasicTypeHelper(type: BasicType): boolean {
+        return (type instanceof this.constructor);
+    }
+    
+    // Override containsBasicTypeHelper to control behavior of subclasses.
+    containsBasicType(type: BasicType, checkStorageTypes = true): boolean {
+        const result = this.containsBasicTypeHelper(type);
+        if (!result) {
+            return false;
+        }
+        if (checkStorageTypes) {
+            // TODO: Verify containment of storage types.
+            
+        }
+        return true;
+    }
+    
+    // type is an instance of this.constructor.
+    intersectBasicTypeHelper(type: BasicType): BasicType {
+        let output = type.copy() as BasicType;
+        niceUtils.extendList(output.storageTypes, this.storageTypes);
+        // TODO: Return null if there are conflicting storage types.
+        
+        return output;
+    }
+    
+    // Override intersectBasicTypeHelper to control behavior of subclasses.
+    intersectBasicType(type: BasicType): BasicType {
+        if (type instanceof this.constructor) {
+            return this.intersectBasicTypeHelper(type);
+        } else if (this instanceof type.constructor) {
+            return type.intersectBasicTypeHelper(this);
+        } else {
+            return null;
+        }
     }
     
     getDisplayStringHelper(): string {
@@ -59,20 +97,21 @@ export class TypeType extends BasicType {
         return new TypeType(this.type);
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const typeType = type as TypeType;
         return this.type.containsType(typeType.type);
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: TypeType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as TypeType;
+        if (output === null) {
+            return null;
         }
-        const typeType = type as TypeType;
-        return this.type.intersectsWithType(typeType.type);
+        output.type = this.type.intersectType(type.type);
+        return output;
     }
     
     getDisplayStringHelper(): string {
@@ -124,8 +163,8 @@ export class IntegerType extends ValueType {
         return (this.bitAmount === null) ? null : Math.ceil(this.bitAmount / 8);
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const intType = type as IntegerType;
@@ -210,8 +249,8 @@ export abstract class ElementCompositeType extends ValueType {
         this.elementType = elementType;
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const compositeType = type as ElementCompositeType;
@@ -269,8 +308,8 @@ export class ArrayType extends ElementCompositeType {
         return (elementSize === null) ? null : elementSize * this.length;
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const arrayType = type as ArrayType;
@@ -308,8 +347,8 @@ export class FieldNameType extends ArrayType {
         return new FieldNameType(this.fieldsType);
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const nameType = type as FieldNameType;
@@ -437,8 +476,8 @@ export abstract class FieldsType extends ValueType {
         return true;
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const fieldsType = type as FieldsType;
@@ -480,8 +519,8 @@ export class StructType extends FieldsType {
         return true;
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const structType = type as StructType;
@@ -528,8 +567,8 @@ export class FunctionType extends ValueType {
         return this.signature.targetLanguage.pointerSize;
     }
     
-    containsType(type: ItemType): boolean {
-        if (!super.containsType(type)) {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
             return false;
         }
         const functionType = type as FunctionType;
@@ -579,6 +618,7 @@ export class FunctionType extends ValueType {
     }
 }
 
+constructors.BasicType = BasicType;
 constructors.TypeType = TypeType;
 
 

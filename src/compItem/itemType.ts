@@ -1,7 +1,8 @@
 
 import { constructors } from "../constructors.js";
+import * as typeUtils from "./typeUtils.js";
 import { CompItem } from "./compItem.js";
-import { TypeType } from "./basicType.js";
+import { BasicType, TypeType } from "./basicType.js";
 
 export class ItemType extends CompItem {
     
@@ -17,25 +18,43 @@ export class ItemType extends CompItem {
         return new ItemType();
     }
     
+    // The union of all elements in the output
+    // is equal to this item type.
+    getBasicTypes(): BasicType[] {
+        return [new constructors.BasicType()];
+    }
+    
     containsType(type: ItemType): boolean {
-        return (type instanceof this.constructor);
+        const basicTypes1 = this.getBasicTypes();
+        const basicTypes2 = type.getBasicTypes();
+        return basicTypes2.every((basicType2) => (
+            basicTypes1.some((basicType1) => basicType1.containsBasicType(basicType2))
+        ));
+        return true;
     }
     
     conformsToType(type: ItemType): boolean {
         return type.containsType(this);
     }
     
-    // Should return false if any superclass returns false.
-    intersectsHelper(type: ItemType): boolean {
-        return (type instanceof this.constructor);
+    intersectTypeHelper(type: ItemType): BasicType[] {
+        const output: BasicType[] = [];
+        this.getBasicTypes().forEach((basicType1) => {
+            type.getBasicTypes().forEach((basicType2) => {
+                const intersectionType = basicType1.intersectBasicType(basicType2);
+                if (intersectionType !== null) {
+                    output.push(intersectionType);
+                }
+            });
+        });
+        return typeUtils.mergeBasicTypes(output);
     }
     
-    // Override intersectsHelper to control behavior of subclasses.
-    intersectsWithType(type: ItemType): boolean {
-        if (this.containsType(type) || type.containsType(this)) {
-            return true;
-        }
-        return this.intersectsHelper(type);
+    intersectType(type: ItemType): ItemType {
+        const basicTypes = this.intersectTypeHelper(type);
+        return (basicTypes as ItemType[]).reduce((accumulator, basicType) => (
+            new constructors.OrType(accumulator, basicType)
+        ));
     }
     
     equalsType(type: ItemType): boolean {
