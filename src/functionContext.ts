@@ -305,7 +305,8 @@ class TypeConformsFunctionContext extends TwoTypesFunctionContext {
 class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
     
     getReturnItem(): CompItem {
-        const typeIntersects = this.type.intersectsWithType(this.type2);
+        const intersectionType = this.type.intersectType(this.type2);
+        const typeIntersects = (intersectionType !== null);
         return new CompInteger(BigInt(typeIntersects), booleanType);
     }
 }

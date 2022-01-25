@@ -17,6 +17,13 @@ export abstract class ResolvedField {
     
     abstract getSize(): number;
     
+    copy(): ResolvedField {
+        return new (this.constructor as ResolvedFieldConstructor)(
+            this.name,
+            this.type.copy(),
+        );
+    }
+    
     registerOffset(offset: number): void {
         // Do nothing.
     }

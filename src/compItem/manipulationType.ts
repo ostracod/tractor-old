@@ -26,7 +26,7 @@ export class NotType extends ManipulationType {
         if (!(this.type instanceof StorageType)) {
             throw new CompilerError("Type inversion is only implemented for storage types.");
         }
-        const storageType = this.type.copy() as StorageType;
+        const storageType = this.type.copy();
         storageType.isComplement = !storageType.isComplement;
         const basicType = new BasicType();
         basicType.storageTypes = [storageType];

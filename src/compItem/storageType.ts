@@ -16,7 +16,7 @@ export abstract class StorageType extends ItemType {
     
     abstract getDisplayStringHelper(): string;
     
-    copy(): ItemType {
+    copy(): StorageType {
         return new (this.constructor as StorageTypeConstructor)(this.isComplement);
     }
     

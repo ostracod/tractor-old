@@ -23,7 +23,7 @@ export class BasicType extends ItemType {
     
     copy(): ItemType {
         const output = this.copyHelper();
-        output.storageTypes = this.storageTypes.map((type) => (type.copy() as StorageType));
+        output.storageTypes = this.storageTypes.map((type) => type.copy());
         return output;
     }
     
@@ -94,7 +94,7 @@ export class TypeType extends BasicType {
     }
     
     copyHelper(): BasicType {
-        return new TypeType(this.type);
+        return new TypeType(this.type.copy());
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {
@@ -110,7 +110,11 @@ export class TypeType extends BasicType {
         if (output === null) {
             return null;
         }
-        output.type = this.type.intersectType(type.type);
+        const tempType = this.type.intersectType(type.type);
+        if (tempType === null) {
+            return null;
+        }
+        output.type = tempType;
         return output;
     }
     
@@ -174,17 +178,26 @@ export class IntegerType extends ValueType {
         return (this.bitAmount === null || this.bitAmount === intType.bitAmount);
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: IntegerType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as IntegerType;
+        if (output === null) {
+            return null;
         }
-        const intType = type as IntegerType;
-        if (this.isSigned !== null && intType.isSigned !== null
-                && this.isSigned !== intType.isSigned) {
-            return false;
+        if (this.isSigned !== null) {
+            if (output.isSigned === null) {
+                output.isSigned = this.isSigned;
+            } else if (output.isSigned !== this.isSigned) {
+                return null;
+            }
         }
-        return (this.bitAmount === null || intType.bitAmount === null
-            || this.bitAmount === intType.bitAmount);
+        if (this.bitAmount !== null) {
+            if (output.bitAmount === null) {
+                output.bitAmount = this.bitAmount;
+            } else if (output.bitAmount !== this.bitAmount) {
+                return null;
+            }
+        }
+        return output;
     }
     
     getDisplayStringHelper(): string {
@@ -257,12 +270,17 @@ export abstract class ElementCompositeType extends ValueType {
         return this.elementType.containsType(compositeType.elementType);
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: ElementCompositeType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as ElementCompositeType;
+        if (output === null) {
+            return null;
         }
-        const compositeType = type as ElementCompositeType;
-        return this.elementType.intersectsWithType(compositeType.elementType);
+        const elementType = this.elementType.intersectType(output.elementType);
+        if (elementType === null) {
+            return null;
+        }
+        output.elementType = elementType;
+        return output;
     }
 }
 
@@ -276,7 +294,7 @@ export class PointerType extends ElementCompositeType {
     }
     
     copyHelper(): BasicType {
-        return new PointerType(this.elementType, this.size);
+        return new PointerType(this.elementType.copy(), this.size);
     }
     
     getSize(): number {
@@ -297,7 +315,7 @@ export class ArrayType extends ElementCompositeType {
     }
     
     copyHelper(): BasicType {
-        return new ArrayType(this.elementType, this.length);
+        return new ArrayType(this.elementType.copy(), this.length);
     }
     
     getSize(): number {
@@ -316,13 +334,19 @@ export class ArrayType extends ElementCompositeType {
         return (this.length === null || this.length === arrayType.length);
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: ArrayType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as ArrayType;
+        if (output === null) {
+            return null;
         }
-        const arrayType = type as ArrayType;
-        return (this.length === null || arrayType.length === null
-            || this.length === arrayType.length);
+        if (this.length !== null) {
+            if (output.length === null) {
+                output.length = this.length;
+            } else if (output.length !== this.length) {
+                return null;
+            }
+        }
+        return output;
     }
     
     getDisplayStringHelper(): string {
@@ -344,7 +368,7 @@ export class FieldNameType extends ArrayType {
     }
     
     copyHelper(): BasicType {
-        return new FieldNameType(this.fieldsType);
+        return new FieldNameType(this.fieldsType.copy() as FieldsType);
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {
@@ -368,22 +392,26 @@ export class FieldNameType extends ArrayType {
         return true;
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: FieldNameType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as FieldNameType;
+        if (output === null) {
+            return null;
         }
-        const nameType = type as FieldNameType;
-        const fieldsType1 = this.fieldsType;
-        const fieldsType2 = nameType.fieldsType;
-        if (fieldsType1.isSoft || fieldsType2.isSoft) {
-            return true;
+        if (this.fieldsType.isSoft) {
+            return output;
         }
-        for (const name in fieldsType1.fieldMap) {
-            if (name in fieldsType2.fieldMap) {
-                return true;
-            }
+        if (output.fieldsType.isSoft) {
+            output.fieldsType = this.fieldsType;
+            return output;
         }
-        return false;
+        const fields = this.fieldsType.fieldList.filter((field) => (
+            field.name in output.fieldsType.fieldMap
+        ));
+        if (fields.length <= 0) {
+            return null;
+        }
+        output.fieldsType.setFields(fields);
+        return output;
     }
     
     getDisplayStringHelper(): string {
@@ -409,6 +437,12 @@ export abstract class FieldsType extends ValueType {
         super();
         this.name = name;
         this.isSoft = isSoft;
+        this.setFields(fields);
+    }
+    
+    abstract getNextFieldOffset(offset: number, fieldSize: number): number;
+    
+    setFields(fields: ResolvedField[]): void {
         this.fieldList = fields;
         this.fieldMap = {};
         let shouldPopulateFieldOffsets = true;
@@ -435,13 +469,11 @@ export abstract class FieldsType extends ValueType {
         }
     }
     
-    abstract getNextFieldOffset(offset: number, fieldSize: number): number;
-    
     copyHelper(): BasicType {
         return new (this.constructor as FieldsTypeConstructor)(
             this.name,
             this.isSoft,
-            this.fieldList,
+            this.fieldList.map((field) => field.copy()),
         );
     }
     
