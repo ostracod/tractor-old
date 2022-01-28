@@ -17,6 +17,27 @@ export abstract class ResolvedField {
     
     abstract getSize(): number;
     
+    matchesNameAndClass(field: ResolvedField): boolean {
+        return (this.name === field.name && this.constructor === field.constructor);
+    }
+    
+    contains(field: ResolvedField): boolean {
+        if (!this.matchesNameAndClass(field)) {
+            return false;
+        }
+        return this.type.containsType(field.type);
+    }
+    
+    intersect(field: ResolvedField): ResolvedField {
+        if (!this.matchesNameAndClass(field)) {
+            return null;
+        }
+        return new (this.constructor as ResolvedFieldConstructor)(
+            this.name,
+            this.type.intersectType(field.type),
+        );
+    }
+    
     copy(): ResolvedField {
         return new (this.constructor as ResolvedFieldConstructor)(
             this.name,

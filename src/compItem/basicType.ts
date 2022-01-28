@@ -404,8 +404,8 @@ export class FieldNameType extends ArrayType {
             output.fieldsType = this.fieldsType;
             return output;
         }
-        const fields = this.fieldsType.fieldList.filter((field) => (
-            field.name in output.fieldsType.fieldMap
+        const fields = output.fieldsType.fieldList.filter((field) => (
+            field.name in this.fieldsType.fieldMap
         ));
         if (fields.length <= 0) {
             return null;
@@ -481,10 +481,14 @@ export abstract class FieldsType extends ValueType {
         return this.size;
     }
     
-    checkFieldTypes(
-        fieldsType: FieldsType,
-        checkTypes: (type1: ItemType, type2: ItemType) => boolean,
-    ): boolean {
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
+            return false;
+        }
+        const fieldsType = type as FieldsType;
+        if (!this.isSoft && fieldsType.isSoft) {
+            return false;
+        }
         const fieldMap1 = this.fieldMap;
         const fieldMap2 = fieldsType.fieldMap;
         if (!this.isSoft) {
@@ -501,33 +505,47 @@ export abstract class FieldsType extends ValueType {
                 if (!this.isSoft) {
                     return false;
                 }
-            } else if (!checkTypes(field1.type, field2.type)) {
+            } else if (!field1.contains(field2)) {
                 return false;
             }
         }
         return true;
     }
     
-    containsBasicTypeHelper(type: BasicType): boolean {
-        if (!super.containsBasicTypeHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: FieldsType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as FieldsType;
+        if (output === null) {
+            return null;
         }
-        const fieldsType = type as FieldsType;
-        if (!this.isSoft && fieldsType.isSoft) {
-            return false;
+        const fieldMap1 = this.fieldMap;
+        const fieldMap2 = output.fieldMap;
+        const sharedFields: ResolvedField[] = [];
+        const uniqueFields: ResolvedField[] = [];
+        for (const field1 of this.fieldList) {
+            if (!(field1.name in output.fieldMap)) {
+                if (!output.isSoft) {
+                    return null;
+                }
+                uniqueFields.push(field1);
+            }
         }
-        return this.checkFieldTypes(fieldsType, (type1, type2) => type1.containsType(type2));
-    }
-    
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+        for (const field2 of output.fieldList) {
+            const field1 = this.fieldMap[field2.name];
+            if (typeof field1 === "undefined") {
+                if (!this.isSoft) {
+                    return null;
+                }
+                uniqueFields.push(field2);
+            } else {
+                const intersectionField = field1.intersect(field2);
+                if (intersectionField === null) {
+                    return null;
+                }
+                sharedFields.push(intersectionField);
+            }
         }
-        const fieldsType = type as FieldsType;
-        return this.checkFieldTypes(
-            fieldsType,
-            (type1, type2) => type1.intersectsWithType(type2),
-        );
+        output.setFields([...sharedFields, ...uniqueFields]);
+        return output;
     }
     
     getDisplayStringHelper(): string {
@@ -559,12 +577,15 @@ export class StructType extends FieldsType {
         return this.matchesFieldOrder(structType);
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: StructType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as StructType;
+        if (output === null) {
+            return null;
         }
-        const structType = type as StructType;
-        return this.matchesFieldOrder(structType);
+        if (!output.matchesFieldOrder(this) || !output.matchesFieldOrder(type)) {
+            return null
+        }
+        return output;
     }
     
     getNextFieldOffset(offset: number, fieldSize: number): number {
