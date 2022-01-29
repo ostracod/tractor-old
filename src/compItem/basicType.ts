@@ -360,15 +360,17 @@ export class ArrayType extends ElementCompositeType {
 }
 
 export class FieldNameType extends ArrayType {
-    fieldsType: FieldsType;
+    fieldsTypeNames: string[];
+    fieldNames: Set<string>;
     
-    constructor(fieldsType: FieldsType) {
+    constructor(fieldsTypeNames: string[], fieldNames: Set<string>) {
         super(characterType);
-        this.fieldsType = fieldsType;
+        this.fieldsTypeNames = fieldsTypeNames;
+        this.fieldNames = fieldNames;
     }
     
     copyHelper(): BasicType {
-        return new FieldNameType(this.fieldsType.copy() as FieldsType);
+        return new FieldNameType(this.fieldsTypeNames.slice(), new Set(this.fieldNames));
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {
@@ -376,16 +378,8 @@ export class FieldNameType extends ArrayType {
             return false;
         }
         const nameType = type as FieldNameType;
-        const fieldsType1 = this.fieldsType;
-        const fieldsType2 = nameType.fieldsType;
-        if (fieldsType1.isSoft) {
-            return true;
-        }
-        if (fieldsType2.isSoft) {
-            return false;
-        }
-        for (const name in fieldsType2.fieldMap) {
-            if (!(name in fieldsType1.fieldMap)) {
+        for (const name of nameType.fieldNames) {
+            if (!this.fieldNames.has(name)) {
                 return false;
             }
         }
@@ -397,26 +391,32 @@ export class FieldNameType extends ArrayType {
         if (output === null) {
             return null;
         }
-        if (this.fieldsType.isSoft) {
-            return output;
-        }
-        if (output.fieldsType.isSoft) {
-            output.fieldsType = this.fieldsType;
-            return output;
-        }
-        const fields = output.fieldsType.fieldList.filter((field) => (
-            field.name in this.fieldsType.fieldMap
-        ));
-        if (fields.length <= 0) {
+        const fieldNames = new Set<string>();
+        this.fieldNames.forEach((name) => {
+            if (output.fieldNames.has(name)) {
+                fieldNames.add(name);
+            }
+        });
+        if (fieldNames.size <= 0) {
             return null;
         }
-        output.fieldsType.setFields(fields);
+        const typeNames1 = this.fieldsTypeNames;
+        const typeNames2 = output.fieldsTypeNames;
+        typeNames1.forEach((name) => {
+            if (!typeNames2.includes(name)) {
+                typeNames2.push(name);
+            }
+        });
         return output;
     }
     
     getDisplayStringHelper(): string {
-        const typeDisplayString = this.fieldsType.getDisplayString();
-        return `fieldNameT(${typeDisplayString})`;
+        const textList = this.fieldsTypeNames.map((name) => `fieldNameT(${name})`);
+        if (textList.length > 1) {
+            return `(${textList.join(" & ")})`;
+        } else {
+            return textList[0]
+        }
     }
 }
 

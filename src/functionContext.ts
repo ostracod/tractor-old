@@ -106,7 +106,8 @@ class FieldNameTFunctionContext extends BuiltInFunctionContext {
     }
     
     getReturnItem(): CompItem {
-        return new FieldNameType(this.type);
+        const fieldNames = this.type.fieldList.map((field) => field.name);
+        return new FieldNameType([this.type.name], new Set(fieldNames));
     }
 }
 
