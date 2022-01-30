@@ -97,9 +97,35 @@ export class DefinitionFunctionSignature extends FunctionSignature implements Di
     }
 }
 
-export class ContextFunctionSignature<T extends FunctionContext = FunctionContext> extends FunctionSignature {
+export class SimpleFunctionSignature extends FunctionSignature {
     argTypes: ItemType[];
     returnType: ItemType;
+    
+    constructor(
+        targetLanguage: TargetLanguage,
+        isSoft: boolean,
+        argTypes: ItemType[],
+        returnType: ItemType,
+    ) {
+        super(targetLanguage, isSoft);
+        this.argTypes = argTypes;
+        this.returnType = returnType;
+    }
+    
+    getArgTypes(): ItemType[] {
+        return this.argTypes;
+    }
+    
+    getReturnType(): ItemType {
+        return this.returnType;
+    }
+    
+    getReturnTypeByArgs(args: CompItem[]): ItemType {
+        return this.returnType;
+    }
+}
+
+export class ContextFunctionSignature<T extends FunctionContext = FunctionContext> extends SimpleFunctionSignature {
     contextConstructor: FunctionContextConstructor<T>;
     
     constructor(
@@ -109,18 +135,8 @@ export class ContextFunctionSignature<T extends FunctionContext = FunctionContex
         returnType: ItemType,
         contextConstructor: FunctionContextConstructor<T>,
     ) {
-        super(targetLanguage, isSoft);
-        this.argTypes = argTypes;
-        this.returnType = returnType;
+        super(targetLanguage, isSoft, argTypes, returnType);
         this.contextConstructor = contextConstructor;
-    }
-    
-    getArgTypes(): ItemType[] {
-        return this.argTypes;
-    }
-    
-    getReturnType(): ItemType {
-        return this.returnType;
     }
     
     createContext(args: CompItem[]): T {

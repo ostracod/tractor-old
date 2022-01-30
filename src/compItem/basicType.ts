@@ -3,7 +3,7 @@ import * as niceUtils from "../niceUtils.js";
 import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
 import { ResolvedField } from "../resolvedField.js";
-import { FunctionSignature } from "../functionSignature.js";
+import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import { ItemType } from "./itemType.js";
 import { StorageType } from "./storageType.js";
 
@@ -51,7 +51,7 @@ export class BasicType extends ItemType {
     
     // type is an instance of this.constructor.
     intersectBasicTypeHelper(type: BasicType): BasicType {
-        let output = type.copy() as BasicType;
+        const output = type.copy() as BasicType;
         niceUtils.extendList(output.storageTypes, this.storageTypes);
         // TODO: Return null if there are conflicting storage types.
         
@@ -415,7 +415,7 @@ export class FieldNameType extends ArrayType {
         if (textList.length > 1) {
             return `(${textList.join(" & ")})`;
         } else {
-            return textList[0]
+            return textList[0];
         }
     }
 }
@@ -517,8 +517,6 @@ export abstract class FieldsType extends ValueType {
         if (output === null) {
             return null;
         }
-        const fieldMap1 = this.fieldMap;
-        const fieldMap2 = output.fieldMap;
         const sharedFields: ResolvedField[] = [];
         const uniqueFields: ResolvedField[] = [];
         for (const field1 of this.fieldList) {
@@ -583,7 +581,7 @@ export class StructType extends FieldsType {
             return null;
         }
         if (!output.matchesFieldOrder(this) || !output.matchesFieldOrder(type)) {
-            return null
+            return null;
         }
         return output;
     }
@@ -644,25 +642,52 @@ export class FunctionType extends ValueType {
         return signature1.checkTypes(signature2, (type1, type2) => type1.containsType(type2));
     }
     
-    intersectsHelper(type: ItemType): boolean {
-        if (!super.intersectsHelper(type)) {
-            return false;
+    intersectBasicTypeHelper(type: FunctionType): BasicType {
+        const output = super.intersectBasicTypeHelper(type) as FunctionType;
+        if (output === null) {
+            return null;
         }
-        const functionType = type as FunctionType;
         const signature1 = this.signature;
-        const signature2 = functionType.signature;
+        const signature2 = output.signature;
         const argTypes1 = signature1.getArgTypes();
         const argTypes2 = signature2.getArgTypes();
-        if (!signature1.isSoft && argTypes1.length < argTypes2.length) {
-            return false;
+        const intersectionArgTypes: ItemType[] = [];
+        const endIndex = Math.max(argTypes1.length, argTypes2.length);
+        for (let index = 0; index < endIndex; index++) {
+            let argType1 = argTypes1[index];
+            let argType2 = argTypes2[index];
+            let intersectionType: ItemType;
+            if (typeof argType1 === "undefined") {
+                if (!signature1.isSoft) {
+                    return null;
+                }
+                intersectionType = argType2;
+            } else if (typeof argType2 === "undefined") {
+                if (!signature2.isSoft) {
+                    return null;
+                }
+                intersectionType = argType1;
+            } else {
+                intersectionType = argType1.intersectType(argType2);
+                if (intersectionType === null) {
+                    return null;
+                }
+            }
+            intersectionArgTypes.push(intersectionType);
         }
-        if (!signature2.isSoft && argTypes2.length < argTypes1.length) {
-            return false;
+        const returnType1 = signature1.getReturnType();
+        const returnType2 = signature2.getReturnType();
+        const intersectionReturnType = returnType1.intersectType(returnType2);
+        if (intersectionReturnType === null) {
+            return null;
         }
-        return signature1.checkTypes(
-            signature2,
-            (type1, type2) => type1.intersectsWithType(type2),
+        output.signature = new SimpleFunctionSignature(
+            signature1.targetLanguage,
+            signature1.isSoft && signature2.isSoft,
+            intersectionArgTypes,
+            intersectionReturnType,
         );
+        return output;
     }
     
     getDisplayStringHelper(): string {
