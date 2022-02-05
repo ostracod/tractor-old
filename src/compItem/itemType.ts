@@ -30,7 +30,6 @@ export class ItemType extends CompItem {
         return basicTypes2.every((basicType2) => (
             basicTypes1.some((basicType1) => basicType1.containsBasicType(basicType2))
         ));
-        return true;
     }
     
     conformsToType(type: ItemType): boolean {

@@ -308,6 +308,10 @@ class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
     getReturnItem(): CompItem {
         const intersectionType = this.type.intersectType(this.type2);
         const typeIntersects = (intersectionType !== null);
+        if (typeIntersects) {
+            // TEST CODE.
+            console.log(intersectionType.getDisplayString());
+        }
         return new CompInteger(BigInt(typeIntersects), booleanType);
     }
 }

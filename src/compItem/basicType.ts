@@ -4,6 +4,7 @@ import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
 import { ResolvedField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
+import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
 import { StorageType } from "./storageType.js";
 
@@ -43,8 +44,18 @@ export class BasicType extends ItemType {
             return false;
         }
         if (checkStorageTypes) {
-            // TODO: Verify containment of storage types.
-            
+            const containsStorageTypes = this.storageTypes.every((storageType1) => (
+                // This only works because of certain constraints that are
+                // inherent to storage types. "I have discovered a truly
+                // remarkable proof of this theorem which this margin is
+                // too small to contain."
+                type.storageTypes.some((storageType2) => (
+                    storageType1.containsStorageType(storageType2)
+                ))
+            ));
+            if (!containsStorageTypes) {
+                return false;
+            }
         }
         return true;
     }
@@ -52,9 +63,13 @@ export class BasicType extends ItemType {
     // type is an instance of this.constructor.
     intersectBasicTypeHelper(type: BasicType): BasicType {
         const output = type.copy() as BasicType;
-        niceUtils.extendList(output.storageTypes, this.storageTypes);
-        // TODO: Return null if there are conflicting storage types.
-        
+        const storageTypes = typeUtils.mergeStorageTypes(
+            [...output.storageTypes, ...this.storageTypes],
+        );
+        if (storageTypes === null) {
+            return null;
+        }
+        output.storageTypes = storageTypes;
         return output;
     }
     

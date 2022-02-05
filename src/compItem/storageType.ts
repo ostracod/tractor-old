@@ -26,6 +26,28 @@ export abstract class StorageType extends ItemType {
         return [basicType];
     }
     
+    // Does not take intrinsic storage types into account.
+    containsStorageType(type: StorageType): boolean {
+        if (type instanceof this.constructor) {
+            return (!this.isComplement && !type.isComplement);
+        } else if (this instanceof type.constructor) {
+            return (this.isComplement && type.isComplement);
+        } else {
+            return false;
+        }
+    }
+    
+    // Does not take intrinsic storage types into account.
+    intersectsStorageType(type: StorageType): boolean {
+        if (type instanceof this.constructor) {
+            return (!this.isComplement || type.isComplement);
+        } else if (this instanceof type.constructor) {
+            return (this.isComplement || !type.isComplement);
+        } else {
+            return true;
+        }
+    }
+    
     getDisplayString(): string {
         let output = this.getDisplayStringHelper();
         if (this.isComplement) {
