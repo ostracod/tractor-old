@@ -2,9 +2,103 @@
 import { BasicType } from "./basicType.js";
 import { StorageType } from "./storageType.js";
 
+// Returns whether any storage types were removed from either list.
+// Assumes that each argument list contains no redundant types.
+const removeComplementStorageTypes = (
+    types1: StorageType[],
+    types2: StorageType[],
+): boolean => {
+    let output = false;
+    for (let index1 = types1.length - 1; index1 >= 0; index1--) {
+        const type1 = types1[index1];
+        for (let index2 = 0; index2 < types2.length; index2++) {
+            const type2 = types2[index2];
+            if (type1.isComplementOf(type2)) {
+                types1.splice(index1, 1);
+                types2.splice(index2, 1);
+                output = true;
+                break;
+            }
+        }
+    }
+    return output;
+};
+
+// Returns whether any modifications were made to the argument list.
+const mergeBasicTypesHelper = (types: BasicType[]): boolean => {
+    let output = false;
+    let index1 = 0;
+    while (index1 < types.length) {
+        let type1 = types[index1];
+        let shouldRemoveType1 = false;
+        for (let index2 = types.length - 1; index2 > index1 && !shouldRemoveType1; index2--) {
+            let type2 = types[index2];
+            let shouldRemoveType2 = false;
+            const storageTypes1 = type1.storageTypes.slice();
+            const storageTypes2 = type2.storageTypes.slice();
+            const hasRemovedStorageTypes = removeComplementStorageTypes(
+                storageTypes1, storageTypes2,
+            );
+            let updatedType1: BasicType;
+            let updatedType2: BasicType;
+            if (hasRemovedStorageTypes) {
+                updatedType1 = type1.copy();
+                updatedType2 = type2.copy();
+                updatedType1.storageTypes = storageTypes1;
+                updatedType2.storageTypes = storageTypes2;
+            } else {
+                updatedType1 = type1;
+                updatedType2 = type2;
+            }
+            const type1ContainsType2 = updatedType1.containsBasicType(updatedType2);
+            const type2ContainsType1 = updatedType2.containsBasicType(updatedType1);
+            if (type1ContainsType2) {
+                if (type2ContainsType1) {
+                    // In this case, updatedType1 and updatedType2
+                    // are equal. We could keep either of them.
+                    type1 = updatedType1;
+                    shouldRemoveType2 = true;
+                } else {
+                    if (hasRemovedStorageTypes) {
+                        type2 = updatedType2;
+                    } else {
+                        shouldRemoveType2 = true;
+                    }
+                }
+                output = true;
+            } else if (type2ContainsType1) {
+                if (hasRemovedStorageTypes) {
+                    type1 = updatedType1;
+                } else {
+                    shouldRemoveType1 = true;
+                }
+                output = true;
+            }
+            if (shouldRemoveType2) {
+                types.splice(index2, 1);
+            } else {
+                types[index2] = type2;
+            }
+        }
+        if (shouldRemoveType1) {
+            types.splice(index1, 1);
+        } else {
+            types[index1] = type1;
+            index1 += 1;
+        }
+    }
+    return output;
+}
+
 export const mergeBasicTypes = (types: BasicType[]): BasicType[] => {
-    // TODO: Implement.
-    return types;
+    const output = types.slice();
+    while (true) {
+        const hasModified = mergeBasicTypesHelper(output);
+        if (!hasModified) {
+            break;
+        }
+    }
+    return output;
 };
 
 export const mergeStorageTypes = (types: StorageType[]): StorageType[] => {

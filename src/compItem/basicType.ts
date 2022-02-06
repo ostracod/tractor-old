@@ -22,7 +22,7 @@ export class BasicType extends ItemType {
         return new BasicType();
     }
     
-    copy(): ItemType {
+    copy(): BasicType {
         const output = this.copyHelper();
         output.storageTypes = this.storageTypes.map((type) => type.copy());
         return output;
@@ -38,24 +38,22 @@ export class BasicType extends ItemType {
     }
     
     // Override containsBasicTypeHelper to control behavior of subclasses.
-    containsBasicType(type: BasicType, checkStorageTypes = true): boolean {
+    containsBasicType(type: BasicType): boolean {
         const result = this.containsBasicTypeHelper(type);
         if (!result) {
             return false;
         }
-        if (checkStorageTypes) {
-            const containsStorageTypes = this.storageTypes.every((storageType1) => (
-                // This only works because of certain constraints that are
-                // inherent to storage types. "I have discovered a truly
-                // remarkable proof of this theorem which this margin is
-                // too small to contain."
-                type.storageTypes.some((storageType2) => (
-                    storageType1.containsStorageType(storageType2)
-                ))
-            ));
-            if (!containsStorageTypes) {
-                return false;
-            }
+        const containsStorageTypes = this.storageTypes.every((storageType1) => (
+            // This only works because of certain constraints that are
+            // inherent to storage types. "I have discovered a truly
+            // remarkable proof of this theorem which this margin is
+            // too small to contain."
+            type.storageTypes.some((storageType2) => (
+                storageType1.containsStorageType(storageType2)
+            ))
+        ));
+        if (!containsStorageTypes) {
+            return false;
         }
         return true;
     }

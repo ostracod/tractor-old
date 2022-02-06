@@ -48,6 +48,11 @@ export abstract class StorageType extends ItemType {
         }
     }
     
+    isComplementOf(type: StorageType): boolean {
+        return (this.constructor === type.constructor
+            && this.isComplement !== type.isComplement);
+    }
+    
     getDisplayString(): string {
         let output = this.getDisplayStringHelper();
         if (this.isComplement) {
