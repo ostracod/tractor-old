@@ -6,11 +6,10 @@ import { ResolvedField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
-import { StorageType } from "./storageType.js";
+import { StorageType, CompType } from "./storageType.js";
 
 export class BasicType extends ItemType {
-    // The intersection of all elements in this.storageTypes
-    // describes the storage type of this basic type.
+    // Excludes intrinsic storage types.
     storageTypes: StorageType[];
     
     constructor() {
@@ -32,6 +31,18 @@ export class BasicType extends ItemType {
         return [this];
     }
     
+    getIntrinsicStorageTypes(): StorageType[] {
+        return typeUtils.getIntrinsicStorageTypes(this.storageTypes);
+    }
+    
+    // The intersection of all elements in this.getStorageTypes()
+    // describes the storage type of this basic type.
+    getStorageTypes(): StorageType[] {
+        const output = this.getIntrinsicStorageTypes();
+        niceUtils.extendList(output, this.storageTypes);
+        return output;
+    }
+    
     // Should ignore storage types.
     containsBasicTypeHelper(type: BasicType): boolean {
         return (type instanceof this.constructor);
@@ -43,12 +54,14 @@ export class BasicType extends ItemType {
         if (!result) {
             return false;
         }
-        const containsStorageTypes = this.storageTypes.every((storageType1) => (
+        const storageTypes1 = this.getStorageTypes();
+        const storageTypes2 = type.getStorageTypes();
+        const containsStorageTypes = storageTypes1.every((storageType1) => (
             // This only works because of certain constraints that are
             // inherent to storage types. "I have discovered a truly
             // remarkable proof of this theorem which this margin is
             // too small to contain."
-            type.storageTypes.some((storageType2) => (
+            storageTypes2.some((storageType2) => (
                 storageType1.containsStorageType(storageType2)
             ))
         ));
@@ -110,6 +123,12 @@ export class TypeType extends BasicType {
         return new TypeType(this.type.copy());
     }
     
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        output.push(new CompType());
+        return output;
+    }
+    
     containsBasicTypeHelper(type: BasicType): boolean {
         if (!super.containsBasicTypeHelper(type)) {
             return false;
@@ -151,6 +170,12 @@ export class VoidType extends ValueType {
     
     copyHelper(): BasicType {
         return new VoidType();
+    }
+    
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        output.push(new CompType());
+        return output;
     }
     
     getSize(): number {
@@ -384,6 +409,12 @@ export class FieldNameType extends ArrayType {
     
     copyHelper(): BasicType {
         return new FieldNameType(this.fieldsTypeNames.slice(), new Set(this.fieldNames));
+    }
+    
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        output.push(new CompType());
+        return output;
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {

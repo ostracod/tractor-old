@@ -26,6 +26,10 @@ export abstract class StorageType extends ItemType {
         return [basicType];
     }
     
+    getIntrinsicStorageTypes(): StorageType[] {
+        return [];
+    }
+    
     // Does not take intrinsic storage types into account.
     containsStorageType(type: StorageType): boolean {
         if (type instanceof this.constructor) {
@@ -40,7 +44,11 @@ export abstract class StorageType extends ItemType {
     // Does not take intrinsic storage types into account.
     intersectsStorageType(type: StorageType): boolean {
         if (type instanceof this.constructor) {
-            return (!this.isComplement || type.isComplement);
+            if (this.constructor === type.constructor) {
+                return (this.isComplement === type.isComplement);
+            } else {
+                return (!this.isComplement || type.isComplement);
+            }
         } else if (this instanceof type.constructor) {
             return (this.isComplement || !type.isComplement);
         } else {
@@ -99,12 +107,24 @@ export class CompLocationType extends LocationType {
 
 export class FrameType extends LocationType {
     
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        output.push(new CompType(true));
+        return output;
+    }
+    
     getDisplayStringHelper(): string {
         return "frameT";
     }
 }
 
 export class FixedType extends LocationType {
+    
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        output.push(new CompType());
+        return output;
+    }
     
     getDisplayStringHelper(): string {
         return "fixedT";

@@ -1,6 +1,15 @@
 
+import * as niceUtils from "../niceUtils.js";
 import { BasicType } from "./basicType.js";
 import { StorageType } from "./storageType.js";
+
+export const getIntrinsicStorageTypes = (types: StorageType[]): StorageType[] => {
+    const output: StorageType[] = [];
+    types.forEach((type) => {
+        niceUtils.extendList(output, type.getIntrinsicStorageTypes());
+    });
+    return output;
+};
 
 // Returns whether any storage types were removed from either list.
 // Assumes that each argument list contains no redundant types.
@@ -121,6 +130,21 @@ export const mergeStorageTypes = (types: StorageType[]): StorageType[] => {
         }
         if (!typeIsRedundant) {
             output.push(type1);
+        }
+    }
+    const intrinsicTypes = getIntrinsicStorageTypes(output);
+    for (let index1 = 0; index1 < intrinsicTypes.length; index1++) {
+        const type1 = intrinsicTypes[index1];
+        for (let index2 = index1 + 1; index2 < intrinsicTypes.length; index2++) {
+            const type2 = intrinsicTypes[index2];
+            if (!type1.intersectsStorageType(type2)) {
+                return null;
+            }
+        }
+        for (const type2 of output) {
+            if (!type1.intersectsStorageType(type2)) {
+                return null;
+            }
         }
     }
     return output;
