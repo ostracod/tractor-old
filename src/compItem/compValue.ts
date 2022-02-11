@@ -1,6 +1,6 @@
 
 import { CompilerError } from "../compilerError.js";
-import { FunctionSignature, DefinitionFunctionSignature } from "../functionSignature.js";
+import { FunctionSignature } from "../functionSignature.js";
 import { BuiltInFunction } from "../builtInFunction.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { CompItem } from "./compItem.js";

@@ -37,7 +37,7 @@ export class ItemType extends CompItem {
     }
     
     intersectTypeHelper(type: ItemType): BasicType[] {
-        let output: BasicType[] = [];
+        const output: BasicType[] = [];
         this.getBasicTypes().forEach((basicType1) => {
             type.getBasicTypes().forEach((basicType2) => {
                 const intersectionType = basicType1.intersectBasicType(basicType2);

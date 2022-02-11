@@ -97,7 +97,7 @@ const mergeBasicTypesHelper = (types: BasicType[]): boolean => {
         }
     }
     return output;
-}
+};
 
 export const mergeBasicTypes = (types: BasicType[]): BasicType[] => {
     const output = types.slice();

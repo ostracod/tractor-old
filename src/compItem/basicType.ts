@@ -658,6 +658,14 @@ export class FunctionType extends ValueType {
         return new FunctionType(this.signature);
     }
     
+    getIntrinsicStorageTypes(): StorageType[] {
+        const output = super.getIntrinsicStorageTypes();
+        if (this.signature.isInline === true) {
+            output.push(new CompType());
+        }
+        return output;
+    }
+    
     getSize(): number {
         return this.signature.targetLanguage.pointerSize;
     }
@@ -683,6 +691,9 @@ export class FunctionType extends ValueType {
                 return false;
             }
         }
+        if (signature1.isInline !== null && signature1.isInline !== signature2.isInline) {
+            return false;
+        }
         return signature1.checkTypes(signature2, (type1, type2) => type1.containsType(type2));
     }
     
@@ -693,13 +704,22 @@ export class FunctionType extends ValueType {
         }
         const signature1 = this.signature;
         const signature2 = output.signature;
+        let isInline: boolean;
+        if (signature1.isInline !== null) {
+            if (signature2.isInline !== null && signature2.isInline !== signature1.isInline) {
+                return null;
+            }
+            isInline = signature1.isInline;
+        } else {
+            isInline = signature2.isInline;
+        }
         const argTypes1 = signature1.getArgTypes();
         const argTypes2 = signature2.getArgTypes();
         const intersectionArgTypes: ItemType[] = [];
         const endIndex = Math.max(argTypes1.length, argTypes2.length);
         for (let index = 0; index < endIndex; index++) {
-            let argType1 = argTypes1[index];
-            let argType2 = argTypes2[index];
+            const argType1 = argTypes1[index];
+            const argType2 = argTypes2[index];
             let intersectionType: ItemType;
             if (typeof argType1 === "undefined") {
                 if (!signature1.isSoft) {
@@ -728,6 +748,7 @@ export class FunctionType extends ValueType {
         output.signature = new SimpleFunctionSignature(
             signature1.targetLanguage,
             signature1.isSoft && signature2.isSoft,
+            isInline,
             intersectionArgTypes,
             intersectionReturnType,
         );

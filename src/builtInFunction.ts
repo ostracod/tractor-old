@@ -9,7 +9,7 @@ export class BuiltInFunction {
     name: string;
     targetLanguage: TargetLanguage;
     contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>;
-    signature: ContextFunctionSignature<BuiltInFunctionContext>;
+    signature: ContextFunctionSignature;
     
     constructor(
         name: string,

@@ -354,6 +354,8 @@ export class StatementBlock extends Node {
         });
         return new DefinitionFunctionSignature(
             this.getTargetLanguage(),
+            // TODO: Provide the correct values for isSoft and isInline.
+            false,
             false,
             argVariableDefinitions,
             returnTypeResolver,

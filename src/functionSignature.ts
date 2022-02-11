@@ -12,10 +12,13 @@ import { FunctionContextConstructor, FunctionContext } from "./functionContext.j
 export abstract class FunctionSignature {
     targetLanguage: TargetLanguage;
     isSoft: boolean;
+    // Can be null for MAYBE_INLINE functions.
+    isInline: boolean;
     
-    constructor(targetLanguage: TargetLanguage, isSoft: boolean) {
+    constructor(targetLanguage: TargetLanguage, isSoft: boolean, isInline: boolean) {
         this.targetLanguage = targetLanguage;
         this.isSoft = isSoft;
+        this.isInline = isInline;
     }
     
     abstract getArgTypes(): ItemType[];
@@ -52,10 +55,11 @@ export class DefinitionFunctionSignature extends FunctionSignature implements Di
     constructor(
         targetLanguage: TargetLanguage,
         isSoft: boolean,
+        isInline: boolean,
         argVariableDefinitions: NodeSlot<ArgVariableDefinition>[],
         returnTypeResolver: NodeSlot<TypeResolver>,
     ) {
-        super(targetLanguage, isSoft);
+        super(targetLanguage, isSoft, isInline);
         this.argVariableDefinitions = argVariableDefinitions;
         this.returnTypeResolver = returnTypeResolver;
     }
@@ -104,10 +108,11 @@ export class SimpleFunctionSignature extends FunctionSignature {
     constructor(
         targetLanguage: TargetLanguage,
         isSoft: boolean,
+        isInline: boolean,
         argTypes: ItemType[],
         returnType: ItemType,
     ) {
-        super(targetLanguage, isSoft);
+        super(targetLanguage, isSoft, isInline);
         this.argTypes = argTypes;
         this.returnType = returnType;
     }
@@ -125,21 +130,21 @@ export class SimpleFunctionSignature extends FunctionSignature {
     }
 }
 
-export class ContextFunctionSignature<T extends FunctionContext = FunctionContext> extends SimpleFunctionSignature {
-    contextConstructor: FunctionContextConstructor<T>;
+export class ContextFunctionSignature extends SimpleFunctionSignature {
+    contextConstructor: FunctionContextConstructor;
     
     constructor(
         targetLanguage: TargetLanguage,
         isSoft: boolean,
         argTypes: ItemType[],
         returnType: ItemType,
-        contextConstructor: FunctionContextConstructor<T>,
+        contextConstructor: FunctionContextConstructor,
     ) {
-        super(targetLanguage, isSoft, argTypes, returnType);
+        super(targetLanguage, isSoft, true, argTypes, returnType);
         this.contextConstructor = contextConstructor;
     }
     
-    createContext(args: CompItem[]): T {
+    createContext(args: CompItem[]): FunctionContext {
         return new this.contextConstructor(this.targetLanguage, args);
     }
     
