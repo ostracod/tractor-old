@@ -7,7 +7,7 @@ import { ItemType } from "./compItem/itemType.js";
 import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
 import { OrType } from "./compItem/manipulationType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
-import { BuiltInFunctionSignature } from "./functionSignature.js";
+import { BuiltInFunction } from "./builtInFunction.js";
 
 export type FunctionContextConstructor<T extends FunctionContext = FunctionContext> = new (
     targetLanguage: TargetLanguage,
@@ -316,64 +316,61 @@ class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
     }
 }
 
-export const createBuiltInSignatures = (
-    targetLanguage: TargetLanguage,
-): BuiltInFunctionSignature[] => {
+export const createBuiltInFunctions = (targetLanguage: TargetLanguage): BuiltInFunction[] => {
     
-    const output: BuiltInFunctionSignature[] = [];
-    const addBuiltInSignature = (
+    const output: BuiltInFunction[] = [];
+    const addBuiltInFunction = (
         name: string,
         argTypes: ItemType[],
         returnType: ItemType,
         contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>,
     ): void => {
-        output.push(new BuiltInFunctionSignature(
+        output.push(new BuiltInFunction(
+            name,
             targetLanguage,
+            contextConstructor,
             argTypes,
             returnType,
-            contextConstructor,
-            name,
         ));
     };
     
-    addBuiltInSignature(
+    addBuiltInFunction(
         "ptrT",
         [new TypeType(new ItemType())],
         new TypeType(targetLanguage.createPointerType(new ItemType())),
         PtrTFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "softArrayT",
         [new TypeType(new ItemType())],
         new TypeType(new ArrayType(new ItemType())),
         SoftArrayTFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "arrayT",
         [new TypeType(new ItemType()), new IntegerType()],
         new TypeType(new ArrayType(new ItemType())),
         ArrayTFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "fieldNameT",
         [new TypeType(new OrType(structType, unionType))],
         new TypeType(new ArrayType(characterType)),
         FieldNameTFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "typeT",
         [new ItemType()],
         new TypeType(new ItemType()),
         TypeTFunctionContext,
     );
-    
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getSize",
         [new TypeType(new ItemType())],
         new IntegerType(),
         GetSizeFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getLen",
         [new TypeType(new OrType(
             new ArrayType(new ItemType()), targetLanguage.functionType,
@@ -381,7 +378,7 @@ export const createBuiltInSignatures = (
         new IntegerType(),
         GetLenFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getElemType",
         [new TypeType(new OrType(
             targetLanguage.createPointerType(new ValueType()), new ArrayType(new ItemType()),
@@ -389,38 +386,38 @@ export const createBuiltInSignatures = (
         new TypeType(new ItemType()),
         GetElemTypeFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getFieldType",
         [new TypeType(new OrType(structType, unionType)), new ArrayType(characterType)],
         new TypeType(new ItemType()),
         GetFieldTypeFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getFieldOffset",
         [new TypeType(structType), new ArrayType(characterType)],
         new IntegerType(),
         GetFieldOffsetFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getArgType",
         [new TypeType(targetLanguage.functionType), new IntegerType()],
         new TypeType(new ItemType()),
         GetArgTypeFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "getReturnType",
         [new TypeType(targetLanguage.functionType)],
         new TypeType(new ItemType()),
         GetReturnTypeFunctionContext,
     );
-    addBuiltInSignature(
+    addBuiltInFunction(
         "typeConforms",
         [new TypeType(new ItemType()), new TypeType(new ItemType())],
         booleanType,
         TypeConformsFunctionContext,
     );
     // It's a secret to everybody.
-    addBuiltInSignature(
+    addBuiltInFunction(
         "typeIntersects",
         [new TypeType(new ItemType()), new TypeType(new ItemType())],
         booleanType,

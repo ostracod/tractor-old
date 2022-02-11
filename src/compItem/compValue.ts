@@ -1,6 +1,7 @@
 
 import { CompilerError } from "../compilerError.js";
-import { FunctionSignature, DefinitionFunctionSignature, BuiltInFunctionSignature } from "../functionSignature.js";
+import { FunctionSignature, DefinitionFunctionSignature } from "../functionSignature.js";
+import { BuiltInFunction } from "../builtInFunction.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { CompItem } from "./compItem.js";
 import { ItemType } from "./itemType.js";
@@ -131,7 +132,7 @@ export class DefinitionFunctionHandle extends FunctionHandle {
         this.functionDefinition = functionDefinition;
     }
     
-    getSignature(): DefinitionFunctionSignature {
+    getSignature(): FunctionSignature {
         return this.functionDefinition.signature;
     }
     
@@ -145,24 +146,23 @@ export class DefinitionFunctionHandle extends FunctionHandle {
 }
 
 export class BuiltInFunctionHandle extends FunctionHandle {
-    signature: BuiltInFunctionSignature;
+    builtInFunction: BuiltInFunction;
     
-    constructor(signature: BuiltInFunctionSignature) {
+    constructor(builtInFunction: BuiltInFunction) {
         super();
-        this.signature = signature;
+        this.builtInFunction = builtInFunction;
     }
     
-    getSignature(): BuiltInFunctionSignature {
-        return this.signature;
+    getSignature(): FunctionSignature {
+        return this.builtInFunction.signature;
     }
     
     getDisplayString(): string {
-        return this.signature.name;
+        return this.builtInFunction.name;
     }
     
     evaluateToCompItem(args: CompItem[]): CompItem {
-        const signature = this.getSignature();
-        const context = signature.createContext(args);
+        const context = this.builtInFunction.createContext(args);
         return context.getReturnItem();
     }
 }

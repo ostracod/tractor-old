@@ -1,6 +1,6 @@
 
 import { Identifier, NameIdentifier, IdentifierMap } from "../identifier.js";
-import { createBuiltInSignatures } from "../functionContext.js";
+import { createBuiltInFunctions } from "../functionContext.js";
 import { TargetLanguage } from "../targetLanguage.js";
 import { CompItem } from "./compItem.js";
 import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
@@ -45,9 +45,9 @@ export const createBuiltInItemMap = (
         addBuiltInItem(new constructor(false));
     });
     
-    const signatures = createBuiltInSignatures(targetLanguage);
-    signatures.forEach((signature) => {
-        addBuiltInItem(new BuiltInFunctionHandle(signature));
+    const builtInFunctions = createBuiltInFunctions(targetLanguage);
+    builtInFunctions.forEach((builtInFunction) => {
+        addBuiltInItem(new BuiltInFunctionHandle(builtInFunction));
     });
     
     const output = new IdentifierMap<CompItem>();

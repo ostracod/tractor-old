@@ -7,7 +7,7 @@ import { ArgVariableDefinition } from "./definition/variableDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { CompItem } from "./compItem/compItem.js";
 import { ItemType } from "./compItem/itemType.js";
-import { FunctionContextConstructor, FunctionContext, BuiltInFunctionContext } from "./functionContext.js";
+import { FunctionContextConstructor, FunctionContext } from "./functionContext.js";
 
 export abstract class FunctionSignature {
     targetLanguage: TargetLanguage;
@@ -146,21 +146,6 @@ export class ContextFunctionSignature<T extends FunctionContext = FunctionContex
     getReturnTypeByArgs(args: CompItem[]): ItemType {
         const context = this.createContext(args);
         return context.getReturnType();
-    }
-}
-
-export class BuiltInFunctionSignature extends ContextFunctionSignature<BuiltInFunctionContext> {
-    name: string;
-    
-    constructor(
-        targetLanguage: TargetLanguage,
-        argTypes: ItemType[],
-        returnType: ItemType,
-        contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>,
-        name: string,
-    ) {
-        super(targetLanguage, false, argTypes, returnType, contextConstructor);
-        this.name = name;
     }
 }
 
