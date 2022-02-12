@@ -6,7 +6,7 @@ import { ResolvedField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
-import { StorageType, CompType } from "./storageType.js";
+import { StorageType, CompType, ConcreteType } from "./storageType.js";
 
 export class BasicType extends ItemType {
     // Excludes intrinsic storage types.
@@ -31,8 +31,17 @@ export class BasicType extends ItemType {
         return [this];
     }
     
+    isConcrete(): boolean {
+        return null;
+    }
+    
     getIntrinsicStorageTypes(): StorageType[] {
-        return typeUtils.getIntrinsicStorageTypes(this.storageTypes);
+        const output = typeUtils.getIntrinsicStorageTypes(this.storageTypes);
+        const isConcrete = this.isConcrete();
+        if (isConcrete !== null) {
+            output.push(new ConcreteType(!isConcrete));
+        }
+        return output;
     }
     
     // The intersection of all elements in this.getStorageTypes()
@@ -123,6 +132,10 @@ export class TypeType extends BasicType {
         return new TypeType(this.type.copy());
     }
     
+    isConcrete(): boolean {
+        return false;
+    }
+    
     getIntrinsicStorageTypes(): StorageType[] {
         const output = super.getIntrinsicStorageTypes();
         output.push(new CompType());
@@ -172,6 +185,10 @@ export class VoidType extends ValueType {
         return new VoidType();
     }
     
+    isConcrete(): boolean {
+        return true;
+    }
+    
     getIntrinsicStorageTypes(): StorageType[] {
         const output = super.getIntrinsicStorageTypes();
         output.push(new CompType());
@@ -203,6 +220,10 @@ export class IntegerType extends ValueType {
     
     getSize(): number {
         return (this.bitAmount === null) ? null : Math.ceil(this.bitAmount / 8);
+    }
+    
+    isConcrete(): boolean {
+        return (this.isSigned === null || this.bitAmount === null) ? null : true;
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {
@@ -339,6 +360,10 @@ export class PointerType extends ElementCompositeType {
         return this.size;
     }
     
+    isConcrete(): boolean {
+        return true;
+    }
+    
     getDisplayStringHelper(): string {
         return `ptrT(${this.elementType.getDisplayString()})`;
     }
@@ -362,6 +387,15 @@ export class ArrayType extends ElementCompositeType {
         }
         const elementSize = this.elementType.getSize();
         return (elementSize === null) ? null : elementSize * this.length;
+    }
+    
+    isConcrete(): boolean {
+        const isConcrete = this.elementType.isConcrete();
+        if (isConcrete !== true) {
+            return isConcrete;
+        } else {
+            return (this.length === null) ? null : true;
+        }
     }
     
     containsBasicTypeHelper(type: BasicType): boolean {
@@ -525,6 +559,22 @@ export abstract class FieldsType extends ValueType {
         return this.size;
     }
     
+    isConcrete(): boolean {
+        let hasNullConcreteType = false;
+        for (const field of this.fieldList) {
+            const isConcrete = field.type.isConcrete();
+            if (isConcrete === false) {
+                return false;
+            } else if (isConcrete === null) {
+                hasNullConcreteType = true;
+            }
+        }
+        if (hasNullConcreteType) {
+            return null;
+        }
+        return this.isSoft ? null : true;
+    }
+    
     containsBasicTypeHelper(type: BasicType): boolean {
         if (!super.containsBasicTypeHelper(type)) {
             return false;
@@ -656,6 +706,16 @@ export class FunctionType extends ValueType {
     
     copyHelper(): BasicType {
         return new FunctionType(this.signature);
+    }
+    
+    isConcrete(): boolean {
+        if (this.signature.isInline === true) {
+            return false;
+        } else if (this.signature.isInline === null || this.signature.isSoft) {
+            return null;
+        } else {
+            return true;
+        }
     }
     
     getIntrinsicStorageTypes(): StorageType[] {

@@ -59,6 +59,20 @@ export class ItemType extends CompItem {
         ));
     }
     
+    intersectsType(type: ItemType): boolean {
+        return (this.intersectType(type) !== null);
+    }
+    
+    // Can return null if this type intersects with both concreteT and ~concreteT.
+    isConcrete(): boolean {
+        const concreteType = new constructors.ConcreteType();
+        if (concreteType.containsType(this)) {
+            return true;
+        } else {
+            return concreteType.intersectsType(this) ? null : false;
+        }
+    }
+    
     equalsType(type: ItemType): boolean {
         return this.containsType(type) && type.containsType(this);
     }

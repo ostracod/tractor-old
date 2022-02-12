@@ -1,4 +1,5 @@
 
+import { constructors } from "../constructors.js";
 import { ItemType } from "./itemType.js";
 import { BasicType } from "./basicType.js";
 
@@ -33,7 +34,11 @@ export abstract class StorageType extends ItemType {
     // Does not take intrinsic storage types into account.
     containsStorageType(type: StorageType): boolean {
         if (type instanceof this.constructor) {
-            return (!this.isComplement && !type.isComplement);
+            if (this.constructor === type.constructor) {
+                return (this.isComplement === type.isComplement);
+            } else {
+                return (!this.isComplement && !type.isComplement);
+            }
         } else if (this instanceof type.constructor) {
             return (this.isComplement && type.isComplement);
         } else {
@@ -135,5 +140,7 @@ export const storageTypeConstructors: StorageTypeConstructor[] = [
     ConstantType, CompType, ConcreteType, LocationType,
     CompLocationType, FrameType, FixedType,
 ];
+
+constructors.ConcreteType = ConcreteType;
 
 
