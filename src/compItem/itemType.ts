@@ -1,10 +1,10 @@
 
 import { constructors } from "../constructors.js";
 import * as typeUtils from "./typeUtils.js";
-import { CompItem } from "./compItem.js";
+import { CompKnown } from "./compItem.js";
 import { BasicType, TypeType } from "./basicType.js";
 
-export class ItemType extends CompItem {
+export class ItemType extends CompKnown {
     
     getType(): TypeType {
         return new constructors.TypeType(this);

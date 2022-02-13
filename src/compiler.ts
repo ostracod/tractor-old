@@ -189,10 +189,10 @@ export class Compiler extends Node {
         ));
     }
     
-    resolveCompItems(): number {
+    resolveCompKnowns(): number {
         return this.processExpandedNodes(
             Expression,
-            (expression) => expression.resolveCompItems(),
+            (expression) => expression.resolveCompKnowns(),
         );
     }
     
@@ -257,7 +257,7 @@ export class Compiler extends Node {
                 processCount += this.extractTypeDefinitions();
                 processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
-                processCount += this.resolveCompItems();
+                processCount += this.resolveCompKnowns();
                 processCount += this.processStatementPancakes();
                 processCount += this.removeEmptyScopeStatements();
                 processCount += this.resolveTypes();

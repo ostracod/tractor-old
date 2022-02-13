@@ -11,7 +11,7 @@ import { Definition } from "../definition/definition.js";
 import { FieldDefinition } from "../definition/singleTypeDefinition.js";
 import { FunctionTypeDefinition } from "../definition/typeDefinition.js";
 import { ArgVariableDefinition } from "../definition/variableDefinition.js";
-import { CompItem } from "../compItem/compItem.js";
+import { CompItem, CompKnown } from "../compItem/compItem.js";
 import { createBuiltInItemMap } from "../compItem/builtInItem.js";
 import { Statement, VariableStatement, FieldStatement, FieldsTypeStatement, ScopeStatement, JumpIfStatement } from "./statement.js";
 import { StatementGenerator } from "./statementGenerator.js";
@@ -249,7 +249,7 @@ export class StatementBlock extends Node {
     ): boolean {
         const conditionExpression = jumpIfStatement.getConditionExpression();
         const compItem = conditionExpression.evaluateToCompItemOrNull();
-        if (compItem === null) {
+        if (!(compItem instanceof CompKnown)) {
             destination.push(jumpIfStatement);
             return false;
         }

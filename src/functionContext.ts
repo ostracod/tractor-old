@@ -5,7 +5,6 @@ import { CompItem } from "./compItem/compItem.js";
 import { CompInteger, CompArray, BuiltInFunctionHandle } from "./compItem/compValue.js";
 import { ItemType } from "./compItem/itemType.js";
 import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
-import { LocationType } from "./compItem/storageType.js";
 import { OrType } from "./compItem/manipulationType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
 

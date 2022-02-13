@@ -4,8 +4,8 @@ import { Node, NodeSlot } from "../node.js";
 import { Identifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
-import { CompItem } from "../compItem/compItem.js";
-import { CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
+import { CompItem, CompKnown } from "../compItem/compItem.js";
+import { CompVoid, CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 
@@ -23,7 +23,7 @@ export abstract class Expression extends Node {
     
     evaluateToString(): string {
         const constant = this.evaluateToCompItemOrNull();
-        if (constant === null || !(constant instanceof CompArray)) {
+        if (!(constant instanceof CompArray)) {
             throw this.createError("Expected string.");
         }
         return (constant as CompArray).convertToString();
@@ -53,9 +53,9 @@ export abstract class Expression extends Node {
         return new UnaryExpression(unaryOperatorMap["!"], this);
     }
     
-    resolveCompItems(): Expression {
+    resolveCompKnowns(): Expression {
         const item = this.evaluateToCompItemOrNull();
-        return (item === null) ? null : new CompItemExpression(item);
+        return (item instanceof CompKnown) ? new CompKnownExpression(item) : null;
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
@@ -69,10 +69,10 @@ export abstract class Expression extends Node {
     }
 }
 
-export class CompItemExpression extends Expression {
-    item: CompItem;
+export class CompKnownExpression extends Expression {
+    item: CompKnown;
     
-    constructor(item: CompItem) {
+    constructor(item: CompKnown) {
         super();
         this.item = item;
     }
@@ -85,7 +85,7 @@ export class CompItemExpression extends Expression {
         }
     }
     
-    resolveCompItems(): Expression {
+    resolveCompKnowns(): Expression {
         return null;
     }
     
@@ -94,7 +94,7 @@ export class CompItemExpression extends Expression {
     }
     
     copy(): Expression {
-        return new CompItemExpression(this.item);
+        return new CompKnownExpression(this.item);
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -289,7 +289,7 @@ export class InvocationExpression extends Expression {
         const { statements, returnItemIdentifier } = result;
         let expression: Expression;
         if (returnItemIdentifier === null) {
-            expression = new CompItemExpression(null);
+            expression = new CompKnownExpression(new CompVoid());
         } else {
             expression = new IdentifierExpression(returnItemIdentifier);
         }

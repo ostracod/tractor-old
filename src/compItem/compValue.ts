@@ -4,11 +4,11 @@ import { TargetLanguage } from "../targetLanguage.js";
 import { FunctionSignature, ContextFunctionSignature } from "../functionSignature.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { FunctionContextConstructor, ReturnItemFunctionContext } from "../functionContext.js";
-import { CompItem } from "./compItem.js";
+import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./basicType.js";
 
-export abstract class CompValue extends CompItem {
+export abstract class CompValue extends CompKnown {
     
 }
 

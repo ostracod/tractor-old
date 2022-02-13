@@ -2,12 +2,19 @@
 import { IdentifierBehavior } from "../identifierBehavior.js";
 import { Pos } from "../parse/pos.js";
 import { Expression } from "../statement/expression.js";
-import { CompItem } from "../compItem/compItem.js";
+import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
+    
+    getCompItemOrNull(): CompItem {
+        const constraintType = this.typeResolver.get().type;
+        // TODO: Intersect constraintType with variable
+        // storage type and init item type.
+        return (constraintType === null) ? null : new CompUnknown(constraintType);
+    }
     
     // Returns whether the expression has been handled.
     handleInitExpression(expression: Expression): boolean {
@@ -44,7 +51,7 @@ export class FrameVariableDefinition extends VariableDefinition {
 }
 
 export class CompVariableDefinition extends VariableDefinition {
-    item: CompItem;
+    item: CompKnown;
     
     constructor(
         pos: Pos,
@@ -61,7 +68,7 @@ export class CompVariableDefinition extends VariableDefinition {
     
     handleInitExpression(expression: Expression): boolean {
         const compItem = expression.evaluateToCompItemOrNull();
-        if (compItem === null) {
+        if (!(compItem instanceof CompKnown)) {
             return false;
         }
         this.item = compItem;
@@ -92,7 +99,7 @@ export class AutoVariableDefinition extends VariableDefinition {
     
     handleInitExpression(expression: Expression): boolean {
         const compItem = expression.evaluateToCompItemOrNull();
-        if (compItem !== null) {
+        if (compItem instanceof CompKnown) {
             const definition = new CompVariableDefinition(
                 this.pos,
                 this.identifierBehavior,

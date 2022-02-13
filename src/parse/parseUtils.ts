@@ -3,7 +3,7 @@ import { CompilerError } from "../compilerError.js";
 import { NameIdentifier } from "../identifier.js";
 import { StatementType, expressionStatementType, directiveStatementTypeMap } from "../statement/statementType.js";
 import { Statement } from "../statement/statement.js";
-import { Expression, CompItemExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
+import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "../statement/operator.js";
 import { CompInteger, CompArray } from "../compItem/compValue.js";
 import { characterType } from "../compItem/basicType.js";
@@ -248,14 +248,14 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
         const value = BigInt(token.text);
         const compItem = new CompInteger(value);
         return {
-            expression: new CompItemExpression(compItem),
+            expression: new CompKnownExpression(compItem),
             index,
         };
     }
     if (token instanceof StringToken) {
         const compItem = parseStringToken(token);
         return {
-            expression: new CompItemExpression(compItem),
+            expression: new CompKnownExpression(compItem),
             index,
         };
     }
@@ -263,7 +263,7 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
         const value = BigInt(token.text.charCodeAt(0));
         const compItem = new CompInteger(value);
         return {
-            expression: new CompItemExpression(compItem),
+            expression: new CompKnownExpression(compItem),
             index,
         };
     }

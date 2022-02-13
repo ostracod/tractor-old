@@ -18,4 +18,26 @@ export abstract class CompItem implements Displayable {
     }
 }
 
+// Represents an item which is unknown, but has a known type.
+export class CompUnknown extends CompItem {
+    type: ItemType;
+    
+    constructor(type: ItemType) {
+        super();
+        this.type = type;
+    }
+    
+    getType(): ItemType {
+        return this.type;
+    }
+    
+    getDisplayString(): string {
+        return `???:${this.type.getDisplayString()}`;
+    }
+}
+
+export abstract class CompKnown extends CompItem {
+    
+}
+
 

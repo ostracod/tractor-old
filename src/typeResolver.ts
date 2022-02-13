@@ -3,6 +3,7 @@ import { Node, NodeSlot } from "./node.js";
 import { Expression } from "./statement/expression.js";
 import { Statement } from "./statement/statement.js";
 import { StatementBlock } from "./statement/statementBlock.js";
+import { CompKnown } from "./compItem/compItem.js";
 import { ItemType } from "./compItem/itemType.js";
 
 export class TypeResolver extends Node {
@@ -26,7 +27,7 @@ export class TypeResolver extends Node {
             return false;
         }
         const compItem = this.block.get().evaluateToCompItemOrNull();
-        if (compItem === null) {
+        if (!(compItem instanceof CompKnown)) {
             return false;
         }
         if (!(compItem instanceof ItemType)) {
