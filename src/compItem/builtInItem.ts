@@ -3,7 +3,7 @@ import { Identifier, NameIdentifier, IdentifierMap } from "../identifier.js";
 import { createBuiltInFunctions } from "../functionContext.js";
 import { TargetLanguage } from "../targetLanguage.js";
 import { CompItem } from "./compItem.js";
-import { CompInteger, BuiltInFunctionHandle } from "./compValue.js";
+import { CompInteger } from "./compValue.js";
 import { ItemType } from "./itemType.js";
 import { ValueType, VoidType, IntegerType, structType, unionType } from "./basicType.js";
 import { storageTypeConstructors } from "./storageType.js";
@@ -39,15 +39,15 @@ export const createBuiltInItemMap = (
     });
     addBuiltInItem(structType);
     addBuiltInItem(unionType);
-    addBuiltInItem(targetLanguage.functionType);
+    addBuiltInItem(targetLanguage.functionType, "funcT");
     
     storageTypeConstructors.forEach((constructor) => {
         addBuiltInItem(new constructor(false));
     });
     
-    const builtInFunctions = createBuiltInFunctions(targetLanguage);
-    builtInFunctions.forEach((builtInFunction) => {
-        addBuiltInItem(new BuiltInFunctionHandle(builtInFunction));
+    const builtInFunctionHandles = createBuiltInFunctions(targetLanguage);
+    builtInFunctionHandles.forEach((builtInFunctionHandle) => {
+        addBuiltInItem(builtInFunctionHandle);
     });
     
     const output = new IdentifierMap<CompItem>();

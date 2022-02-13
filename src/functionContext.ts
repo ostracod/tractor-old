@@ -2,12 +2,12 @@
 import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem } from "./compItem/compItem.js";
-import { CompInteger, CompArray } from "./compItem/compValue.js";
+import { CompInteger, CompArray, BuiltInFunctionHandle } from "./compItem/compValue.js";
 import { ItemType } from "./compItem/itemType.js";
 import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
+import { LocationType } from "./compItem/storageType.js";
 import { OrType } from "./compItem/manipulationType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
-import { BuiltInFunction } from "./builtInFunction.js";
 
 export type FunctionContextConstructor<T extends FunctionContext = FunctionContext> = new (
     targetLanguage: TargetLanguage,
@@ -27,30 +27,19 @@ export abstract class FunctionContext {
     abstract getReturnType(): ItemType;
 }
 
-export class GenericFunctionContext extends FunctionContext {
-    
-    initialize(args: CompItem[]): void {
-        // Do nothing.
-    }
-    
-    getReturnType(): ItemType {
-        return new ItemType();
-    }
-}
-
-export abstract class BuiltInFunctionContext extends FunctionContext {
+export abstract class ReturnItemFunctionContext extends FunctionContext {
     
     abstract getReturnItem(): CompItem;
     
     getReturnType(): ItemType {
-        // The assumption is that getReturnItem never has any
-        // side-effects. If this is false, then subclasses of
-        // BuiltInFunctionContext should override getReturnType.
+        // The assumption is that getReturnItem never has any side-effects
+        // If this is false, then subclasses of ReturnItemFunctionContext
+        // should override getReturnType.
         return this.getReturnItem().getType();
     }
 }
 
-abstract class TypeFunctionContext extends BuiltInFunctionContext {
+abstract class TypeFunctionContext extends ReturnItemFunctionContext {
     type: ItemType;
     
     initialize(args: CompItem[]): void {
@@ -94,7 +83,7 @@ class ArrayTFunctionContext extends SoftArrayTFunctionContext {
     }
 }
 
-class FieldNameTFunctionContext extends BuiltInFunctionContext {
+class FieldNameTFunctionContext extends ReturnItemFunctionContext {
     type: FieldsType;
     
     initialize(args: CompItem[]): void {
@@ -111,7 +100,7 @@ class FieldNameTFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-class TypeTFunctionContext extends BuiltInFunctionContext {
+class TypeTFunctionContext extends ReturnItemFunctionContext {
     item: CompItem;
     
     initialize(args: CompItem[]): void {
@@ -134,7 +123,7 @@ class GetSizeFunctionContext extends TypeFunctionContext {
     }
 }
 
-class GetLenFunctionContext extends BuiltInFunctionContext {
+class GetLenFunctionContext extends ReturnItemFunctionContext {
     arrayType: ArrayType;
     functionType: FunctionType;
     
@@ -166,7 +155,7 @@ class GetLenFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-class GetElemTypeFunctionContext extends BuiltInFunctionContext {
+class GetElemTypeFunctionContext extends ReturnItemFunctionContext {
     compositeType: ElementCompositeType;
     
     initialize(args: CompItem[]): void {
@@ -182,7 +171,7 @@ class GetElemTypeFunctionContext extends BuiltInFunctionContext {
     }
 }
 
-abstract class FieldFunctionContext extends BuiltInFunctionContext {
+abstract class FieldFunctionContext extends ReturnItemFunctionContext {
     field: ResolvedField;
     
     verifyTypeArg(arg: CompItem): FieldsType {
@@ -242,7 +231,7 @@ class GetFieldOffsetFunctionContext extends FieldFunctionContext {
     }
 }
 
-abstract class FunctionTypeFunctionContext extends BuiltInFunctionContext {
+abstract class FunctionTypeFunctionContext extends ReturnItemFunctionContext {
     functionType: FunctionType;
     
     initialize(args: CompItem[]): void {
@@ -316,16 +305,18 @@ class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
     }
 }
 
-export const createBuiltInFunctions = (targetLanguage: TargetLanguage): BuiltInFunction[] => {
+export const createBuiltInFunctions = (
+    targetLanguage: TargetLanguage,
+): BuiltInFunctionHandle[] => {
     
-    const output: BuiltInFunction[] = [];
+    const output: BuiltInFunctionHandle[] = [];
     const addBuiltInFunction = (
         name: string,
         argTypes: ItemType[],
         returnType: ItemType,
-        contextConstructor: FunctionContextConstructor<BuiltInFunctionContext>,
+        contextConstructor: FunctionContextConstructor,
     ): void => {
-        output.push(new BuiltInFunction(
+        output.push(new BuiltInFunctionHandle(
             name,
             targetLanguage,
             contextConstructor,

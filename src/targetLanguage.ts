@@ -2,8 +2,7 @@
 import { TargetCodeGeneratorConstructor, UnixCGenerator } from "./targetCodeGenerator.js";
 import { ItemType } from "./compItem/itemType.js";
 import { PointerType, FunctionType } from "./compItem/basicType.js";
-import { GenericFunctionContext } from "./functionContext.js";
-import { ContextFunctionSignature } from "./functionSignature.js";
+import { SimpleFunctionSignature } from "./functionSignature.js";
 
 export const targetLanguageMap: { [name: string]: TargetLanguage } = {};
 
@@ -20,8 +19,8 @@ export class TargetLanguage {
     ) {
         this.name = name;
         this.pointerSize = pointerSize;
-        this.functionType = new FunctionType(new ContextFunctionSignature(
-            this, true, [], new ItemType(), GenericFunctionContext,
+        this.functionType = new FunctionType(new SimpleFunctionSignature(
+            this, true, null, [], new ItemType(),
         ));
         this.codeGeneratorConstructor = codeGeneratorConstructor;
         targetLanguageMap[this.name] = this;

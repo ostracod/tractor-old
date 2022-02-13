@@ -256,7 +256,8 @@ export class InvocationExpression extends Expression {
             return result;
         }
         const functionHandle = this.functionExpression.get().evaluateToCompItemOrNull();
-        if (!(functionHandle instanceof BuiltInFunctionHandle)) {
+        if (!(functionHandle instanceof BuiltInFunctionHandle)
+                || !functionHandle.canEvaluateToCompItem()) {
             return null;
         }
         const args: CompItem[] = [];

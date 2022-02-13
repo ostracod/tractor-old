@@ -1,8 +1,9 @@
 
 import { CompilerError } from "../compilerError.js";
-import { FunctionSignature } from "../functionSignature.js";
-import { BuiltInFunction } from "../builtInFunction.js";
+import { TargetLanguage } from "../targetLanguage.js";
+import { FunctionSignature, ContextFunctionSignature } from "../functionSignature.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
+import { FunctionContextConstructor, ReturnItemFunctionContext } from "../functionContext.js";
 import { CompItem } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./basicType.js";
@@ -146,23 +147,50 @@ export class DefinitionFunctionHandle extends FunctionHandle {
 }
 
 export class BuiltInFunctionHandle extends FunctionHandle {
-    builtInFunction: BuiltInFunction;
+    name: string;
+    targetLanguage: TargetLanguage;
+    contextConstructor: FunctionContextConstructor;
+    signature: ContextFunctionSignature;
     
-    constructor(builtInFunction: BuiltInFunction) {
+    constructor(
+        name: string,
+        targetLanguage: TargetLanguage,
+        contextConstructor: FunctionContextConstructor,
+        argTypes: ItemType[],
+        returnType: ItemType,
+    ) {
         super();
-        this.builtInFunction = builtInFunction;
+        this.name = name;
+        this.targetLanguage = targetLanguage;
+        this.contextConstructor = contextConstructor;
+        this.signature = new ContextFunctionSignature(
+            this.targetLanguage,
+            false,
+            argTypes,
+            returnType,
+            this.contextConstructor,
+        );
     }
     
     getSignature(): FunctionSignature {
-        return this.builtInFunction.signature;
+        return this.signature;
     }
     
     getDisplayString(): string {
-        return this.builtInFunction.name;
+        return this.name;
+    }
+    
+    canEvaluateToCompItem(): boolean {
+        return (this.contextConstructor.prototype instanceof ReturnItemFunctionContext);
     }
     
     evaluateToCompItem(args: CompItem[]): CompItem {
-        const context = this.builtInFunction.createContext(args);
+        if (!this.canEvaluateToCompItem()) {
+            throw new CompilerError(`Cannot evaluate ${this.name} to CompItem.`);
+        }
+        const context = new this.contextConstructor(
+            this.targetLanguage, args,
+        ) as ReturnItemFunctionContext;
         return context.getReturnItem();
     }
 }
