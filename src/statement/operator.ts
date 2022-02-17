@@ -1,6 +1,6 @@
 
 import { CompilerError } from "../compilerError.js";
-import { CompItem } from "../compItem/compItem.js";
+import { CompItem, CompUnknown } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType } from "../compItem/basicType.js";
@@ -40,13 +40,18 @@ export abstract class UnaryOperator extends Operator {
     }
     
     calculateCompItem(operand: CompItem): CompItem {
-        if (!(operand instanceof CompInteger)) {
+        const operandType = operand.getType();
+        if (!(operandType instanceof IntegerType)) {
             throw new CompilerError(this.getErrorMessage());
         }
-        const resultType = this.getIntegerType(operand.getType());
-        let resultInteger = this.calculateInteger(operand.value);
-        resultInteger = resultType.restrictInteger(resultInteger);
-        return new CompInteger(resultInteger, resultType);
+        const resultType = this.getIntegerType(operandType);
+        if (operand instanceof CompInteger) {
+            let resultInteger = this.calculateInteger(operand.value);
+            resultInteger = resultType.restrictInteger(resultInteger);
+            return new CompInteger(resultInteger, resultType);
+        } else {
+            return new CompUnknown(resultType);
+        }
     }
     
     generateUnixC(operand: Expression) {
@@ -156,11 +161,17 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
     }
     
     calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
-        if (operand1 instanceof CompInteger && operand2 instanceof CompInteger) {
-            const resultType = this.getIntegerType(operand1.getType(), operand2.getType());
-            let resultInteger = this.calculateInteger(operand1.value, operand2.value);
-            resultInteger = resultType.restrictInteger(resultInteger);
-            return new CompInteger(resultInteger, resultType);
+        const operandType1 = operand1.getType();
+        const operandType2 = operand2.getType();
+        if (operandType1 instanceof IntegerType && operandType2 instanceof IntegerType) {
+            const resultType = this.getIntegerType(operandType1, operandType2);
+            if (operand1 instanceof CompInteger && operand2 instanceof CompInteger) {
+                let resultInteger = this.calculateInteger(operand1.value, operand2.value);
+                resultInteger = resultType.restrictInteger(resultInteger);
+                return new CompInteger(resultInteger, resultType);
+            } else {
+                return new CompUnknown(resultType);
+            }
         }
         if (!this.isTypeOperator()) {
             throw new CompilerError("Expected integer operands.");

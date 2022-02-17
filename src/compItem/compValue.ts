@@ -3,7 +3,7 @@ import { CompilerError } from "../compilerError.js";
 import { TargetLanguage } from "../targetLanguage.js";
 import { FunctionSignature, ContextFunctionSignature } from "../functionSignature.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
-import { FunctionContextConstructor, ReturnItemFunctionContext } from "../functionContext.js";
+import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./basicType.js";
@@ -180,17 +180,8 @@ export class BuiltInFunctionHandle extends FunctionHandle {
         return this.name;
     }
     
-    canEvaluateToCompItem(): boolean {
-        return (this.contextConstructor.prototype instanceof ReturnItemFunctionContext);
-    }
-    
     evaluateToCompItem(args: CompItem[]): CompItem {
-        if (!this.canEvaluateToCompItem()) {
-            throw new CompilerError(`Cannot evaluate ${this.name} to CompItem.`);
-        }
-        const context = new this.contextConstructor(
-            this.targetLanguage, args,
-        ) as ReturnItemFunctionContext;
+        const context = new this.contextConstructor(this.targetLanguage, args);
         return context.getReturnItem();
     }
 }

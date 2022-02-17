@@ -1,7 +1,7 @@
 
 import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
-import { CompItem } from "./compItem/compItem.js";
+import { CompItem, CompUnknown } from "./compItem/compItem.js";
 import { CompInteger, CompArray, BuiltInFunctionHandle } from "./compItem/compValue.js";
 import { ItemType } from "./compItem/itemType.js";
 import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
@@ -23,22 +23,17 @@ export abstract class FunctionContext {
     
     abstract initialize(args: CompItem[]): void;
     
-    abstract getReturnType(): ItemType;
-}
-
-export abstract class ReturnItemFunctionContext extends FunctionContext {
-    
     abstract getReturnItem(): CompItem;
     
     getReturnType(): ItemType {
-        // The assumption is that getReturnItem never has any side-effects
-        // If this is false, then subclasses of ReturnItemFunctionContext
-        // should override getReturnType.
+        // The assumption is that getReturnItem never has any
+        // side-effects. If this is false, then subclasses of
+        // FunctionContext should override getReturnType.
         return this.getReturnItem().getType();
     }
 }
 
-abstract class TypeFunctionContext extends ReturnItemFunctionContext {
+abstract class TypeFunctionContext extends FunctionContext {
     type: ItemType;
     
     initialize(args: CompItem[]): void {
@@ -58,31 +53,37 @@ class PtrTFunctionContext extends TypeFunctionContext {
 }
 
 class SoftArrayTFunctionContext extends TypeFunctionContext {
+    
+    initialize(args: CompItem[]): void {
+        super.initialize(args);
+    }
+    
+    getReturnItem(): CompItem {
+        return new ArrayType(this.type, null);
+    }
+}
+
+class ArrayTFunctionContext extends TypeFunctionContext {
     length: number;
     
     initialize(args: CompItem[]): void {
         super.initialize(args);
-        this.length = null;
+        const lengthArg = args[1];
+        if (lengthArg instanceof CompInteger) {
+            this.length = Number(lengthArg.value);
+        } else if (lengthArg instanceof CompUnknown) {
+            this.length = null;
+        } else {
+            throw new CompilerError("Second argument must conform to intT.");
+        }
     }
     
     getReturnItem(): CompItem {
-        return new ArrayType(this.type, this.length);
+        return (this.length === null) ? null : new ArrayType(this.type, this.length);
     }
 }
 
-class ArrayTFunctionContext extends SoftArrayTFunctionContext {
-    
-    initialize(args: CompItem[]): void {
-        super.initialize(args);
-        const lengthArg = args[1];
-        if (!(lengthArg instanceof CompInteger)) {
-            throw new CompilerError("Second argument must conform to intT.");
-        }
-        this.length = Number(lengthArg.value);
-    }
-}
-
-class FieldNameTFunctionContext extends ReturnItemFunctionContext {
+class FieldNameTFunctionContext extends FunctionContext {
     type: FieldsType;
     
     initialize(args: CompItem[]): void {
@@ -99,7 +100,7 @@ class FieldNameTFunctionContext extends ReturnItemFunctionContext {
     }
 }
 
-class TypeTFunctionContext extends ReturnItemFunctionContext {
+class TypeTFunctionContext extends FunctionContext {
     item: CompItem;
     
     initialize(args: CompItem[]): void {
@@ -122,7 +123,7 @@ class GetSizeFunctionContext extends TypeFunctionContext {
     }
 }
 
-class GetLenFunctionContext extends ReturnItemFunctionContext {
+class GetLenFunctionContext extends FunctionContext {
     arrayType: ArrayType;
     functionType: FunctionType;
     
@@ -154,7 +155,7 @@ class GetLenFunctionContext extends ReturnItemFunctionContext {
     }
 }
 
-class GetElemTypeFunctionContext extends ReturnItemFunctionContext {
+class GetElemTypeFunctionContext extends FunctionContext {
     compositeType: ElementCompositeType;
     
     initialize(args: CompItem[]): void {
@@ -170,7 +171,7 @@ class GetElemTypeFunctionContext extends ReturnItemFunctionContext {
     }
 }
 
-abstract class FieldFunctionContext extends ReturnItemFunctionContext {
+abstract class FieldFunctionContext extends FunctionContext {
     field: ResolvedField;
     
     verifyTypeArg(arg: CompItem): FieldsType {
@@ -184,13 +185,18 @@ abstract class FieldFunctionContext extends ReturnItemFunctionContext {
         const typeArg = args[0];
         const fieldsType = this.verifyTypeArg(typeArg);
         const nameArg = args[1];
-        if (!(nameArg instanceof CompArray)) {
+        if (nameArg instanceof CompArray) {
+            const name = nameArg.convertToString();
+            this.field = fieldsType.fieldMap[name];
+            if (typeof this.field === "undefined") {
+                throw new CompilerError(
+                    "Second argument must be field name of first argument.",
+                );
+            }
+        } else if (nameArg instanceof CompUnknown) {
+            this.field = null;
+        } else {
             throw new CompilerError("Second argument must conform to arrayT(uInt8T).");
-        }
-        const name = nameArg.convertToString();
-        this.field = fieldsType.fieldMap[name];
-        if (typeof this.field === "undefined") {
-            throw new CompilerError("Second argument must be field name of first argument.");
         }
     }
 }
@@ -198,7 +204,7 @@ abstract class FieldFunctionContext extends ReturnItemFunctionContext {
 class GetFieldTypeFunctionContext extends FieldFunctionContext {
     
     getReturnItem(): CompItem {
-        return this.field.type;
+        return (this.field === null) ? null : this.field.type;
     }
 }
 
@@ -214,14 +220,16 @@ class GetFieldOffsetFunctionContext extends FieldFunctionContext {
     
     initialize(args: CompItem[]): void {
         super.initialize(args);
-        const { field } = this;
-        if (!(field instanceof DataField)) {
+        if (this.field !== null && !(this.field instanceof DataField)) {
             throw new CompilerError("Field must be a data field.");
         }
-        this.dataField = field;
+        this.dataField = this.field as DataField;
     }
     
     getReturnItem(): CompItem {
+        if (this.dataField === null) {
+            return new CompUnknown(new IntegerType());
+        }
         const { offset } = this.dataField;
         if (offset === null) {
             throw new CompilerError("Field does not have a known offset.");
@@ -230,7 +238,7 @@ class GetFieldOffsetFunctionContext extends FieldFunctionContext {
     }
 }
 
-abstract class FunctionTypeFunctionContext extends ReturnItemFunctionContext {
+abstract class FunctionTypeFunctionContext extends FunctionContext {
     functionType: FunctionType;
     
     initialize(args: CompItem[]): void {
@@ -248,13 +256,19 @@ class GetArgTypeFunctionContext extends FunctionTypeFunctionContext {
     initialize(args: CompItem[]): void {
         super.initialize(args);
         const indexArg = args[1];
-        if (!(indexArg instanceof CompInteger)) {
+        if (indexArg instanceof CompInteger) {
+            this.index = Number(indexArg.value);
+        } else if (indexArg instanceof CompUnknown) {
+            this.index = null;
+        } else {
             throw new CompilerError("Second argument must conform to intT.");
         }
-        this.index = Number(indexArg.value);
     }
     
     getReturnItem(): CompItem {
+        if (this.index === null) {
+            return null;
+        }
         const argTypes = this.functionType.signature.getArgTypes();
         if (this.index < 0 || this.index >= argTypes.length) {
             throw new CompilerError("Invalid function argument index.");

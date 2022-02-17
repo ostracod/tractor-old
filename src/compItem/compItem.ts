@@ -19,6 +19,10 @@ export abstract class CompItem implements Displayable {
 }
 
 // Represents an item which is unknown, but has a known type.
+// Note that the type must be completely known, and cannot
+// represent a strict superset of the fully resolved type.
+// As a result, the type cannot be TypeType, because in that
+// case type.type would be known.
 export class CompUnknown extends CompItem {
     type: ItemType;
     
