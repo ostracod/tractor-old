@@ -176,13 +176,31 @@ export class BuiltInFunctionHandle extends FunctionHandle {
         return this.signature;
     }
     
+    evaluateToCompItem(args: CompItem[]): CompItem {
+        const context = new this.contextConstructor(this.targetLanguage, args);
+        return context.getReturnItem();
+    }
+    
     getDisplayString(): string {
         return this.name;
     }
     
-    evaluateToCompItem(args: CompItem[]): CompItem {
-        const context = new this.contextConstructor(this.targetLanguage, args);
-        return context.getReturnItem();
+    convertInvocationToUnixC(argCodeList: string[]): string {
+        throw new CompilerError(`Cannot convert ${this.name} to Unix C.`);
+    }
+}
+
+export class NewPtrFunctionHandle extends BuiltInFunctionHandle {
+    
+    convertInvocationToUnixC(argCodeList: string[]): string {
+        return `(&${argCodeList[0]})`;
+    }
+}
+
+export class DerefPtrFunctionHandle extends BuiltInFunctionHandle {
+    
+    convertInvocationToUnixC(argCodeList: string[]): string {
+        return `(*${argCodeList[0]})`;
     }
 }
 

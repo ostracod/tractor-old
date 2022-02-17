@@ -5,7 +5,7 @@ import { Identifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompKnown } from "../compItem/compItem.js";
-import { CompVoid, CompArray, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
+import { CompVoid, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 
@@ -250,8 +250,19 @@ export class InvocationExpression extends Expression {
         this.argExpressions = this.addSlots(argExpressions);
     }
     
-    evaluateToCompItemOrNull(): CompItem {
+    getFunctionHandle(): FunctionHandle {
         const functionHandle = this.functionExpression.get().evaluateToCompItemOrNull();
+        if (functionHandle === null) {
+            return null;
+        }
+        if (!(functionHandle instanceof FunctionHandle)) {
+            throw this.createError("Expected function handle.");
+        }
+        return functionHandle;
+    }
+    
+    evaluateToCompItemOrNull(): CompItem {
+        const functionHandle = this.getFunctionHandle();
         if (!(functionHandle instanceof BuiltInFunctionHandle)) {
             return null;
         }
@@ -271,11 +282,11 @@ export class InvocationExpression extends Expression {
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
-        const compItem = this.functionExpression.get().evaluateToCompItemOrNull();
-        if (!(compItem instanceof DefinitionFunctionHandle)) {
+        const functionHandle = this.getFunctionHandle();
+        if (!(functionHandle instanceof DefinitionFunctionHandle)) {
             return null;
         }
-        const definition = compItem.functionDefinition;
+        const definition = functionHandle.functionDefinition;
         if (!(definition instanceof InlineFunctionDefinition)) {
             return null;
         }
@@ -297,9 +308,16 @@ export class InvocationExpression extends Expression {
     }
     
     convertToUnixC(): string {
-        const functionCode = this.functionExpression.get().convertToUnixC();
-        const argCodeList = this.argExpressions.map((slot) => slot.get().convertToUnixC());
-        return `(${functionCode})(${argCodeList.join(", ")})`;
+        const functionHandle = this.getFunctionHandle();
+        const argCodeList = this.argExpressions.map((slot) => (
+            slot.get().convertToUnixC()
+        ));
+        if (functionHandle instanceof BuiltInFunctionHandle) {
+            return functionHandle.convertInvocationToUnixC(argCodeList);
+        } else {
+            const functionCode = this.functionExpression.get().convertToUnixC();
+            return `(${functionCode})(${argCodeList.join(", ")})`;
+        }
     }
     
     copy(): Expression {

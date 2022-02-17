@@ -2,9 +2,10 @@
 import { CompilerError } from "./compilerError.js";
 import { TargetLanguage } from "./targetLanguage.js";
 import { CompItem, CompUnknown } from "./compItem/compItem.js";
-import { CompInteger, CompArray, BuiltInFunctionHandle } from "./compItem/compValue.js";
+import { CompInteger, CompArray, BuiltInFunctionHandle, NewPtrFunctionHandle, DerefPtrFunctionHandle } from "./compItem/compValue.js";
 import { ItemType } from "./compItem/itemType.js";
-import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
+import { TypeType, ValueType, IntegerType, booleanType, characterType, ElementCompositeType, PointerType, ArrayType, FieldNameType, FieldsType, StructType, structType, unionType, FunctionType } from "./compItem/basicType.js";
+import { LocationType } from "./compItem/storageType.js";
 import { OrType } from "./compItem/manipulationType.js";
 import { ResolvedField, DataField } from "./resolvedField.js";
 
@@ -318,6 +319,35 @@ class TypeIntersectsFunctionContext extends TwoTypesFunctionContext {
     }
 }
 
+class NewPtrFunctionContext extends FunctionContext {
+    pointerType: PointerType;
+    
+    initialize(args: CompItem[]): void {
+        const elementType = args[0].getType();
+        this.pointerType = this.targetLanguage.createPointerType(elementType);
+    }
+    
+    getReturnItem(): CompItem {
+        return new CompUnknown(this.pointerType);
+    }
+}
+
+class DerefPtrFunctionContext extends FunctionContext {
+    elementType: ItemType;
+    
+    initialize(args: CompItem[]): void {
+        const pointerType = args[0].getType();
+        if (!(pointerType instanceof PointerType)) {
+            throw new CompilerError("Argument must conform to ptrT(itemT).");
+        }
+        this.elementType = pointerType.elementType;
+    }
+    
+    getReturnItem(): CompItem {
+        return new CompUnknown(this.elementType);
+    }
+}
+
 export const createBuiltInFunctions = (
     targetLanguage: TargetLanguage,
 ): BuiltInFunctionHandle[] => {
@@ -427,6 +457,20 @@ export const createBuiltInFunctions = (
         booleanType,
         TypeIntersectsFunctionContext,
     );
+    output.push(new NewPtrFunctionHandle(
+        "newPtr",
+        targetLanguage,
+        NewPtrFunctionContext,
+        [new LocationType()],
+        targetLanguage.createPointerType(new ItemType()),
+    ));
+    output.push(new DerefPtrFunctionHandle(
+        "derefPtr",
+        targetLanguage,
+        DerefPtrFunctionContext,
+        [targetLanguage.createPointerType(new ItemType())],
+        new LocationType(),
+    ));
     
     return output;
 };
