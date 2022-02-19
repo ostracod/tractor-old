@@ -5,18 +5,36 @@ import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
 export const unaryOperatorMap: { [text: string]: UnaryOperator } = {};
 export const binaryOperatorMap: { [text: string]: BinaryOperator } = {};
 
-export class Operator {
+export abstract class Operator {
     text: string;
+    signatures: OperatorSignature[];
     
     constructor(text: string) {
         this.text = text;
+        this.signatures = [];
         operatorTextSet.add(text);
+    }
+    
+    createTypeError(): CompilerError {
+        const descriptions = this.signatures.map((signature) => signature.getDescription());
+        let message = null;
+        if (descriptions.length < 1) {
+            message = "Operator has no signatures.";
+        } else if (descriptions.length < 3) {
+            message = `Operator expects ${descriptions.join(" or ")}.`;
+        } else {
+            const tempDescriptions = descriptions.slice();
+            const lastDescription = tempDescriptions.pop();
+            message = `Operator expects ${tempDescriptions.join(", ")}, or ${lastDescription}.`;
+        }
+        return new CompilerError(message);
     }
     
     getUnixCText(): string {
@@ -25,33 +43,34 @@ export class Operator {
 }
 
 export abstract class UnaryOperator extends Operator {
+    signatures: UnaryOperatorSignature[];
     
     constructor(text: string) {
         super(text);
+        this.signatures.push(new IntegerOperatorSignature());
         unaryOperatorMap[this.text] = this;
     }
     
-    abstract calculateInteger(operand: bigint): bigint;
+    getIntegerType(type: IntegerType): IntegerType {
+        throw new CompilerError("getIntegerType is not implemented for this operator");
+    }
     
-    abstract getIntegerType(type: IntegerType): IntegerType;
+    calculateInteger(operand: bigint): bigint {
+        throw new CompilerError("calculateInteger is not implemented for this operator");
+    }
     
-    getErrorMessage(): string {
-        return "Expected integer operand.";
+    calculateItemByType(operand: ItemType): CompItem {
+        throw new CompilerError("calculateItemByType is not implemented for this operator");
     }
     
     calculateCompItem(operand: CompItem): CompItem {
-        const operandType = operand.getType();
-        if (!(operandType instanceof IntegerType)) {
-            throw new CompilerError(this.getErrorMessage());
+        for (const signature of this.signatures) {
+            const result = signature.calculateCompItem(this, operand);
+            if (result !== null) {
+                return result;
+            }
         }
-        const resultType = this.getIntegerType(operandType);
-        if (operand instanceof CompInteger) {
-            let resultInteger = this.calculateInteger(operand.value);
-            resultInteger = resultType.restrictInteger(resultInteger);
-            return new CompInteger(resultInteger, resultType);
-        } else {
-            return new CompUnknown(resultType);
-        }
+        throw this.createTypeError();
     }
     
     generateUnixC(operand: Expression) {
@@ -81,21 +100,15 @@ export class BitwiseInversionOperator extends UnaryTypeCopyOperator {
     
     constructor() {
         super("~");
-    }
-    
-    getErrorMessage(): string {
-        return "Expected integer or type operand.";
-    }
-    
-    calculateCompItem(operand: CompItem): CompItem {
-        if (!(operand instanceof ItemType)) {
-            return super.calculateCompItem(operand);
-        }
-        return new NotType(operand);
+        this.signatures.push(new TypeOperatorSignature());
     }
     
     calculateInteger(operand: bigint): bigint {
         return ~operand;
+    }
+    
+    calculateItemByType(operand: ItemType): CompItem {
+        return new NotType(operand);
     }
 }
 
@@ -105,16 +118,17 @@ export class BooleanInversionOperator extends UnaryOperator {
         super("!");
     }
     
-    calculateInteger(operand: bigint): bigint {
-        return (operand === 0n) ? 1n : 0n;
-    }
-    
     getIntegerType(type: IntegerType): IntegerType {
         return booleanType;
+    }
+    
+    calculateInteger(operand: bigint): bigint {
+        return (operand === 0n) ? 1n : 0n;
     }
 }
 
 export class BinaryOperator extends Operator {
+    signatures: BinaryOperatorSignature[];
     precedence: number;
     
     constructor(text: string, precedence: number) {
@@ -123,8 +137,26 @@ export class BinaryOperator extends Operator {
         binaryOperatorMap[this.text] = this;
     }
     
+    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+        throw new CompilerError("getIntegerType is not implemented for this operator");
+    }
+    
+    calculateInteger(operand1: bigint, operand2: bigint): bigint {
+        throw new CompilerError("calculateInteger is not implemented for this operator");
+    }
+    
+    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
+        throw new CompilerError("calculateItemByTypes is not implemented for this operator");
+    }
+    
     calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
-        return new CompVoid();
+        for (const signature of this.signatures) {
+            const result = signature.calculateCompItem(this, operand1, operand2);
+            if (result !== null) {
+                return result;
+            }
+        }
+        throw this.createTypeError();
     }
     
     generateUnixC(operand1: Expression, operand2: Expression) {
@@ -134,7 +166,15 @@ export class BinaryOperator extends Operator {
     }
 }
 
-export class InitializationOperator extends BinaryOperator {
+export class AssignmentOperator extends BinaryOperator {
+    
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new AssignmentOperatorSignature());
+    }
+}
+
+export class InitializationOperator extends AssignmentOperator {
     precedence: number;
     
     constructor() {
@@ -148,38 +188,9 @@ export class InitializationOperator extends BinaryOperator {
 
 export abstract class BinaryIntegerOperator extends BinaryOperator {
     
-    abstract calculateInteger(operand1: bigint, operand2: bigint): bigint;
-    
-    abstract getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType;
-    
-    isTypeOperator(): boolean {
-        return false;
-    }
-    
-    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
-        throw new Error("Not implemented.");
-    }
-    
-    calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
-        const operandType1 = operand1.getType();
-        const operandType2 = operand2.getType();
-        if (operandType1 instanceof IntegerType && operandType2 instanceof IntegerType) {
-            const resultType = this.getIntegerType(operandType1, operandType2);
-            if (operand1 instanceof CompInteger && operand2 instanceof CompInteger) {
-                let resultInteger = this.calculateInteger(operand1.value, operand2.value);
-                resultInteger = resultType.restrictInteger(resultInteger);
-                return new CompInteger(resultInteger, resultType);
-            } else {
-                return new CompUnknown(resultType);
-            }
-        }
-        if (!this.isTypeOperator()) {
-            throw new CompilerError("Expected integer operands.");
-        }
-        if (operand1 instanceof ItemType && operand2 instanceof ItemType) {
-            return this.calculateItemByTypes(operand1, operand2);
-        }
-        throw new CompilerError("Expected integer or type operands.");
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new TwoIntegersOperatorSignature());
     }
 }
 
@@ -365,10 +376,6 @@ export class EqualityOperator extends BinaryBooleanOperator {
         super("==", 7);
     }
     
-    isTypeOperator(): boolean {
-        return true;
-    }
-    
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
         return (operand1 === operand2);
     }
@@ -385,10 +392,6 @@ export class InequalityOperator extends BinaryBooleanOperator {
         super("!=", 7);
     }
     
-    isTypeOperator(): boolean {
-        return true;
-    }
-    
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
         return (operand1 !== operand2);
     }
@@ -401,8 +404,9 @@ export class InequalityOperator extends BinaryBooleanOperator {
 
 export abstract class BitwiseOperator extends BinaryTypeMergeOperator {
     
-    isTypeOperator(): boolean {
-        return true;
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new TwoTypesOperatorSignature());
     }
 }
 
@@ -512,20 +516,20 @@ new BitwiseOrOperator();
 new BooleanAndOperator();
 new BooleanXorOperator();
 new BooleanOrOperator();
-new BinaryOperator("=", 14);
-new BinaryOperator("+=", 14);
-new BinaryOperator("-=", 14);
-new BinaryOperator("*=", 14);
-new BinaryOperator("/=", 14);
-new BinaryOperator("%=", 14);
-new BinaryOperator("&=", 14);
-new BinaryOperator("^=", 14);
-new BinaryOperator("|=", 14);
-new BinaryOperator(">>=", 14);
-new BinaryOperator("<<=", 14);
-new BinaryOperator("&&=", 14);
-new BinaryOperator("^^=", 14);
-new BinaryOperator("||=", 14);
+new AssignmentOperator("=", 14);
+new AssignmentOperator("+=", 14);
+new AssignmentOperator("-=", 14);
+new AssignmentOperator("*=", 14);
+new AssignmentOperator("/=", 14);
+new AssignmentOperator("%=", 14);
+new AssignmentOperator("&=", 14);
+new AssignmentOperator("^=", 14);
+new AssignmentOperator("|=", 14);
+new AssignmentOperator(">>=", 14);
+new AssignmentOperator("<<=", 14);
+new AssignmentOperator("&&=", 14);
+new AssignmentOperator("^^=", 14);
+new AssignmentOperator("||=", 14);
 export const initializationOperator = new InitializationOperator();
 
 
