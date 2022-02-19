@@ -2,7 +2,7 @@
 import { CompItem, CompUnknown } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { IntegerType } from "../compItem/basicType.js";
+import { IntegerType, PointerType } from "../compItem/basicType.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
 
 export abstract class OperatorSignature {
@@ -120,6 +120,70 @@ export class TwoTypesOperatorSignature extends BinaryOperatorSignature {
     
     getDescription(): string {
         return "two types";
+    }
+}
+
+export class TwoPointersOperatorSignature extends BinaryOperatorSignature {
+    
+    calculateCompItem(
+        operator: BinaryOperator,
+        operand1: CompItem,
+        operand2: CompItem,
+    ): CompItem {
+        const operandType1 = operand1.getType();
+        const operandType2 = operand2.getType();
+        if (operandType1 instanceof PointerType && operandType2 instanceof PointerType) {
+            const resultType = operator.getTypeByPointers(operandType1, operandType2);
+            return new CompUnknown(resultType);
+        } else {
+            return null;
+        }
+    }
+    
+    getDescription(): string {
+        return "two pointers";
+    }
+}
+
+export class PointerIntegerOperatorSignature extends BinaryOperatorSignature {
+    
+    calculateCompItem(
+        operator: BinaryOperator,
+        operand1: CompItem,
+        operand2: CompItem,
+    ): CompItem {
+        const operandType1 = operand1.getType();
+        const operandType2 = operand2.getType();
+        if (operandType1 instanceof PointerType && operandType2 instanceof IntegerType) {
+            return new CompUnknown(operandType1);
+        } else {
+            return null;
+        }
+    }
+    
+    getDescription(): string {
+        return "pointer + integer";
+    }
+}
+
+export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
+    
+    calculateCompItem(
+        operator: BinaryOperator,
+        operand1: CompItem,
+        operand2: CompItem,
+    ): CompItem {
+        const operandType1 = operand1.getType();
+        const operandType2 = operand2.getType();
+        if (operandType1 instanceof IntegerType && operandType2 instanceof PointerType) {
+            return new CompUnknown(operandType2);
+        } else {
+            return null;
+        }
+    }
+    
+    getDescription(): string {
+        return "integer + pointer";
     }
 }
 

@@ -1,11 +1,11 @@
 
 import { CompilerError } from "../compilerError.js";
-import { CompItem, CompUnknown } from "../compItem/compItem.js";
-import { CompVoid, CompInteger } from "../compItem/compValue.js";
+import { CompItem } from "../compItem/compItem.js";
+import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { IntegerType, booleanType } from "../compItem/basicType.js";
+import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature } from "./operatorSignature.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -141,6 +141,10 @@ export class BinaryOperator extends Operator {
         throw new CompilerError("getIntegerType is not implemented for this operator");
     }
     
+    getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
+        throw new CompilerError("getTypeByPointers is not implemented for this operator");
+    }
+    
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
         throw new CompilerError("calculateInteger is not implemented for this operator");
     }
@@ -262,6 +266,8 @@ export class AdditionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("+", 4);
+        this.signatures.push(new PointerIntegerOperatorSignature());
+        this.signatures.push(new IntegerPointerOperatorSignature());
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
@@ -273,6 +279,12 @@ export class SubtractionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("-", 4);
+        this.signatures.push(new TwoPointersOperatorSignature());
+        this.signatures.push(new PointerIntegerOperatorSignature());
+    }
+    
+    getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
+        return new IntegerType();
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
@@ -326,7 +338,19 @@ export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
     }
 }
 
-export class GreaterThanOperator extends BinaryBooleanOperator {
+export abstract class ComparisonOperator extends BinaryIntegerOperator {
+    
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new TwoPointersOperatorSignature());
+    }
+    
+    getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
+        return booleanType;
+    }
+}
+
+export class GreaterThanOperator extends ComparisonOperator {
     
     constructor() {
         super(">", 6);
@@ -337,7 +361,7 @@ export class GreaterThanOperator extends BinaryBooleanOperator {
     }
 }
 
-export class GreaterOrEqualOperator extends BinaryBooleanOperator {
+export class GreaterOrEqualOperator extends ComparisonOperator {
     
     constructor() {
         super(">=", 6);
@@ -348,7 +372,7 @@ export class GreaterOrEqualOperator extends BinaryBooleanOperator {
     }
 }
 
-export class LessThanOperator extends BinaryBooleanOperator {
+export class LessThanOperator extends ComparisonOperator {
     
     constructor() {
         super("<", 6);
@@ -359,7 +383,7 @@ export class LessThanOperator extends BinaryBooleanOperator {
     }
 }
 
-export class LessOrEqualOperator extends BinaryBooleanOperator {
+export class LessOrEqualOperator extends ComparisonOperator {
     
     constructor() {
         super("<=", 6);
@@ -370,10 +394,11 @@ export class LessOrEqualOperator extends BinaryBooleanOperator {
     }
 }
 
-export class EqualityOperator extends BinaryBooleanOperator {
+export class EqualityOperator extends ComparisonOperator {
     
     constructor() {
         super("==", 7);
+        this.signatures.push(new TwoTypesOperatorSignature());
     }
     
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
@@ -386,10 +411,11 @@ export class EqualityOperator extends BinaryBooleanOperator {
     }
 }
 
-export class InequalityOperator extends BinaryBooleanOperator {
+export class InequalityOperator extends ComparisonOperator {
     
     constructor() {
         super("!=", 7);
+        this.signatures.push(new TwoTypesOperatorSignature());
     }
     
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
