@@ -126,6 +126,11 @@ Tractor has the following integer operators:
 * `!`, `&&`, `||`, and `^^` perform boolean operations.
 * `==`, `!=`, `>`, `>=`, `<`, and `<=` perform comparison operations.
 
+Tractor has the following pointer operators:
+
+* `+` and `-` perform pointer arithmetic.
+* `==`, `!=`, `>`, `>=`, `<`, and `<=` perform pointer comparison.
+
 Tractor has the following type operators:
 
 * `~`, `&`, and `|` perform type manipulation. For example, `intT & compT` returns the type of an integer known at compile time.

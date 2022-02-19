@@ -6,7 +6,8 @@ import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
-import { VoidType, IntegerType, ArrayType, StructType, FunctionType } from "./basicType.js";
+import { VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType } from "./basicType.js";
+import { LocationType } from "./storageType.js";
 
 export abstract class CompValue extends CompKnown {
     
@@ -52,6 +53,27 @@ export class CompInteger extends CompValue {
     convertToUnixC(): string {
         // TODO: Cast the integer to this.type.
         return this.value.toString();
+    }
+}
+
+export class CompNull extends CompValue {
+    type: PointerType;
+    
+    constructor(targetLanguage: TargetLanguage) {
+        super();
+        this.type = targetLanguage.createPointerType(new LocationType());
+    }
+    
+    getType(): PointerType {
+        return this.type;
+    }
+    
+    getDisplayString(): string {
+        return "NULL";
+    }
+    
+    convertToUnixC(): string {
+        return "NULL";
     }
 }
 

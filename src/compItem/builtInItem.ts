@@ -3,7 +3,7 @@ import { Identifier, NameIdentifier, IdentifierMap } from "../identifier.js";
 import { createBuiltInFunctions } from "../functionContext.js";
 import { TargetLanguage } from "../targetLanguage.js";
 import { CompItem } from "./compItem.js";
-import { CompInteger } from "./compValue.js";
+import { CompInteger, CompNull } from "./compValue.js";
 import { ItemType } from "./itemType.js";
 import { ValueType, VoidType, IntegerType, structType, unionType } from "./basicType.js";
 import { storageTypeConstructors } from "./storageType.js";
@@ -28,6 +28,7 @@ export const createBuiltInItemMap = (
     
     addBuiltInItem(new CompInteger(1n), "TRUE");
     addBuiltInItem(new CompInteger(0n), "FALSE");
+    addBuiltInItem(new CompNull(targetLanguage));
     
     addBuiltInItem(new ItemType());
     addBuiltInItem(new ValueType());
