@@ -3,7 +3,7 @@ import { CompilerError } from "../compilerError.js";
 import { NameIdentifier } from "../identifier.js";
 import { StatementType, expressionStatementType, directiveStatementTypeMap } from "../statement/statementType.js";
 import { Statement } from "../statement/statement.js";
-import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
+import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ArrayExpression } from "../statement/expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "../statement/operator.js";
 import { CompInteger, CompArray } from "../compItem/compValue.js";
 import { characterType } from "../compItem/basicType.js";
@@ -291,7 +291,7 @@ const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult 
             assertDelimiter(tokens, index, "}");
             index += 1;
             return {
-                expression: new ListExpression(result.expressions),
+                expression: new ArrayExpression(result.expressions),
                 index,
             };
         }

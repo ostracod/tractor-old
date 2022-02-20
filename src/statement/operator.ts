@@ -3,18 +3,18 @@ import { CompilerError } from "../compilerError.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
+import { IntegerType, booleanType, PointerType, ArrayType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature } from "./operatorSignature.js";
-import { Expression } from "./expression.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
+import { Expression, ListExpression, ArrayExpression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
 export const unaryOperatorMap: { [text: string]: UnaryOperator } = {};
 export const binaryOperatorMap: { [text: string]: BinaryOperator } = {};
 
-export abstract class Operator {
+export abstract class Operator<T extends OperatorSignature> {
     text: string;
-    signatures: OperatorSignature[];
+    signatures: T[];
     
     constructor(text: string) {
         this.text = text;
@@ -42,8 +42,7 @@ export abstract class Operator {
     }
 }
 
-export abstract class UnaryOperator extends Operator {
-    signatures: UnaryOperatorSignature[];
+export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
     
     constructor(text: string) {
         super(text);
@@ -127,8 +126,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
 }
 
-export class BinaryOperator extends Operator {
-    signatures: BinaryOperatorSignature[];
+export class BinaryOperator extends Operator<BinaryOperatorSignature> {
     precedence: number;
     
     constructor(text: string, precedence: number) {
@@ -187,6 +185,30 @@ export class InitializationOperator extends AssignmentOperator {
     
     getUnixCText(): string {
         return "=";
+    }
+}
+
+export class CastOperator extends BinaryOperator {
+    
+    constructor() {
+        super(":", 2);
+        this.signatures.push(new CastOperatorSignature());
+    }
+    
+    castExpressionTypes(expression: Expression, type: ItemType): Expression {
+        if (!(expression instanceof ListExpression)) {
+            return null;
+        }
+        const expressions = expression.expressions.map((slot) => slot.get().copy());
+        if (type instanceof ArrayType) {
+            if (type.length !== null && type.length !== expressions.length) {
+                throw new CompilerError("Invalid array length.");
+            }
+            const arrayType = new ArrayType(type.elementType, expressions.length);
+            return new ArrayExpression(expressions, arrayType);
+        } else {
+            throw new CompilerError("Invalid type cast.");
+        }
     }
 }
 
@@ -522,7 +544,7 @@ new BitwiseInversionOperator();
 new BooleanInversionOperator();
 
 new BinaryOperator(".", 0);
-new BinaryOperator(":", 2);
+new CastOperator();
 new MultiplicationOperator();
 new DivisionOperator();
 new ModulusOperator();

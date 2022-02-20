@@ -2,7 +2,7 @@
 import { CompItem, CompUnknown } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { IntegerType, PointerType } from "../compItem/basicType.js";
+import { ValueType, IntegerType, PointerType } from "../compItem/basicType.js";
 import { UnaryOperator, BinaryOperator } from "./operator.js";
 
 export abstract class OperatorSignature {
@@ -184,6 +184,27 @@ export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
     
     getDescription(): string {
         return "integer + pointer";
+    }
+}
+
+export class CastOperatorSignature {
+    
+    calculateCompItem(
+        operator: BinaryOperator,
+        operand1: CompItem,
+        operand2: CompItem,
+    ): CompItem {
+        const operandType1 = operand1.getType();
+        if (!(operandType1 instanceof ValueType && operand2 instanceof ItemType)) {
+            return null;
+        }
+        // TODO: Determine if the cast is possible,
+        // and actually perform the cast.
+        return new CompUnknown(operand2);
+    }
+    
+    getDescription(): string {
+        return "value + type";
     }
 }
 
