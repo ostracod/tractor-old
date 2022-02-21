@@ -3,10 +3,10 @@ import { CompilerError } from "../compilerError.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { IntegerType, booleanType, PointerType, ArrayType } from "../compItem/basicType.js";
+import { IntegerType, booleanType, PointerType, ArrayType, StructType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
 import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
-import { Expression, ListExpression, ArrayExpression } from "./expression.js";
+import { Expression, ListExpression, ArrayExpression, StructExpression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
 export const unaryOperatorMap: { [text: string]: UnaryOperator } = {};
@@ -206,6 +206,11 @@ export class CastOperator extends BinaryOperator {
             }
             const arrayType = new ArrayType(type.elementType, expressions.length);
             return new ArrayExpression(expressions, arrayType);
+        } else if (type instanceof StructType) {
+            if (type.fieldList.length !== expressions.length) {
+                throw new CompilerError("Incorrect number of struct fields.");
+            }
+            return new StructExpression(expressions, type);
         } else {
             throw new CompilerError("Invalid type cast.");
         }

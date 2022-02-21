@@ -77,6 +77,10 @@ export class ItemType extends CompKnown {
         return this.containsType(type) && type.containsType(this);
     }
     
+    canCast(type: ItemType): boolean {
+        return false;
+    }
+    
     getDisplayString(): string {
         return "itemT";
     }

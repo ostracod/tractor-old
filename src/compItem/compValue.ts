@@ -11,6 +11,10 @@ import { LocationType } from "./storageType.js";
 
 export abstract class CompValue extends CompKnown {
     
+    // Assumes that this.getType().canCast(type) is true.
+    cast(type: ItemType): CompValue {
+        throw new CompilerError("Cast method is not implemented for this class.");
+    }
 }
 
 export class CompVoid extends CompValue {
@@ -118,10 +122,18 @@ export class CompStruct extends CompValue {
     type: StructType;
     itemMap: { [name: string]: CompItem };
     
-    constructor(type: StructType, itemMap: { [name: string]: CompItem }) {
+    constructor(type: StructType, items: CompItem[]) {
         super();
         this.type = type;
-        this.itemMap = itemMap;
+        this.itemMap = {};
+        const { fieldList } = this.type;
+        if (items.length !== fieldList.length) {
+            throw new CompilerError("Incorrect number of struct fields.");
+        }
+        items.forEach((item, index) => {
+            const field = fieldList[index];
+            this.itemMap[field.name] = item;
+        });
     }
     
     getType(): StructType {

@@ -1,9 +1,10 @@
 
+import { CompilerError } from "../compilerError.js";
 import { CompItem, CompUnknown } from "../compItem/compItem.js";
-import { CompVoid, CompInteger } from "../compItem/compValue.js";
+import { CompValue, CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { ValueType, IntegerType, PointerType } from "../compItem/basicType.js";
-import { UnaryOperator, BinaryOperator } from "./operator.js";
+import { UnaryOperator, BinaryOperator, CastOperator } from "./operator.js";
 
 export abstract class OperatorSignature {
     
@@ -190,7 +191,7 @@ export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
 export class CastOperatorSignature {
     
     calculateCompItem(
-        operator: BinaryOperator,
+        operator: CastOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -198,9 +199,14 @@ export class CastOperatorSignature {
         if (!(operandType1 instanceof ValueType && operand2 instanceof ItemType)) {
             return null;
         }
-        // TODO: Determine if the cast is possible,
-        // and actually perform the cast.
-        return new CompUnknown(operand2);
+        if (!operandType1.canCast(operand2)) {
+            throw new CompilerError("Cannot cast type.");
+        }
+        if (operand1 instanceof CompValue) {
+            return operand1.cast(operand2);
+        } else {
+            return new CompUnknown(operand2);
+        }
     }
     
     getDescription(): string {

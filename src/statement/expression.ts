@@ -6,8 +6,8 @@ import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { ItemType } from "../compItem/itemType.js";
-import { ArrayType } from "../compItem/basicType.js";
-import { CompVoid, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
+import { ArrayType, StructType } from "../compItem/basicType.js";
+import { CompVoid, CompArray, CompStruct, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap, CastOperator } from "./operator.js";
 
@@ -410,7 +410,12 @@ export class ArrayExpression extends ListExpression<ArrayType> {
     }
 }
 
-// TODO: Add StructExpression class.
+export class StructExpression extends ListExpression<StructType> {
+    
+    evaluateToCompItemHelper(items: CompItem[]): CompItem {
+        return new CompStruct(this.type, items);
+    }
+}
 
 constructors.Expression = Expression;
 
