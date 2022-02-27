@@ -215,6 +215,12 @@ export class CastOperator extends BinaryOperator {
             throw new CompilerError("Invalid type cast.");
         }
     }
+    
+    generateUnixC(operand1: Expression, operand2: Expression) {
+        const code1 = operand1.convertToUnixC();
+        const code2 = operand2.convertToUnixC();
+        return `((${code2})${code1})`;
+    }
 }
 
 export abstract class BinaryIntegerOperator extends BinaryOperator {

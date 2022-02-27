@@ -104,6 +104,10 @@ export class BasicType extends ItemType {
         }
     }
     
+    canCastToBasicType(type: BasicType): boolean {
+        return false;
+    }
+    
     getDisplayStringHelper(): string {
         return "itemT";
     }
@@ -257,6 +261,10 @@ export class IntegerType extends ValueType {
             }
         }
         return output;
+    }
+    
+    canCastToBasicType(type: BasicType): boolean {
+        return (type instanceof IntegerType);
     }
     
     getDisplayStringHelper(): string {

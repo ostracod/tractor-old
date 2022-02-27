@@ -1,5 +1,6 @@
 
 import { constructors } from "../constructors.js";
+import { CompilerError } from "../compilerError.js";
 import * as typeUtils from "./typeUtils.js";
 import { CompKnown } from "./compItem.js";
 import { BasicType, TypeType } from "./basicType.js";
@@ -77,8 +78,14 @@ export class ItemType extends CompKnown {
         return this.containsType(type) && type.containsType(this);
     }
     
-    canCast(type: ItemType): boolean {
-        return false;
+    canCastToType(type: ItemType): boolean {
+        const basicTypes1 = this.getBasicTypes();
+        const basicTypes2 = type.getBasicTypes();
+        if (basicTypes2.length !== 1) {
+            throw new CompilerError("Cannot cast to union of types.");
+        }
+        const basicType2 = basicTypes2[0];
+        return basicTypes1.some((basicType1) => basicType1.canCastToBasicType(basicType2));
     }
     
     getDisplayString(): string {

@@ -6,15 +6,11 @@ import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
-import { VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType } from "./basicType.js";
+import { BasicType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType } from "./basicType.js";
 import { LocationType } from "./storageType.js";
 
 export abstract class CompValue extends CompKnown {
     
-    // Assumes that this.getType().canCast(type) is true.
-    cast(type: ItemType): CompValue {
-        throw new CompilerError("Cast method is not implemented for this class.");
-    }
 }
 
 export class CompVoid extends CompValue {
@@ -48,6 +44,12 @@ export class CompInteger extends CompValue {
     
     convertToBoolean(): boolean {
         return (this.value !== 0n);
+    }
+    
+    castToBasicType(type: BasicType): CompKnown {
+        const integerType = type as IntegerType;
+        const value = integerType.restrictInteger(this.value);
+        return new CompInteger(value, integerType);
     }
     
     getDisplayString(): string {

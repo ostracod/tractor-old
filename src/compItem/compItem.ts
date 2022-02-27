@@ -2,6 +2,7 @@
 import { Displayable } from "../interfaces.js";
 import { CompilerError } from "../compilerError.js";
 import { ItemType } from "./itemType.js";
+import { BasicType } from "./basicType.js";
 
 export abstract class CompItem implements Displayable {
     
@@ -42,6 +43,15 @@ export class CompUnknown extends CompItem {
 
 export abstract class CompKnown extends CompItem {
     
+    // Assumes that this.getType().canCastToType(type) is true.
+    castToType(type: ItemType): CompKnown {
+        const basicType = type.getBasicTypes()[0];
+        return this.castToBasicType(basicType);
+    }
+    
+    castToBasicType(type: BasicType): CompKnown {
+        throw new CompilerError("Cast method is not implemented for this class.");
+    }
 }
 
 
