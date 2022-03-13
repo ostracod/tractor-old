@@ -6,7 +6,7 @@ import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
-import { BasicType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType } from "./basicType.js";
+import { BasicType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
 import { LocationType } from "./storageType.js";
 
 export abstract class CompValue extends CompKnown {
@@ -47,9 +47,12 @@ export class CompInteger extends CompValue {
     }
     
     castToBasicType(type: BasicType): CompKnown {
-        const integerType = type as IntegerType;
-        const value = integerType.restrictInteger(this.value);
-        return new CompInteger(value, integerType);
+        if (type instanceof IntegerType) {
+            const value = type.restrictInteger(this.value);
+            return new CompInteger(value, type);
+        } else {
+            throw new CompilerError(`Cannot cast integer to ${type.getDisplayString()}.`);
+        }
     }
     
     getDisplayString(): string {
@@ -237,6 +240,24 @@ export class DerefPtrFunctionHandle extends BuiltInFunctionHandle {
     
     convertInvocationToUnixC(argCodeList: string[]): string {
         return `(*${argCodeList[0]})`;
+    }
+}
+
+export class CompList extends CompValue {
+    items: CompItem[];
+    
+    constructor(items: CompItem[]) {
+        super();
+        this.items = items;
+    }
+    
+    getType(): ListType {
+        return new ListType();
+    }
+    
+    getDisplayString(): string {
+        const textList = this.items.map((item) => item.getDisplayString());
+        return `{${textList.join(", ")}}`;
     }
 }
 

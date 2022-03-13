@@ -5,7 +5,7 @@ import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType, PointerType, ArrayType, StructType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
 import { Expression, ListExpression, ArrayExpression, StructExpression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -185,6 +185,20 @@ export class InitializationOperator extends AssignmentOperator {
     
     getUnixCText(): string {
         return "=";
+    }
+}
+
+export class ConversionOperator extends BinaryOperator {
+    
+    constructor() {
+        super("::", 2);
+        this.signatures.push(new ConversionOperatorSignature());
+    }
+    
+    generateUnixC(operand1: Expression, operand2: Expression) {
+        const code1 = operand1.convertToUnixC();
+        const code2 = operand2.convertToUnixC();
+        return `((${code2})${code1})`;
     }
 }
 
@@ -556,6 +570,7 @@ new BooleanInversionOperator();
 
 new BinaryOperator(".", 0);
 new CastOperator();
+new ConversionOperator();
 new MultiplicationOperator();
 new DivisionOperator();
 new ModulusOperator();

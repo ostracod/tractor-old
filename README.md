@@ -146,7 +146,9 @@ Tractor has the following assignment operators:
 
 Parentheses manipulate order of operations. For example, the expression `2 * (3 + 4)` performs addition before multiplication, so the result is 14 instead of 10.
 
-The expression `<item>:<type>` casts item `<item>` to type `<type>`. For example, the expression `10:sInt32T` returns 10 as a signed 32-bit integer.
+The expression `<value>::<type>` converts value `<value>` to type `<type>`. For example, the expression `10::sInt32T` returns 10 as a signed 32-bit integer.
+
+The expression `<value>:<type>` is equivalent to `<value>::(<type> & typeT(<value>))`. For example, the expression `10:int32T:sIntT` returns 10 as a signed 32-bit integer.
 
 The expression `<array>[<index>]` accesses the element in array `<array>` with index `<index>`. For example, the expression `myArray[3]` accesses the fourth value of `myArray`.
 
@@ -602,7 +604,7 @@ INLINE FUNC readMyPtr
     RET_TYPE myPtr.type
     
     VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
-    RET derefPtr(tempPtr:ptrT(myPtr.type))
+    RET derefPtr(tempPtr::ptrT(myPtr.type))
 END
 
 INLINE FUNC writeMyPtr
@@ -610,7 +612,7 @@ INLINE FUNC writeMyPtr
     ARG value, myPtr.type
     
     VAR tempPtr, ptrT(uInt8T), newPtr(dataRegion[myPtr.offset])
-    derefPtr(tempPtr:ptrT(myPtr.type)) = value
+    derefPtr(tempPtr::ptrT(myPtr.type)) = value
 END
 
 INIT_FUNC

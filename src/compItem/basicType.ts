@@ -80,7 +80,7 @@ export class BasicType extends ItemType {
         return true;
     }
     
-    // type is an instance of this.constructor.
+    // this.containsBasicTypeHelper(type) is true.
     intersectBasicTypeHelper(type: BasicType): BasicType {
         const output = type.copy() as BasicType;
         const storageTypes = typeUtils.mergeStorageTypes(
@@ -95,9 +95,9 @@ export class BasicType extends ItemType {
     
     // Override intersectBasicTypeHelper to control behavior of subclasses.
     intersectBasicType(type: BasicType): BasicType {
-        if (type instanceof this.constructor) {
+        if (this.containsBasicTypeHelper(type)) {
             return this.intersectBasicTypeHelper(type);
-        } else if (this instanceof type.constructor) {
+        } else if (type.containsBasicTypeHelper(this)) {
             return type.intersectBasicTypeHelper(this);
         } else {
             return null;
@@ -826,6 +826,24 @@ export class FunctionType extends ValueType {
     getDisplayStringHelper(): string {
         // TODO: Implement.
         return null;
+    }
+}
+
+// This is a utility type to help express array and
+// struct literals before type casting. listT isn't
+// really useful otherwise.
+export class ListType extends ValueType {
+    
+    copyHelper(): BasicType {
+        return new ListType();
+    }
+    
+    containsBasicTypeHelper(type: BasicType): boolean {
+        return (type instanceof ArrayType || type instanceof StructType);
+    }
+    
+    getDisplayStringHelper(): string {
+        return "listT";
     }
 }
 

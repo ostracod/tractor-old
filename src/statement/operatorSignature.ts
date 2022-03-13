@@ -188,6 +188,22 @@ export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
+export class ConversionOperatorSignature {
+    
+    calculateCompItem(
+        operator: CastOperator,
+        operand1: CompItem,
+        operand2: CompItem,
+    ): CompItem {
+        // TODO: Implement.
+        return null;
+    }
+    
+    getDescription(): string {
+        return "value + type";
+    }
+}
+
 export class CastOperatorSignature {
     
     calculateCompItem(

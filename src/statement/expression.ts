@@ -359,6 +359,8 @@ export type ListExpressionConstructor<T extends ItemType> = new (
     type: T,
 ) => ListExpression<T>;
 
+// TODO: This class should not be abstract, and evaluateToCompItemOrNull
+// should return an instance of CompList.
 export abstract class ListExpression<T extends ItemType> extends Expression {
     expressions: NodeSlot<Expression>[];
     type: T;
