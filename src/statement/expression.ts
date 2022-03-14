@@ -5,11 +5,10 @@ import { Identifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
-import { ItemType } from "../compItem/itemType.js";
-import { ArrayType, StructType } from "../compItem/basicType.js";
-import { CompVoid, CompArray, CompStruct, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle } from "../compItem/compValue.js";
+import { ListType } from "../compItem/basicType.js";
+import { CompVoid, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
-import { UnaryOperator, BinaryOperator, unaryOperatorMap, CastOperator } from "./operator.js";
+import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 
 export abstract class Expression extends Node {
     
@@ -58,10 +57,6 @@ export abstract class Expression extends Node {
     resolveCompKnowns(): Expression {
         const item = this.evaluateToCompItemOrNull();
         return (item instanceof CompKnown) ? new CompKnownExpression(item) : null;
-    }
-    
-    castExpressionTypes(): Expression {
-        return null;
     }
     
     expandInlineFunctions(): { expression: Expression, statements: Statement[] } {
@@ -222,26 +217,6 @@ export class BinaryExpression extends Expression {
             this.operand2.get().copy(),
         );
     }
-    
-    castExpressionTypes(): Expression {
-        const { operator } = this;
-        if (operator instanceof CastOperator) {
-            const type = this.operand2.get().evaluateToCompItemOrNull();
-            if (!(type instanceof CompKnown)) {
-                return null;
-            }
-            if (!(type instanceof ItemType)) {
-                throw this.createError("Expected type.");
-            }
-            let output: Expression;
-            this.tryOperation(() => {
-                output = operator.castExpressionTypes(this.operand1.get(), type);
-            });
-            return output;
-        } else {
-            return null;
-        }
-    }
 }
 
 export class SubscriptExpression extends Expression {
@@ -354,68 +329,33 @@ export class InvocationExpression extends Expression {
     }
 }
 
-export type ListExpressionConstructor<T extends ItemType> = new (
-    expressions: Expression[],
-    type: T,
-) => ListExpression<T>;
-
-// TODO: This class should not be abstract, and evaluateToCompItemOrNull
-// should return an instance of CompList.
-export abstract class ListExpression<T extends ItemType> extends Expression {
+export class ListExpression extends Expression {
     expressions: NodeSlot<Expression>[];
-    type: T;
     
-    constructor(expressions: Expression[], type: T) {
+    constructor(expressions: Expression[]) {
         super();
         this.expressions = this.addSlots(expressions);
-        this.type = type;
     }
     
     getDisplayString(): string {
         const textList = this.expressions.map((slot) => slot.get().getDisplayString());
-        return `{${textList.join(", ")}}:${this.type.getDisplayString()}`;
+        return textList.join(", ");
     }
-    
-    abstract evaluateToCompItemHelper(items: CompItem[]): CompItem;
     
     evaluateToCompItemOrNull(): CompItem {
         const items: CompItem[] = [];
         for (const slot of this.expressions) {
             const item = slot.get().evaluateToCompItemOrNull();
             if (!(item instanceof CompKnown)) {
-                return new CompUnknown(this.type);
+                return new CompUnknown(new ListType());
             }
             items.push(item);
         }
-        return this.evaluateToCompItemHelper(items);
+        return new CompList(items);
     }
     
     copy(): Expression {
-        return new (this.constructor as ListExpressionConstructor<T>)(
-            this.expressions.map((slot) => slot.get().copy()),
-            this.type,
-        );
-    }
-}
-
-export class ArrayExpression extends ListExpression<ArrayType> {
-    
-    constructor(expressions: Expression[], type: ArrayType = null) {
-        if (type === null) {
-            type = new ArrayType(new ItemType(), expressions.length);
-        }
-        super(expressions, type);
-    }
-    
-    evaluateToCompItemHelper(items: CompItem[]): CompItem {
-        return new CompArray(items, this.type.elementType);
-    }
-}
-
-export class StructExpression extends ListExpression<StructType> {
-    
-    evaluateToCompItemHelper(items: CompItem[]): CompItem {
-        return new CompStruct(this.type, items);
+        return new ListExpression(this.expressions.map((slot) => slot.get().copy()));
     }
 }
 

@@ -78,14 +78,14 @@ export class ItemType extends CompKnown {
         return this.containsType(type) && type.containsType(this);
     }
     
-    canCastToType(type: ItemType): boolean {
+    canConvertToType(type: ItemType): boolean {
         const basicTypes1 = this.getBasicTypes();
         const basicTypes2 = type.getBasicTypes();
         if (basicTypes2.length !== 1) {
-            throw new CompilerError("Cannot cast to union of types.");
+            throw new CompilerError("Cannot convert to union of types.");
         }
         const basicType2 = basicTypes2[0];
-        return basicTypes1.some((basicType1) => basicType1.canCastToBasicType(basicType2));
+        return basicTypes1.some((basicType1) => basicType1.canConvertToBasicType(basicType2));
     }
     
     getDisplayString(): string {

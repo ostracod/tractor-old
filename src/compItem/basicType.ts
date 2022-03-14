@@ -52,9 +52,14 @@ export class BasicType extends ItemType {
         return output;
     }
     
+    // Should ignore all member variable values.
+    containsBasicTypeClass(type: BasicType): boolean {
+        return (type instanceof this.constructor);
+    }
+    
     // Should ignore storage types.
     containsBasicTypeHelper(type: BasicType): boolean {
-        return (type instanceof this.constructor);
+        return this.containsBasicTypeClass(type);
     }
     
     // Override containsBasicTypeHelper to control behavior of subclasses.
@@ -80,7 +85,7 @@ export class BasicType extends ItemType {
         return true;
     }
     
-    // this.containsBasicTypeHelper(type) is true.
+    // this.containsBasicTypeClass(type) is true.
     intersectBasicTypeHelper(type: BasicType): BasicType {
         const output = type.copy() as BasicType;
         const storageTypes = typeUtils.mergeStorageTypes(
@@ -95,16 +100,16 @@ export class BasicType extends ItemType {
     
     // Override intersectBasicTypeHelper to control behavior of subclasses.
     intersectBasicType(type: BasicType): BasicType {
-        if (this.containsBasicTypeHelper(type)) {
+        if (this.containsBasicTypeClass(type)) {
             return this.intersectBasicTypeHelper(type);
-        } else if (type.containsBasicTypeHelper(this)) {
+        } else if (type.containsBasicTypeClass(this)) {
             return type.intersectBasicTypeHelper(this);
         } else {
             return null;
         }
     }
     
-    canCastToBasicType(type: BasicType): boolean {
+    canConvertToBasicType(type: BasicType): boolean {
         return false;
     }
     
@@ -263,7 +268,7 @@ export class IntegerType extends ValueType {
         return output;
     }
     
-    canCastToBasicType(type: BasicType): boolean {
+    canConvertToBasicType(type: BasicType): boolean {
         return (type instanceof IntegerType);
     }
     
@@ -838,7 +843,10 @@ export class ListType extends ValueType {
         return new ListType();
     }
     
-    containsBasicTypeHelper(type: BasicType): boolean {
+    containsBasicTypeClass(type: BasicType): boolean {
+        if (super.containsBasicTypeClass(type)) {
+            return true;
+        }
         return (type instanceof ArrayType || type instanceof StructType);
     }
     

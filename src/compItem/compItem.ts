@@ -43,14 +43,14 @@ export class CompUnknown extends CompItem {
 
 export abstract class CompKnown extends CompItem {
     
-    // Assumes that this.getType().canCastToType(type) is true.
-    castToType(type: ItemType): CompKnown {
+    // Assumes that this.getType().canConvertToType(type) is true.
+    convertToType(type: ItemType): CompKnown {
         const basicType = type.getBasicTypes()[0];
-        return this.castToBasicType(basicType);
+        return this.convertToBasicType(basicType);
     }
     
-    castToBasicType(type: BasicType): CompKnown {
-        throw new CompilerError("Cast method is not implemented for this class.");
+    convertToBasicType(type: BasicType): CompKnown {
+        throw new CompilerError("Conversion method is not implemented for this class.");
     }
 }
 

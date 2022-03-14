@@ -196,13 +196,6 @@ export class Compiler extends Node {
         );
     }
     
-    castExpressionTypes(): number {
-        return this.processExpandedNodes(
-            Expression,
-            (expression) => expression.castExpressionTypes(),
-        );
-    }
-    
     // This function must be called after extractTypeDefinitions and
     // transformControlFlow, but before expandInlineFunctions.
     processStatementPancakes(): number {
@@ -265,7 +258,6 @@ export class Compiler extends Node {
                 processCount += this.extractVariableDefinitions();
                 processCount += this.transformControlFlow();
                 processCount += this.resolveCompKnowns();
-                processCount += this.castExpressionTypes();
                 processCount += this.processStatementPancakes();
                 processCount += this.removeEmptyScopeStatements();
                 processCount += this.resolveTypes();

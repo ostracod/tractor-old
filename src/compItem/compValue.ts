@@ -46,12 +46,12 @@ export class CompInteger extends CompValue {
         return (this.value !== 0n);
     }
     
-    castToBasicType(type: BasicType): CompKnown {
+    convertToBasicType(type: BasicType): CompKnown {
         if (type instanceof IntegerType) {
             const value = type.restrictInteger(this.value);
             return new CompInteger(value, type);
         } else {
-            throw new CompilerError(`Cannot cast integer to ${type.getDisplayString()}.`);
+            throw new CompilerError(`Cannot convert integer to ${type.getDisplayString()}.`);
         }
     }
     

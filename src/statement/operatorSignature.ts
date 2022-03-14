@@ -195,8 +195,23 @@ export class ConversionOperatorSignature {
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
-        // TODO: Implement.
-        return null;
+        const operandType1 = operand1.getType();
+        if (!(operandType1 instanceof ValueType && operand2 instanceof ItemType)) {
+            return null;
+        }
+        const conversionType = this.getConversionType(operandType1, operand2);
+        if (!operandType1.canConvertToType(conversionType)) {
+            throw new CompilerError("Cannot convert type.");
+        }
+        if (operand1 instanceof CompKnown) {
+            return operand1.convertToType(conversionType);
+        } else {
+            return new CompUnknown(conversionType);
+        }
+    }
+    
+    getConversionType(type1: ItemType, type2: ItemType): ItemType {
+        return type2;
     }
     
     getDescription(): string {
@@ -204,29 +219,14 @@ export class ConversionOperatorSignature {
     }
 }
 
-export class CastOperatorSignature {
+export class CastOperatorSignature extends ConversionOperatorSignature {
     
-    calculateCompItem(
-        operator: CastOperator,
-        operand1: CompItem,
-        operand2: CompItem,
-    ): CompItem {
-        const operandType1 = operand1.getType();
-        if (!(operandType1 instanceof ValueType && operand2 instanceof ItemType)) {
-            return null;
-        }
-        if (!operandType1.canCastToType(operand2)) {
+    getConversionType(type1: ItemType, type2: ItemType): ItemType {
+        const output = type1.intersectType(type2);
+        if (output === null) {
             throw new CompilerError("Cannot cast type.");
         }
-        if (operand1 instanceof CompKnown) {
-            return operand1.castToType(operand2);
-        } else {
-            return new CompUnknown(operand2);
-        }
-    }
-    
-    getDescription(): string {
-        return "value + type";
+        return output;
     }
 }
 
