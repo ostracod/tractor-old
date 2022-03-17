@@ -244,19 +244,19 @@ export class DerefPtrFunctionHandle extends BuiltInFunctionHandle {
 }
 
 export class CompList extends CompValue {
-    items: CompItem[];
+    elements: CompItem[];
     
-    constructor(items: CompItem[]) {
+    constructor(elements: CompItem[]) {
         super();
-        this.items = items;
+        this.elements = elements;
     }
     
     getType(): ListType {
-        return new ListType();
+        return new ListType(this.elements.map((item) => item.getType()));
     }
     
     getDisplayString(): string {
-        const textList = this.items.map((item) => item.getDisplayString());
+        const textList = this.elements.map((item) => item.getDisplayString());
         return `{${textList.join(", ")}}`;
     }
 }

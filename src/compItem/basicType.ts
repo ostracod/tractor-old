@@ -834,13 +834,16 @@ export class FunctionType extends ValueType {
     }
 }
 
-// This is a utility type to help express array and
-// struct literals before type casting. listT isn't
-// really useful otherwise.
 export class ListType extends ValueType {
+    elementTypes: ItemType[];
+    
+    constructor(elementTypes: ItemType[]) {
+        super();
+        this.elementTypes = elementTypes;
+    }
     
     copyHelper(): BasicType {
-        return new ListType();
+        return new ListType(this.elementTypes.map((type) => type.copy()));
     }
     
     containsBasicTypeClass(type: BasicType): boolean {
@@ -848,6 +851,104 @@ export class ListType extends ValueType {
             return true;
         }
         return (type instanceof ArrayType || type instanceof StructType);
+    }
+    
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
+            return false;
+        }
+        if (type instanceof ListType) {
+            if (this.elementTypes.length !== type.elementTypes.length) {
+                return false;
+            }
+            for (let index = 0; index < this.elementTypes.length; index++) {
+                const type1 = this.elementTypes[index];
+                const type2 = type.elementTypes[index];
+                if (!type1.containsType(type2)) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (type instanceof ArrayType) {
+            if (this.elementTypes.length !== type.length) {
+                return false;
+            }
+            return this.elementTypes.every((elementType) => (
+                elementType.containsType(type.elementType)
+            ));
+        } else if (type instanceof StructType) {
+            if (type.isSoft) {
+                return false;
+            }
+            if (this.elementTypes.length !== type.fieldList.length) {
+                return false;
+            }
+            for (let index = 0; index < this.elementTypes.length; index++) {
+                const elementType = this.elementTypes[index];
+                const field = type.fieldList[index];
+                if (!elementType.containsType(field.type)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    intersectBasicTypeHelper(type: ValueType): BasicType {
+        const output = super.intersectBasicTypeHelper(type);
+        if (output === null) {
+            return null;
+        }
+        if (output instanceof ListType) {
+            if (this.elementTypes.length !== output.elementTypes.length) {
+                return null;
+            }
+            for (let index = 0; index < this.elementTypes.length; index++) {
+                const type1 = this.elementTypes[index];
+                const type2 = output.elementTypes[index];
+                const intersectionType = type1.intersectType(type2);
+                if (intersectionType === null) {
+                    return null;
+                }
+                output.elementTypes[index] = intersectionType;
+            }
+        } else if (output instanceof ArrayType) {
+            if (output.length === null) {
+                output.length = this.elementTypes.length;
+            } else if (this.elementTypes.length !== output.length) {
+                return null;
+            }
+            let intersectionType = output.elementType;
+            for (const elementType of this.elementTypes) {
+                intersectionType = intersectionType.intersectType(elementType);
+                if (intersectionType === null) {
+                    return null;
+                }
+            }
+            output.elementType = intersectionType;
+        } else if (output instanceof StructType) {
+            if (this.elementTypes.length !== output.fieldList.length) {
+                return null;
+            }
+            output.isSoft = false;
+            const fields: ResolvedField[] = [];
+            for (let index = 0; index < this.elementTypes.length; index++) {
+                const elementType = this.elementTypes[index];
+                const field = output.fieldList[index].copy();
+                const intersectionType = elementType.intersectType(field.type);
+                if (intersectionType === null) {
+                    return null;
+                }
+                field.type = intersectionType;
+                fields.push(field);
+            }
+            output.setFields(fields);
+        } else {
+            return null;
+        }
+        return output;
     }
     
     getDisplayStringHelper(): string {

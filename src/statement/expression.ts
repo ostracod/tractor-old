@@ -344,14 +344,23 @@ export class ListExpression extends Expression {
     
     evaluateToCompItemOrNull(): CompItem {
         const items: CompItem[] = [];
+        let hasUnknownItem = false;
         for (const slot of this.expressions) {
             const item = slot.get().evaluateToCompItemOrNull();
-            if (!(item instanceof CompKnown)) {
-                return new CompUnknown(new ListType());
+            if (item === null) {
+                return null;
+            }
+            if (item instanceof CompUnknown) {
+                hasUnknownItem = true;
             }
             items.push(item);
         }
-        return new CompList(items);
+        if (hasUnknownItem) {
+            const types = items.map((item) => item.getType());
+            return new CompUnknown(new ListType(types));
+        } else {
+            return new CompList(items);
+        }
     }
     
     copy(): Expression {
