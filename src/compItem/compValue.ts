@@ -7,7 +7,6 @@ import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { BasicType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
-import { LocationType } from "./storageType.js";
 
 export abstract class CompValue extends CompKnown {
     
@@ -68,13 +67,21 @@ export class CompInteger extends CompValue {
 export class CompNull extends CompValue {
     type: PointerType;
     
-    constructor(targetLanguage: TargetLanguage) {
+    constructor(type: PointerType) {
         super();
-        this.type = targetLanguage.createPointerType(new LocationType());
+        this.type = type;
     }
     
     getType(): PointerType {
         return this.type;
+    }
+    
+    convertToBasicType(type: BasicType): CompKnown {
+        if (type instanceof PointerType) {
+            return new CompNull(type);
+        } else {
+            throw new CompilerError(`Cannot convert pointer to ${type.getDisplayString()}.`);
+        }
     }
     
     getDisplayString(): string {
@@ -87,11 +94,11 @@ export class CompNull extends CompValue {
 }
 
 export class CompArray extends CompValue {
-    elements: CompItem[];
+    elements: CompKnown[];
     elementType: ItemType;
     type: ArrayType;
     
-    constructor(elements: CompItem[], elementType: ItemType = null) {
+    constructor(elements: CompKnown[], elementType: ItemType = null) {
         super();
         this.elements = elements;
         if (elementType === null) {
@@ -125,9 +132,9 @@ export class CompArray extends CompValue {
 
 export class CompStruct extends CompValue {
     type: StructType;
-    itemMap: { [name: string]: CompItem };
+    itemMap: { [name: string]: CompKnown };
     
-    constructor(type: StructType, items: CompItem[]) {
+    constructor(type: StructType, items: CompKnown[]) {
         super();
         this.type = type;
         this.itemMap = {};
@@ -244,15 +251,35 @@ export class DerefPtrFunctionHandle extends BuiltInFunctionHandle {
 }
 
 export class CompList extends CompValue {
-    elements: CompItem[];
+    elements: CompKnown[];
     
-    constructor(elements: CompItem[]) {
+    constructor(elements: CompKnown[]) {
         super();
         this.elements = elements;
     }
     
     getType(): ListType {
         return new ListType(this.elements.map((item) => item.getType()));
+    }
+    
+    convertToBasicType(type: BasicType): CompKnown {
+        if (type instanceof ListType) {
+            return new CompList(this.elements.map((element, index) => {
+                const elementType = type.elementTypes[index];
+                return element.convertToType(elementType);
+            }));
+        } else if (type instanceof ArrayType) {
+            return new CompArray(this.elements.map((element) => (
+                element.convertToType(type.elementType)
+            )), type.elementType);
+        } else if (type instanceof StructType) {
+            return new CompStruct(type, this.elements.map((element, index) => {
+                const field = type.fieldList[index];
+                return element.convertToType(field.type);
+            }));
+        } else {
+            throw new CompilerError(`Cannot convert list to ${type.getDisplayString()}.`);
+        }
     }
     
     getDisplayString(): string {

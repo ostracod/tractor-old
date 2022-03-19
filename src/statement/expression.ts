@@ -359,7 +359,7 @@ export class ListExpression extends Expression {
             const types = items.map((item) => item.getType());
             return new CompUnknown(new ListType(types));
         } else {
-            return new CompList(items);
+            return new CompList(items as CompKnown[]);
         }
     }
     

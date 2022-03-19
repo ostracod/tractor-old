@@ -377,6 +377,10 @@ export class PointerType extends ElementCompositeType {
         return true;
     }
     
+    canConvertToBasicType(type: BasicType): boolean {
+        return (type instanceof PointerType);
+    }
+    
     getDisplayStringHelper(): string {
         return `ptrT(${this.elementType.getDisplayString()})`;
     }
@@ -828,6 +832,10 @@ export class FunctionType extends ValueType {
         return output;
     }
     
+    canConvertToBasicType(type: BasicType): boolean {
+        return (type instanceof FunctionType && this.conformsToType(new CompType(false)));
+    }
+    
     getDisplayStringHelper(): string {
         // TODO: Implement.
         return null;
@@ -853,10 +861,10 @@ export class ListType extends ValueType {
         return (type instanceof ArrayType || type instanceof StructType);
     }
     
-    containsBasicTypeHelper(type: BasicType): boolean {
-        if (!super.containsBasicTypeHelper(type)) {
-            return false;
-        }
+    checkElementTypes(
+        type: BasicType,
+        check: (elementType1: ItemType, elementType2: ItemType) => boolean,
+    ): boolean {
         if (type instanceof ListType) {
             if (this.elementTypes.length !== type.elementTypes.length) {
                 return false;
@@ -864,7 +872,7 @@ export class ListType extends ValueType {
             for (let index = 0; index < this.elementTypes.length; index++) {
                 const type1 = this.elementTypes[index];
                 const type2 = type.elementTypes[index];
-                if (!type1.containsType(type2)) {
+                if (!check(type1, type2)) {
                     return false;
                 }
             }
@@ -874,7 +882,7 @@ export class ListType extends ValueType {
                 return false;
             }
             return this.elementTypes.every((elementType) => (
-                elementType.containsType(type.elementType)
+                check(elementType, type.elementType)
             ));
         } else if (type instanceof StructType) {
             if (type.isSoft) {
@@ -886,7 +894,7 @@ export class ListType extends ValueType {
             for (let index = 0; index < this.elementTypes.length; index++) {
                 const elementType = this.elementTypes[index];
                 const field = type.fieldList[index];
-                if (!elementType.containsType(field.type)) {
+                if (!check(elementType, field.type)) {
                     return false;
                 }
             }
@@ -894,6 +902,15 @@ export class ListType extends ValueType {
         } else {
             return false;
         }
+    }
+    
+    containsBasicTypeHelper(type: BasicType): boolean {
+        if (!super.containsBasicTypeHelper(type)) {
+            return false;
+        }
+        return this.checkElementTypes(type, (elementType1, elementType2) => (
+            elementType1.containsType(elementType2)
+        ));
     }
     
     intersectBasicTypeHelper(type: ValueType): BasicType {
@@ -949,6 +966,12 @@ export class ListType extends ValueType {
             return null;
         }
         return output;
+    }
+    
+    canConvertToBasicType(type: BasicType): boolean {
+        return this.checkElementTypes(type, (elementType1, elementType2) => (
+            elementType1.canConvertToType(elementType2)
+        ));
     }
     
     getDisplayStringHelper(): string {

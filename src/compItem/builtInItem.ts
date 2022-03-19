@@ -6,7 +6,7 @@ import { CompItem } from "./compItem.js";
 import { CompInteger, CompNull } from "./compValue.js";
 import { ItemType } from "./itemType.js";
 import { ValueType, VoidType, IntegerType, structType, unionType } from "./basicType.js";
-import { storageTypeConstructors } from "./storageType.js";
+import { storageTypeConstructors, LocationType } from "./storageType.js";
 
 interface BuiltInItem {
     identifier: Identifier;
@@ -28,7 +28,8 @@ export const createBuiltInItemMap = (
     
     addBuiltInItem(new CompInteger(1n), "TRUE");
     addBuiltInItem(new CompInteger(0n), "FALSE");
-    addBuiltInItem(new CompNull(targetLanguage));
+    const pointerType = targetLanguage.createPointerType(new LocationType());
+    addBuiltInItem(new CompNull(pointerType));
     
     addBuiltInItem(new ItemType());
     addBuiltInItem(new ValueType());
