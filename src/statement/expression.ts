@@ -5,8 +5,8 @@ import { Identifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
-import { ListType } from "../compItem/basicType.js";
-import { CompVoid, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
+import { IntegerType, ArrayType, ListType } from "../compItem/basicType.js";
+import { CompVoid, CompInteger, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
 
@@ -231,6 +231,48 @@ export class SubscriptExpression extends Expression {
     
     getDisplayString(): string {
         return `${this.arrayExpression.get().getDisplayString()}[${this.indexExpression.get().getDisplayString()}]`;
+    }
+    
+    evaluateToCompItemOrNull(): CompItem {
+        const arrayOperand = this.arrayExpression.get().evaluateToCompItemOrNull();
+        const indexOperand = this.indexExpression.get().evaluateToCompItemOrNull();
+        if (arrayOperand === null) {
+            return null;
+        }
+        let index: number = null;
+        if (indexOperand !== null) {
+            if (indexOperand instanceof CompUnknown) {
+                if (!(indexOperand.getType() instanceof IntegerType)) {
+                    throw this.createError("Expected integer.");
+                }
+            } else if (indexOperand instanceof CompInteger) {
+                index = Number(indexOperand.value)
+            } else {
+                throw this.createError("Expected integer.");
+            }
+        }
+        const arrayType = arrayOperand.getType()
+        if (!(arrayType instanceof ArrayType)) {
+            throw this.createError("Expected array.");
+        }
+        if (index !== null) {
+            if (index < 0 || (arrayType.length !== null && index >= arrayType.length)) {
+                throw this.createError("Array index is out of bounds.");
+            }
+        }
+        if (arrayOperand instanceof CompUnknown || index === null) {
+            return new CompUnknown(arrayType.elementType);
+        } else if (arrayOperand instanceof CompArray) {
+            return arrayOperand.elements[index];
+        } else {
+            throw this.createError("Expected array.");
+        }
+    }
+    
+    convertToUnixC(): string {
+        const arrayCode = this.arrayExpression.get().convertToUnixC();
+        const indexCode = this.indexExpression.get().convertToUnixC();
+        return `(${arrayCode}[${indexCode}])`;
     }
     
     copy(): Expression {
