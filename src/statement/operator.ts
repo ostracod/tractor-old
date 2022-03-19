@@ -5,7 +5,7 @@ import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, FieldAccessOperatorSignature, TwoItemsOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -72,8 +72,8 @@ export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
         throw this.createTypeError();
     }
     
-    generateUnixC(operand: Expression) {
-        return `(${this.getUnixCText()} ${operand.convertToUnixC()})`;
+    generateUnixC(expression: Expression): string {
+        return `(${this.getUnixCText()} ${expression.convertToUnixC()})`;
     }
 }
 
@@ -126,7 +126,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
 }
 
-export class BinaryOperator extends Operator<BinaryOperatorSignature> {
+export abstract class BinaryOperator<T extends BinaryOperatorSignature = BinaryOperatorSignature> extends Operator<T> {
     precedence: number;
     
     constructor(text: string, precedence: number) {
@@ -134,6 +134,43 @@ export class BinaryOperator extends Operator<BinaryOperatorSignature> {
         this.precedence = precedence;
         binaryOperatorMap[this.text] = this;
     }
+    
+    calculateCompItem(expression1: Expression, expression2: Expression): CompItem {
+        let hasUnknownMatch = false;
+        for (const signature of this.signatures) {
+            const result = signature.calculateCompItem(this, expression1, expression2);
+            if (typeof result !== "boolean") {
+                return result;
+            }
+            if (result) {
+                hasUnknownMatch = true;
+            }
+        }
+        if (hasUnknownMatch) {
+            return null;
+        } else {
+            throw this.createTypeError();
+        }
+    }
+    
+    abstract generateUnixC(expression1: Expression, expression2: Expression): string;
+}
+
+export class FieldAccessOperator extends BinaryOperator<FieldAccessOperatorSignature> {
+    
+    constructor() {
+        super(".", 0);
+        this.signatures.push(new FieldAccessOperatorSignature());
+    }
+    
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code = expression1.convertToUnixC();
+        const name = expression2.evaluateToIdentifierName();
+        return `(${code} ${this.getUnixCText()} ${name})`;
+    }
+}
+
+export abstract class TwoItemsOperator extends BinaryOperator<TwoItemsOperatorSignature> {
     
     getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
         throw new CompilerError("getIntegerType is not implemented for this operator");
@@ -151,24 +188,14 @@ export class BinaryOperator extends Operator<BinaryOperatorSignature> {
         throw new CompilerError("calculateItemByTypes is not implemented for this operator");
     }
     
-    calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
-        for (const signature of this.signatures) {
-            const result = signature.calculateCompItem(this, operand1, operand2);
-            if (result !== null) {
-                return result;
-            }
-        }
-        throw this.createTypeError();
-    }
-    
-    generateUnixC(operand1: Expression, operand2: Expression) {
-        const code1 = operand1.convertToUnixC();
-        const code2 = operand2.convertToUnixC();
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code1 = expression1.convertToUnixC();
+        const code2 = expression2.convertToUnixC();
         return `(${code1} ${this.getUnixCText()} ${code2})`;
     }
 }
 
-export class AssignmentOperator extends BinaryOperator {
+export class AssignmentOperator extends TwoItemsOperator {
     
     constructor(text: string, precedence: number) {
         super(text, precedence);
@@ -188,7 +215,7 @@ export class InitializationOperator extends AssignmentOperator {
     }
 }
 
-export class ConversionOperator extends BinaryOperator {
+export class ConversionOperator extends TwoItemsOperator {
     
     constructor(text = "::") {
         super(text, 2);
@@ -199,9 +226,9 @@ export class ConversionOperator extends BinaryOperator {
         return new ConversionOperatorSignature();
     }
     
-    generateUnixC(operand1: Expression, operand2: Expression) {
-        const code1 = operand1.convertToUnixC();
-        const code2 = operand2.convertToUnixC();
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code1 = expression1.convertToUnixC();
+        const code2 = expression2.convertToUnixC();
         return `((${code2})${code1})`;
     }
 }
@@ -217,7 +244,7 @@ export class CastOperator extends ConversionOperator {
     }
 }
 
-export abstract class BinaryIntegerOperator extends BinaryOperator {
+export abstract class BinaryIntegerOperator extends TwoItemsOperator {
     
     constructor(text: string, precedence: number) {
         super(text, precedence);
@@ -526,9 +553,9 @@ export class BooleanXorOperator extends BinaryBooleanOperator {
     }
     
     // If only C had a boolean XOR operator...
-    generateUnixC(operand1: Expression, operand2: Expression) {
-        const code1 = operand1.convertToUnixC();
-        const code2 = operand2.convertToUnixC();
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code1 = expression1.convertToUnixC();
+        const code2 = expression2.convertToUnixC();
         return `(!(${code1}) == !(${code2}))`;
     }
 }
@@ -548,7 +575,7 @@ new NegationOperator();
 new BitwiseInversionOperator();
 new BooleanInversionOperator();
 
-new BinaryOperator(".", 0);
+new FieldAccessOperator();
 new CastOperator();
 new ConversionOperator();
 new MultiplicationOperator();

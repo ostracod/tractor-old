@@ -2,7 +2,7 @@
 import * as niceUtils from "../niceUtils.js";
 import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
-import { ResolvedField } from "../resolvedField.js";
+import { ResolvedField, DataField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
@@ -700,6 +700,24 @@ export class StructType extends FieldsType {
     getNextFieldOffset(offset: number, fieldSize: number): number {
         return offset + fieldSize;
     }
+    
+    iterateOverDataFields(handle: (field: DataField, index: number) => void): void {
+        let index = 0;
+        this.fieldList.forEach((field) => {
+            if (field instanceof DataField) {
+                handle(field, index);
+                index += 1;
+            }
+        });
+    }
+    
+    getDataFieldAmount(): number {
+        let output = 0;
+        this.iterateOverDataFields((field, index) => {
+            output += 1;
+        });
+        return output;
+    }
 }
 
 export const structType = new StructType("structT", true, []);
@@ -888,17 +906,17 @@ export class ListType extends ValueType {
             if (type.isSoft) {
                 return false;
             }
-            if (this.elementTypes.length !== type.fieldList.length) {
+            if (this.elementTypes.length !== type.getDataFieldAmount()) {
                 return false;
             }
-            for (let index = 0; index < this.elementTypes.length; index++) {
+            let output = true;
+            type.iterateOverDataFields((field, index) => {
                 const elementType = this.elementTypes[index];
-                const field = type.fieldList[index];
                 if (!check(elementType, field.type)) {
-                    return false;
+                    output = false;
                 }
-            }
-            return true;
+            });
+            return output;
         } else {
             return false;
         }
@@ -946,19 +964,23 @@ export class ListType extends ValueType {
             }
             output.elementType = intersectionType;
         } else if (output instanceof StructType) {
-            if (this.elementTypes.length !== output.fieldList.length) {
+            if (this.elementTypes.length !== output.getDataFieldAmount()) {
                 return null;
             }
             output.isSoft = false;
             const fields: ResolvedField[] = [];
-            for (let index = 0; index < this.elementTypes.length; index++) {
-                const elementType = this.elementTypes[index];
-                const field = output.fieldList[index].copy();
-                const intersectionType = elementType.intersectType(field.type);
-                if (intersectionType === null) {
-                    return null;
+            let elementIndex = 0;
+            for (let fieldIndex = 0; fieldIndex < output.fieldList.length; fieldIndex++) {
+                const field = output.fieldList[fieldIndex].copy();
+                if (field instanceof DataField) {
+                    const elementType = this.elementTypes[elementIndex];
+                    elementIndex += 1;
+                    const intersectionType = elementType.intersectType(field.type);
+                    if (intersectionType === null) {
+                        return null;
+                    }
+                    field.type = intersectionType;
                 }
-                field.type = intersectionType;
                 fields.push(field);
             }
             output.setFields(fields);

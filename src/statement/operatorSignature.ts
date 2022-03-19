@@ -1,10 +1,12 @@
 
 import { CompilerError } from "../compilerError.js";
+import { TypeField } from "../resolvedField.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
-import { CompVoid, CompInteger } from "../compItem/compValue.js";
+import { CompVoid, CompInteger, CompStruct } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { ValueType, IntegerType, PointerType } from "../compItem/basicType.js";
-import { UnaryOperator, BinaryOperator, CastOperator } from "./operator.js";
+import { ValueType, IntegerType, PointerType, FieldsType } from "../compItem/basicType.js";
+import { UnaryOperator, BinaryOperator, TwoItemsOperator } from "./operator.js";
+import { Expression } from "./expression.js";
 
 export abstract class OperatorSignature {
     
@@ -55,17 +57,79 @@ export class TypeOperatorSignature extends UnaryOperatorSignature {
 
 export abstract class BinaryOperatorSignature extends OperatorSignature {
     
+    // If calculateCompItem returns true, then we do not
+    // have enough information to determine whether the
+    // signature is matched.
+    // If calculateCompItem returns false, then the
+    // signature definitely does not match.
     abstract calculateCompItem(
         operator: BinaryOperator,
+        expression1: Expression,
+        expression2: Expression,
+    ): CompItem | boolean;
+}
+
+export class FieldAccessOperatorSignature extends BinaryOperatorSignature {
+    
+    calculateCompItem(
+        operator: BinaryOperator,
+        expression1: Expression,
+        expression2: Expression,
+    ): CompItem | boolean {
+        const operand = expression1.evaluateToCompItemOrNull();
+        const name = expression2.evaluateToIdentifierName();
+        if (operand === null) {
+            return true;
+        }
+        const operandType = operand.getType();
+        if (!(operandType instanceof FieldsType)) {
+            return false;
+        }
+        const field = operandType.fieldMap[name];
+        if (typeof field === "undefined") {
+            throw new CompilerError(`Could not find field with the name "${name}".`);
+        }
+        if (field instanceof TypeField) {
+            return field.type;
+        }
+        if (operand instanceof CompStruct) {
+            return operand.itemMap[name];
+        }
+        return new CompUnknown(field.type);
+    }
+    
+    getDescription(): string {
+        return "struct/union + identifier";
+    }
+}
+
+export abstract class TwoItemsOperatorSignature extends BinaryOperatorSignature {
+    
+    calculateCompItem(
+        operator: TwoItemsOperator,
+        expression1: Expression,
+        expression2: Expression,
+    ): CompItem | boolean {
+        const operand1 = expression1.evaluateToCompItemOrNull();
+        const operand2 = expression2.evaluateToCompItemOrNull();
+        if (operand1 === null || operand2 === null) {
+            return true;
+        }
+        const result = this.calculateCompItemHelper(operator, operand1, operand2);
+        return (result === null) ? false : result;
+    }
+    
+    abstract calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem;
 }
 
-export class AssignmentOperatorSignature extends BinaryOperatorSignature {
+export class AssignmentOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -77,10 +141,10 @@ export class AssignmentOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class TwoIntegersOperatorSignature extends BinaryOperatorSignature {
+export class TwoIntegersOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -105,10 +169,10 @@ export class TwoIntegersOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class TwoTypesOperatorSignature extends BinaryOperatorSignature {
+export class TwoTypesOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -124,10 +188,10 @@ export class TwoTypesOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class TwoPointersOperatorSignature extends BinaryOperatorSignature {
+export class TwoPointersOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -146,10 +210,10 @@ export class TwoPointersOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class PointerIntegerOperatorSignature extends BinaryOperatorSignature {
+export class PointerIntegerOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -167,10 +231,10 @@ export class PointerIntegerOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
+export class IntegerPointerOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: BinaryOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
@@ -188,10 +252,10 @@ export class IntegerPointerOperatorSignature extends BinaryOperatorSignature {
     }
 }
 
-export class ConversionOperatorSignature {
+export class ConversionOperatorSignature extends TwoItemsOperatorSignature {
     
-    calculateCompItem(
-        operator: CastOperator,
+    calculateCompItemHelper(
+        operator: TwoItemsOperator,
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {

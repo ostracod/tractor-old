@@ -1,7 +1,7 @@
 
 import { constructors } from "../constructors.js";
 import { Node, NodeSlot } from "../node.js";
-import { Identifier } from "../identifier.js";
+import { Identifier, NameIdentifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
@@ -36,6 +36,14 @@ export abstract class Expression extends Node {
             throw this.createError("Expected identifier.");
         }
         return output;
+    }
+    
+    evaluateToIdentifierName(): string {
+        const identifier = this.evaluateToIdentifier();
+        if (!(identifier instanceof NameIdentifier)) {
+            throw this.createError("Expected name identifier.");
+        }
+        return identifier.name;
     }
     
     getDefinitionOrNull(): Definition {
@@ -194,14 +202,11 @@ export class BinaryExpression extends Expression {
     }
     
     evaluateToCompItemOrNull(): CompItem {
-        const operand1 = this.operand1.get().evaluateToCompItemOrNull();
-        const operand2 = this.operand2.get().evaluateToCompItemOrNull();
-        if (operand1 === null || operand2 === null) {
-            return null;
-        }
+        const expression1 = this.operand1.get();
+        const expression2 = this.operand2.get();
         let output: CompItem;
         this.tryOperation(() => {
-            output = this.operator.calculateCompItem(operand1, operand2);
+            output = this.operator.calculateCompItem(expression1, expression2);
         });
         return output;
     }
@@ -246,12 +251,12 @@ export class SubscriptExpression extends Expression {
                     throw this.createError("Expected integer.");
                 }
             } else if (indexOperand instanceof CompInteger) {
-                index = Number(indexOperand.value)
+                index = Number(indexOperand.value);
             } else {
                 throw this.createError("Expected integer.");
             }
         }
-        const arrayType = arrayOperand.getType()
+        const arrayType = arrayOperand.getType();
         if (!(arrayType instanceof ArrayType)) {
             throw this.createError("Expected array.");
         }

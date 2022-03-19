@@ -138,13 +138,11 @@ export class CompStruct extends CompValue {
         super();
         this.type = type;
         this.itemMap = {};
-        const { fieldList } = this.type;
-        if (items.length !== fieldList.length) {
+        if (items.length !== this.type.getDataFieldAmount()) {
             throw new CompilerError("Incorrect number of struct fields.");
         }
-        items.forEach((item, index) => {
-            const field = fieldList[index];
-            this.itemMap[field.name] = item;
+        this.type.iterateOverDataFields((field, index) => {
+            this.itemMap[field.name] = items[index];
         });
     }
     
@@ -273,10 +271,13 @@ export class CompList extends CompValue {
                 element.convertToType(type.elementType)
             )), type.elementType);
         } else if (type instanceof StructType) {
-            return new CompStruct(type, this.elements.map((element, index) => {
-                const field = type.fieldList[index];
-                return element.convertToType(field.type);
-            }));
+            const fieldItems: CompKnown[] = [];
+            type.iterateOverDataFields((field, index) => {
+                const element = this.elements[index];
+                const fieldItem = element.convertToType(field.type);
+                fieldItems.push(fieldItem);
+            });
+            return new CompStruct(type, fieldItems);
         } else {
             throw new CompilerError(`Cannot convert list to ${type.getDisplayString()}.`);
         }
