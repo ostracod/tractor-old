@@ -5,10 +5,12 @@ import { Identifier, NameIdentifier } from "../identifier.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
-import { IntegerType, ArrayType, ListType } from "../compItem/basicType.js";
+import { IntegerType, characterType, ArrayType, FieldsType, ListType } from "../compItem/basicType.js";
+import { CompType } from "../compItem/storageType.js";
 import { CompVoid, CompInteger, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
+import { accessFieldByName } from "./operatorSignature.js";
 
 export abstract class Expression extends Node {
     
@@ -225,65 +227,94 @@ export class BinaryExpression extends Expression {
 }
 
 export class SubscriptExpression extends Expression {
-    arrayExpression: NodeSlot<Expression>;
-    indexExpression: NodeSlot<Expression>;
+    expression1: NodeSlot<Expression>;
+    expression2: NodeSlot<Expression>;
     
-    constructor(arrayExpression: Expression, indexExpression: Expression) {
+    constructor(expression1: Expression, expression2: Expression) {
         super();
-        this.arrayExpression = this.addSlot(arrayExpression);
-        this.indexExpression = this.addSlot(indexExpression);
+        this.expression1 = this.addSlot(expression1);
+        this.expression2 = this.addSlot(expression2);
     }
     
     getDisplayString(): string {
-        return `${this.arrayExpression.get().getDisplayString()}[${this.indexExpression.get().getDisplayString()}]`;
+        return `${this.expression1.get().getDisplayString()}[${this.expression2.get().getDisplayString()}]`;
     }
     
-    evaluateToCompItemOrNull(): CompItem {
-        const arrayOperand = this.arrayExpression.get().evaluateToCompItemOrNull();
-        const indexOperand = this.indexExpression.get().evaluateToCompItemOrNull();
-        if (arrayOperand === null) {
-            return null;
-        }
+    // operand1.getType() is an instance of ArrayType.
+    accessArrayElement(operand1: CompItem, operand2: CompItem): CompItem {
+        const arrayType = operand1.getType() as ArrayType;
         let index: number = null;
-        if (indexOperand !== null) {
-            if (indexOperand instanceof CompUnknown) {
-                if (!(indexOperand.getType() instanceof IntegerType)) {
+        if (operand2 !== null) {
+            if (operand2 instanceof CompUnknown) {
+                if (!(operand2.getType() instanceof IntegerType)) {
                     throw this.createError("Expected integer.");
                 }
-            } else if (indexOperand instanceof CompInteger) {
-                index = Number(indexOperand.value);
+            } else if (operand2 instanceof CompInteger) {
+                index = Number(operand2.value);
             } else {
                 throw this.createError("Expected integer.");
             }
-        }
-        const arrayType = arrayOperand.getType();
-        if (!(arrayType instanceof ArrayType)) {
-            throw this.createError("Expected array.");
         }
         if (index !== null) {
             if (index < 0 || (arrayType.length !== null && index >= arrayType.length)) {
                 throw this.createError("Array index is out of bounds.");
             }
         }
-        if (arrayOperand instanceof CompUnknown || index === null) {
+        if (operand1 instanceof CompUnknown || index === null) {
             return new CompUnknown(arrayType.elementType);
-        } else if (arrayOperand instanceof CompArray) {
-            return arrayOperand.elements[index];
+        } else if (operand1 instanceof CompArray) {
+            return operand1.elements[index];
         } else {
             throw this.createError("Expected array.");
         }
     }
     
+    // operand1.getType() is an instance of FieldsType.
+    accessField(operand1: CompItem, operand2: CompItem): CompItem {
+        if (operand2 === null) {
+            return null;
+        }
+        if (operand2 instanceof CompUnknown) {
+            const compStringType = new ArrayType(characterType);
+            compStringType.storageTypes.push(new CompType());
+            if (!operand2.getType().conformsToType(compStringType)) {
+                throw this.createError("Expected compile-time string.");
+            }
+            return null;
+        }
+        if (!(operand2 instanceof CompArray)) {
+            throw this.createError("Expected string.");
+        }
+        const name = operand2.convertToString();
+        return accessFieldByName(operand1, name);
+    }
+    
+    evaluateToCompItemOrNull(): CompItem {
+        const operand1 = this.expression1.get().evaluateToCompItemOrNull();
+        const operand2 = this.expression2.get().evaluateToCompItemOrNull();
+        if (operand1 === null) {
+            return null;
+        }
+        const operandType1 = operand1.getType();
+        if (operandType1 instanceof ArrayType) {
+            return this.accessArrayElement(operand1, operand2);
+        } else if (operandType1 instanceof FieldsType) {
+            return this.accessField(operand1, operand2);
+        } else {
+            throw this.createError("Expected array, struct, or union.");
+        }
+    }
+    
     convertToUnixC(): string {
-        const arrayCode = this.arrayExpression.get().convertToUnixC();
-        const indexCode = this.indexExpression.get().convertToUnixC();
-        return `(${arrayCode}[${indexCode}])`;
+        const operandCode1 = this.expression1.get().convertToUnixC();
+        const operandCode2 = this.expression2.get().convertToUnixC();
+        return `(${operandCode1}[${operandCode2}])`;
     }
     
     copy(): Expression {
         return new SubscriptExpression(
-            this.arrayExpression.get().copy(),
-            this.indexExpression.get().copy(),
+            this.expression1.get().copy(),
+            this.expression2.get().copy(),
         );
     }
 }

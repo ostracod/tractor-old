@@ -69,6 +69,22 @@ export abstract class BinaryOperatorSignature extends OperatorSignature {
     ): CompItem | boolean;
 }
 
+// operand.getType() is an instance of FieldsType.
+export const accessFieldByName = (operand: CompItem, name: string): CompItem => {
+    const fieldsType = operand.getType() as FieldsType;
+    const field = fieldsType.fieldMap[name];
+    if (typeof field === "undefined") {
+        throw new CompilerError(`Could not find field with the name "${name}".`);
+    }
+    if (field instanceof TypeField) {
+        return field.type;
+    }
+    if (operand instanceof CompStruct) {
+        return operand.itemMap[name];
+    }
+    return new CompUnknown(field.type);
+};
+
 export class FieldAccessOperatorSignature extends BinaryOperatorSignature {
     
     calculateCompItem(
@@ -85,17 +101,7 @@ export class FieldAccessOperatorSignature extends BinaryOperatorSignature {
         if (!(operandType instanceof FieldsType)) {
             return false;
         }
-        const field = operandType.fieldMap[name];
-        if (typeof field === "undefined") {
-            throw new CompilerError(`Could not find field with the name "${name}".`);
-        }
-        if (field instanceof TypeField) {
-            return field.type;
-        }
-        if (operand instanceof CompStruct) {
-            return operand.itemMap[name];
-        }
-        return new CompUnknown(field.type);
+        return accessFieldByName(operand, name);
     }
     
     getDescription(): string {
