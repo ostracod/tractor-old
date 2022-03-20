@@ -3,7 +3,7 @@ import { CompilerError } from "../compilerError.js";
 import { NameIdentifier } from "../identifier.js";
 import { StatementType, expressionStatementType, directiveStatementTypeMap } from "../statement/statementType.js";
 import { Statement } from "../statement/statement.js";
-import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
+import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, FieldAccessExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "../statement/operator.js";
 import { CompInteger, CompArray } from "../compItem/compValue.js";
 import { characterType } from "../compItem/basicType.js";
@@ -19,7 +19,7 @@ interface ExpressionResult {
     index: number;
 }
 
-const delimiterCharacterSet = new Set([",", "(", ")", "[", "]", "{", "}"]);
+const delimiterCharacterSet = new Set([".", ",", "(", ")", "[", "]", "{", "}"]);
 const modifierSet = new Set(["REQUIRE", "FOREIGN", "INLINE", "MAYBE_INLINE", "SOFT"]);
 
 const isWhitespaceCharacter = (character: string): boolean => (
@@ -353,6 +353,16 @@ const readExpression = (
                 output.expression = new SubscriptExpression(output.expression, operand);
                 output.index = index;
                 continue;
+            }
+            if (token.text === ".") {
+                const result = readExpression(tokens, index, 0);
+                if (result === null) {
+                    throw new CompilerError("Expected identifier after \".\".");
+                }
+                const fieldName = result.expression.evaluateToIdentifierName();
+                index = result.index;
+                output.expression = new FieldAccessExpression(output.expression, fieldName);
+                output.index = index;
             }
             if (token.text === "(") {
                 const result = readExpressions(tokens, index);

@@ -5,7 +5,7 @@ import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, FieldAccessOperatorSignature, TwoItemsOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
@@ -126,7 +126,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
 }
 
-export abstract class BinaryOperator<T extends BinaryOperatorSignature = BinaryOperatorSignature> extends Operator<T> {
+export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> {
     precedence: number;
     
     constructor(text: string, precedence: number) {
@@ -135,42 +135,15 @@ export abstract class BinaryOperator<T extends BinaryOperatorSignature = BinaryO
         binaryOperatorMap[this.text] = this;
     }
     
-    calculateCompItem(expression1: Expression, expression2: Expression): CompItem {
-        let hasUnknownMatch = false;
+    calculateCompItem(operand1: CompItem, operand2: CompItem): CompItem {
         for (const signature of this.signatures) {
-            const result = signature.calculateCompItem(this, expression1, expression2);
-            if (typeof result !== "boolean") {
+            const result = signature.calculateCompItem(this, operand1, operand2);
+            if (result !== null) {
                 return result;
             }
-            if (result) {
-                hasUnknownMatch = true;
-            }
         }
-        if (hasUnknownMatch) {
-            return null;
-        } else {
-            throw this.createTypeError();
-        }
+        throw this.createTypeError();
     }
-    
-    abstract generateUnixC(expression1: Expression, expression2: Expression): string;
-}
-
-export class FieldAccessOperator extends BinaryOperator<FieldAccessOperatorSignature> {
-    
-    constructor() {
-        super(".", 0);
-        this.signatures.push(new FieldAccessOperatorSignature());
-    }
-    
-    generateUnixC(expression1: Expression, expression2: Expression): string {
-        const code = expression1.convertToUnixC();
-        const name = expression2.evaluateToIdentifierName();
-        return `(${code} ${this.getUnixCText()} ${name})`;
-    }
-}
-
-export abstract class TwoItemsOperator extends BinaryOperator<TwoItemsOperatorSignature> {
     
     getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
         throw new CompilerError("getIntegerType is not implemented for this operator");
@@ -195,7 +168,7 @@ export abstract class TwoItemsOperator extends BinaryOperator<TwoItemsOperatorSi
     }
 }
 
-export class AssignmentOperator extends TwoItemsOperator {
+export class AssignmentOperator extends BinaryOperator {
     
     constructor(text: string, precedence: number) {
         super(text, precedence);
@@ -215,7 +188,7 @@ export class InitializationOperator extends AssignmentOperator {
     }
 }
 
-export class ConversionOperator extends TwoItemsOperator {
+export class ConversionOperator extends BinaryOperator {
     
     constructor(text = "::") {
         super(text, 2);
@@ -244,7 +217,7 @@ export class CastOperator extends ConversionOperator {
     }
 }
 
-export abstract class BinaryIntegerOperator extends TwoItemsOperator {
+export abstract class BinaryIntegerOperator extends BinaryOperator {
     
     constructor(text: string, precedence: number) {
         super(text, precedence);
@@ -575,7 +548,6 @@ new NegationOperator();
 new BitwiseInversionOperator();
 new BooleanInversionOperator();
 
-new FieldAccessOperator();
 new CastOperator();
 new ConversionOperator();
 new MultiplicationOperator();

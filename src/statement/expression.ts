@@ -2,15 +2,15 @@
 import { constructors } from "../constructors.js";
 import { Node, NodeSlot } from "../node.js";
 import { Identifier, NameIdentifier } from "../identifier.js";
+import { TypeField } from "../resolvedField.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { IntegerType, characterType, ArrayType, FieldsType, ListType } from "../compItem/basicType.js";
 import { CompType } from "../compItem/storageType.js";
-import { CompVoid, CompInteger, CompArray, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
+import { CompVoid, CompInteger, CompArray, CompStruct, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
-import { accessFieldByName } from "./operatorSignature.js";
 
 export abstract class Expression extends Node {
     
@@ -204,11 +204,14 @@ export class BinaryExpression extends Expression {
     }
     
     evaluateToCompItemOrNull(): CompItem {
-        const expression1 = this.operand1.get();
-        const expression2 = this.operand2.get();
+        const operand1 = this.operand1.get().evaluateToCompItemOrNull();
+        const operand2 = this.operand2.get().evaluateToCompItemOrNull();
+        if (operand1 === null || operand2 === null) {
+            return null;
+        }
         let output: CompItem;
         this.tryOperation(() => {
-            output = this.operator.calculateCompItem(expression1, expression2);
+            output = this.operator.calculateCompItem(operand1, operand2);
         });
         return output;
     }
@@ -226,7 +229,26 @@ export class BinaryExpression extends Expression {
     }
 }
 
-export class SubscriptExpression extends Expression {
+abstract class AccessExpression extends Expression {
+
+    // operand.getType() must be an instance of FieldsType.
+    accessFieldByName(operand: CompItem, name: string): CompItem {
+        const fieldsType = operand.getType() as FieldsType;
+        const field = fieldsType.fieldMap[name];
+        if (typeof field === "undefined") {
+            throw this.createError(`Could not find field with the name "${name}".`);
+        }
+        if (field instanceof TypeField) {
+            return field.type;
+        }
+        if (operand instanceof CompStruct) {
+            return operand.itemMap[name];
+        }
+        return new CompUnknown(field.type);
+    }
+}
+
+export class SubscriptExpression extends AccessExpression {
     expression1: NodeSlot<Expression>;
     expression2: NodeSlot<Expression>;
     
@@ -240,7 +262,7 @@ export class SubscriptExpression extends Expression {
         return `${this.expression1.get().getDisplayString()}[${this.expression2.get().getDisplayString()}]`;
     }
     
-    // operand1.getType() is an instance of ArrayType.
+    // operand1.getType() must be an instance of ArrayType.
     accessArrayElement(operand1: CompItem, operand2: CompItem): CompItem {
         const arrayType = operand1.getType() as ArrayType;
         let index: number = null;
@@ -269,8 +291,8 @@ export class SubscriptExpression extends Expression {
         }
     }
     
-    // operand1.getType() is an instance of FieldsType.
-    accessField(operand1: CompItem, operand2: CompItem): CompItem {
+    // operand1.getType() must be an instance of FieldsType.
+    accessFieldByItem(operand1: CompItem, operand2: CompItem): CompItem {
         if (operand2 === null) {
             return null;
         }
@@ -286,7 +308,7 @@ export class SubscriptExpression extends Expression {
             throw this.createError("Expected string.");
         }
         const name = operand2.convertToString();
-        return accessFieldByName(operand1, name);
+        return this.accessFieldByName(operand1, name);
     }
     
     evaluateToCompItemOrNull(): CompItem {
@@ -299,7 +321,7 @@ export class SubscriptExpression extends Expression {
         if (operandType1 instanceof ArrayType) {
             return this.accessArrayElement(operand1, operand2);
         } else if (operandType1 instanceof FieldsType) {
-            return this.accessField(operand1, operand2);
+            return this.accessFieldByItem(operand1, operand2);
         } else {
             throw this.createError("Expected array, struct, or union.");
         }
@@ -316,6 +338,40 @@ export class SubscriptExpression extends Expression {
             this.expression1.get().copy(),
             this.expression2.get().copy(),
         );
+    }
+}
+
+export class FieldAccessExpression extends AccessExpression {
+    operand: NodeSlot<Expression>;
+    fieldName: string;
+    
+    constructor(operand: Expression, fieldName: string) {
+        super();
+        this.operand = this.addSlot(operand);
+        this.fieldName = fieldName;
+    }
+    
+    getDisplayString(): string {
+        return `${this.operand.get().getDisplayString()}.${this.fieldName}`;
+    }
+    
+    evaluateToCompItemOrNull(): CompItem {
+        const operand = this.operand.get().evaluateToCompItemOrNull();
+        if (operand === null) {
+            return null;
+        }
+        if (!(operand.getType() instanceof FieldsType)) {
+            throw this.createError("Expected struct or union.");
+        }
+        return this.accessFieldByName(operand, this.fieldName);
+    }
+    
+    convertToUnixC(): string {
+        return `${this.operand.get().convertToUnixC()}.${this.fieldName})`;
+    }
+    
+    copy(): Expression {
+        return new FieldAccessExpression(this.operand.get().copy(), this.fieldName);
     }
 }
 
