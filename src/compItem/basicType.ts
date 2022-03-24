@@ -6,7 +6,7 @@ import { ResolvedField, DataField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
-import { StorageType, CompType, ConcreteType } from "./storageType.js";
+import { StorageType, CompType, ConcreteType, FrameType, FixedType } from "./storageType.js";
 
 export class BasicType extends ItemType {
     // Excludes intrinsic storage types.
@@ -374,7 +374,8 @@ export class PointerType extends ElementCompositeType {
     }
     
     isConcrete(): boolean {
-        return true;
+        return this.elementType.conformsToType(new FrameType())
+            || this.elementType.conformsToType(new FixedType());
     }
     
     canConvertToBasicType(type: BasicType): boolean {

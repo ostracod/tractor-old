@@ -96,7 +96,7 @@ The following types are subtypes of `concreteT`:
 
 * `voidT`
 * `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
-* `ptrT(<type>)` for any type `<type>`
+* `ptrT(<type>)` when `<type>` conforms to `frameT` or `fixedT`
 * `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
 * Any non-soft struct or union whose fields all conform to `concreteT`
 * Any non-inline function handle
@@ -596,7 +596,7 @@ INLINE FUNC newMyPtr
     ARG T, typeT(valueT)
     RET_TYPE myPtrT(T)
     
-    RET {offset, T}:myPtrT(T)
+    RET {offset}:myPtrT(T)
 END
 
 INLINE FUNC readMyPtr

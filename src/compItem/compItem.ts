@@ -1,5 +1,6 @@
 
 import { Displayable } from "../interfaces.js";
+import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
 import { ItemType } from "./itemType.js";
 import { BasicType } from "./basicType.js";
@@ -41,7 +42,15 @@ export class CompUnknown extends CompItem {
     }
 }
 
-export abstract class CompKnown extends CompItem {
+export abstract class CompKnown<T extends BasicType = BasicType> extends CompItem {
+    
+    getType(): T {
+        const output = this.getTypeHelper().copy() as T;
+        output.storageTypes.push(new constructors.CompType());
+        return output;
+    }
+    
+    abstract getTypeHelper(): T;
     
     // Assumes that this.getType().canConvertToType(type) is true.
     convertToType(type: ItemType): CompKnown {

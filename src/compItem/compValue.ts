@@ -6,15 +6,15 @@ import { FunctionDefinition } from "../definition/functionDefinition.js";
 import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
-import { BasicType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
+import { BasicType, ValueType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
 
-export abstract class CompValue extends CompKnown {
+export abstract class CompValue<T extends ValueType> extends CompKnown<T> {
     
 }
 
-export class CompVoid extends CompValue {
+export class CompVoid extends CompValue<VoidType> {
     
-    getType(): VoidType {
+    getTypeHelper(): VoidType {
         return new VoidType();
     }
     
@@ -23,7 +23,7 @@ export class CompVoid extends CompValue {
     }
 }
 
-export class CompInteger extends CompValue {
+export class CompInteger extends CompValue<IntegerType> {
     value: bigint;
     type: IntegerType;
     
@@ -37,7 +37,7 @@ export class CompInteger extends CompValue {
         }
     }
     
-    getType(): IntegerType {
+    getTypeHelper(): IntegerType {
         return this.type;
     }
     
@@ -64,7 +64,7 @@ export class CompInteger extends CompValue {
     }
 }
 
-export class CompNull extends CompValue {
+export class CompNull extends CompValue<PointerType> {
     type: PointerType;
     
     constructor(type: PointerType) {
@@ -72,7 +72,7 @@ export class CompNull extends CompValue {
         this.type = type;
     }
     
-    getType(): PointerType {
+    getTypeHelper(): PointerType {
         return this.type;
     }
     
@@ -93,7 +93,7 @@ export class CompNull extends CompValue {
     }
 }
 
-export class CompArray extends CompValue {
+export class CompArray extends CompValue<ArrayType> {
     elements: CompKnown[];
     elementType: ItemType;
     type: ArrayType;
@@ -120,7 +120,7 @@ export class CompArray extends CompValue {
         return buffer.toString("utf8");
     }
     
-    getType(): ArrayType {
+    getTypeHelper(): ArrayType {
         return this.type;
     }
     
@@ -130,7 +130,7 @@ export class CompArray extends CompValue {
     }
 }
 
-export class CompStruct extends CompValue {
+export class CompStruct extends CompValue<StructType> {
     type: StructType;
     itemMap: { [name: string]: CompKnown };
     
@@ -146,7 +146,7 @@ export class CompStruct extends CompValue {
         });
     }
     
-    getType(): StructType {
+    getTypeHelper(): StructType {
         return this.type;
     }
     
@@ -160,11 +160,11 @@ export class CompStruct extends CompValue {
     }
 }
 
-export abstract class FunctionHandle extends CompValue {
+export abstract class FunctionHandle extends CompValue<FunctionType> {
     
     abstract getSignature(): FunctionSignature;
     
-    getType(): FunctionType {
+    getTypeHelper(): FunctionType {
         return new FunctionType(this.getSignature());
     }
 }
@@ -248,7 +248,7 @@ export class DerefPtrFunctionHandle extends BuiltInFunctionHandle {
     }
 }
 
-export class CompList extends CompValue {
+export class CompList extends CompValue<ListType> {
     elements: CompKnown[];
     
     constructor(elements: CompKnown[]) {
@@ -256,7 +256,7 @@ export class CompList extends CompValue {
         this.elements = elements;
     }
     
-    getType(): ListType {
+    getTypeHelper(): ListType {
         return new ListType(this.elements.map((item) => item.getType()));
     }
     
