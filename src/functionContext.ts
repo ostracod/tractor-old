@@ -285,6 +285,14 @@ class GetReturnTypeFunctionContext extends FunctionTypeFunctionContext {
     }
 }
 
+class GetBasicTypeFunctionContext extends TypeFunctionContext {
+    
+    getReturnItem(): CompItem {
+        return this.type.stripStorageTypes();
+    }
+}
+
+
 abstract class TwoTypesFunctionContext extends TypeFunctionContext {
     type2: ItemType;
     
@@ -443,6 +451,12 @@ export const createBuiltInFunctions = (
         [new TypeType(targetLanguage.functionType)],
         new TypeType(new ItemType()),
         GetReturnTypeFunctionContext,
+    );
+    addBuiltInFunction(
+        "getBasicType",
+        [new TypeType(new ItemType())],
+        new TypeType(new ItemType()),
+        GetBasicTypeFunctionContext,
     );
     addBuiltInFunction(
         "typeConforms",

@@ -127,7 +127,7 @@ export class FixedType extends LocationType {
     
     getIntrinsicStorageTypes(): StorageType[] {
         const output = super.getIntrinsicStorageTypes();
-        output.push(new CompType());
+        output.push(new ConstantType());
         return output;
     }
     

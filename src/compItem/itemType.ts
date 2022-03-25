@@ -88,6 +88,18 @@ export class ItemType extends CompKnown<TypeType> {
         return basicTypes1.some((basicType1) => basicType1.canConvertToBasicType(basicType2));
     }
     
+    stripStorageTypes(): ItemType {
+        let basicTypes = this.getBasicTypes().map((basicType) => {
+            const output = basicType.copy();
+            output.storageTypes = [];
+            return output;
+        });
+        basicTypes = typeUtils.mergeBasicTypes(basicTypes);
+        return (basicTypes as ItemType[]).reduce((accumulator, basicType) => (
+            new constructors.OrType(accumulator, basicType)
+        ));
+    }
+    
     getDisplayString(): string {
         return "itemT";
     }

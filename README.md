@@ -60,46 +60,70 @@ Tractor has the following design goals:
 
 ## Types
 
-Tractor has the following built-in storage types:
+Tractor has two kinds of types: basic types and storage types. Basic types describe the sort of information which an item represents, such as integers, pointers, and structs. Storage types describe the way in which an item is stored, and impose restrictions on how the item may be reassigned.
 
-* `constT` is an immutable value. A variable whose type conforms to `constT` can only be assigned a value once.
-* `compT` is a value which is known at compile time. `compT` is a subtype of `constT`.
-* `locT` is a value which has an address in a frame or the fixed data region.
-* `compLocT` is a value whose address offset in the parent region is known at compile time. `compLocT` is a subtype of `locT`. Note that `compLocT` does not imply `compT`.
-* `frameT` is a value which is stored in a frame in memory. `frameT` is a subtype of `locT`. `frameT` and `compT` are mutually exclusive.
-* `fixedT` is stored in the fixed data region which may be non-volatile. `fixedT` is a subtype of `compT & locT`.
-* `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
-* `valueT` is a value which may occupy memory or storage. The amount of space or arrangement of bytes is unknown. `concreteT` is a subtype of `valueT`.
-* `itemT` is either a value or a type. `valueT` and `typeT` are subtypes of `itemT`.
+Tractor has the following primitive basic types:
 
-Tractor has the following built-in primitive types:
-
+* `itemT` is the most generic basic type, and includes all other basic types.
+* `valueT` is a value which may occupy memory or storage. The amount of space or arrangement of bytes is unknown.
 * `voidT` is a value whose size is zero.
+* `intT` is an integer with an unknown number of bits and unknown sign.
+* `uIntT` and `sIntT` are unsigned and signed integers respectively with an unknown number of bits.
+* `int8T`, `int16T`, `int32T`, and `int64T` are integers with the given number of bits and unknown sign.
 * `uInt8T`, `uInt16T`, `uInt32T`, and `uInt64T` are unsigned integers with the given number of bits.
 * `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T` are signed integers with the given number of bits.
-* `int8T`, `int16T`, `int32T`, and `int64T` are integers with the given number of bits and unknown sign.
-* `uIntT`, `sIntT` are integers with the given sign and unknown number of bits.
-* `intT` is an integer with an unknown number of bits and unknown sign.
 * `structT` is a struct with unknown fields.
 * `unionT` is a union with unknown fields.
 * `funcT` is a function with unknown arguments and return type.
 
-Tractor has the following built-in parameterizable types:
+Tractor has the following parameterizable basic types:
 
+* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer.
 * `ptrT(<type>)` is a native pointer to a value with type `<type>`. For example, `ptrT(uInt8T)` is a pointer to an unsigned 8-bit integer.
-* `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
 * `softArrayT(<type>)` is an array of items with type `<type>` whose length is unknown. For example, `softArrayT(uInt8T)` is an array of 8-bit integers with unknown length.
-* `fieldNameT(<type>)` is the name of a field in the given struct or union type. `fieldNameT(<type>)` is a subtype of `softArrayT(uInt8T) & compT`.
-* `typeT(<item>)` is the type of item `<item>`. For example, `typeT(uIntT)` is the type of an unsigned integer. `typeT(<item>)` is a subtype of `compT`.
+* `arrayT(<type>, <length>)` is an array of items with type `<type>` whose length is `<length>`. For example, `arrayT(uInt8T, 10)` is an array of ten unsigned 8-bit integers.
+* `fieldNameT(<type>)` is the name of a field in the given struct or union type.
 
-The following types are subtypes of `concreteT`:
+Tractor has the following storage types:
 
-* `voidT`
-* `uInt8T`, `uInt16T`, `uInt32T`, `uInt64T`, `sInt8T`, `sInt16T`, `sInt32T`, and `sInt64T`
-* `ptrT(<type>)` when `<type>` conforms to `frameT` or `fixedT`
-* `arrayT(<type>, <length>)` when `<type>` conforms to `concreteT`
-* Any non-soft struct or union whose fields all conform to `concreteT`
-* Any non-inline function handle
+* `constT` is an immutable item. A variable whose type conforms to `constT` can only be assigned an item once.
+* `compT` is an item which is known at compile time.
+* `concreteT` is a value which occupies a specific amount of space with a well-defined arrangement of bytes.
+* `locT` is a value which has an address in a frame or the fixed data region.
+* `compLocT` is a value whose address offset in the parent region is known at compile time.
+* `frameT` is a value which is stored in a frame in memory.
+* `fixedT` is a value stored in the fixed data region which may be non-volatile.
+
+## Type Relationships
+
+The following relationships exist between basic types:
+
+* `valueT` and `typeT(<type>)` conform to `itemT`.
+* `voidT`, `intT`, `ptrT(<type>)`, and `softArrayT(<type>)`, conform to `valueT`.
+* All struct, union, and function types conform to `valueT`.
+* `uIntT`, `sIntT`, `int8T`, `int16T`, `int32T`, and `int64T` conform to `intT`.
+* `uInt<bitAmount>T` conforms to `uIntT` and `int<bitAmount>T`.
+* `sInt<bitAmount>T` conforms to `sIntT` and `int<bitAmount>T`.
+* `arrayT(<type>, <length>)` conforms to `softArrayT(<type>)`.
+* `fieldNameT(<type>)` conforms to `softArrayT(uInt8T)`.
+
+The following relationships exist between storage types:
+
+* `locT` conforms to `concreteT`.
+* `compLocT`, `frameT`, and `fixedT` conform to `locT`.
+* `frameT` and `compT` are mutually exclusive.
+* `compT` and `fixedT` conform to `constT`.
+
+The following relationships exist between basic types and storage types:
+
+* `concreteT` conforms to `valueT`.
+* `typeT(<item>)` and `fieldNameT(<type>)` conform to `compT`.
+* All inline function types conform to `compT`.
+* `voidT`, `u<bitAmount>IntT`, and `s<bitAmount>IntT` conform to `concreteT`.
+* `ptrT(<type>)` conforms to `concreteT` when `<type>` conforms to `frameT` or `fixedT`.
+* `arrayT(<type>, <length>)` conforms to `concreteT` when `<type>` conforms to `concreteT`.
+* Non-soft struct an union types conform to `concreteT` when their fields all conform to `concreteT`.
+* Non-soft, non-inline function types conform to `concreteT` when their return type and argument types all conform to `concreteT`.
 
 ## Item Literals
 
@@ -174,6 +198,7 @@ Tractor has the following built-in functions:
 * `getFieldOffset(<structType>, <nameString>)` returns the byte offset of the field with name `<nameString>` in the given struct type. `<nameString>` must conform to `fieldNameT(<structType>)`.
 * `getArgType(<funcType>, <index>)` returns the type of the argument with index `<index>` in function type `<funcType>`.
 * `getReturnType(<funcType>)` returns the return type of function type `<funcType>`.
+* `getBasicType(<type>)` returns the basic type of `<type>`, excluding any non-intrinsic storage types. For example, `getBasicType(intT & constT)` returns `intT`.
 * `typeConforms(<type1>, <type2>)` returns whether type `<type1>` conforms to type `<type2>`.
 * `newPtr(<value>)` returns a native pointer to value `<value>`. The argument value must conform to `locT`.
 * `derefPtr(<pointer>)` returns the value referenced by native pointer `<pointer>`.
@@ -182,33 +207,33 @@ Tractor has the following built-in functions:
 
 Every variable has the following attributes:
 
+* Storage directive
 * Name
-* Storage class
 * Constraint type
-* Resolved type
 * Initialization item (optional)
+* Resolved type
 
-Variable storage class may be one of the following:
+Variable storage directive may be one of the following:
 
 * `VAR` variables are stored in a global or local frame during runtime.
 * `COMP` variables are stored during compile time, and occupy no space during runtime.
 * `FIXED` variables are stored in the fixed data region. This region lies outside all frames, and may be non-volatile depending on the target platform.
 * `AUTO` variables may be stored in one of several places. The storage behavior depends on the variable's initialization item.
 
-Each storage class is associated with a type:
+Each storage directive is associated with a storage type:
 
-* `VAR` variables conform to `frameT`
-* `COMP` variables conform to `compT`
-* `FIXED` variables conform to `fixedT`
-* `AUTO` variables may conform to `frameT`, `compT`, or `fixedT`
+* `VAR` variables conform to `frameT`.
+* `COMP` variables conform to `compT`.
+* `FIXED` variables conform to `fixedT`.
+* `AUTO` variables may conform to `frameT`, `compT`, or `fixedT`.
 
 Variable initialization determines the first item which a variable will contain. A variable may not be initialized more than once. If a variable is not initialized, the variable will contain an undefined item.
 
 A variable's resolved type determines the type of item which the variable may store. The resolved type is an intersection of the following types:
 
 * The constraint type, which is provided by the variable declaration
-* The type of the initialization item (if provided)
-* The type of the storage class
+* The storage type of the storage directive
+* `getBasicType(typeT(<initItem>))`, if initialization item `<initItem>` is provided
 
 ## Statements
 
@@ -235,10 +260,10 @@ Evaluates `<expression>`, which should result in some side-effect.
 **Variable statement:**
 
 ```
-<storageClass> <name>, <constraintType>, <initItem?>
+<storageDirective> <name>, <constraintType>, <initItem?>
 ```
 
-Declares a variable with storage class `<storageClass>`, name `<name>`, and constraint type `<constraintType>`. If item `<initItem>` is provided, the variable will be initialized with the given item.
+Declares a variable with storage directive `<storageDirective>`, name `<name>`, and constraint type `<constraintType>`. If item `<initItem>` is provided, the variable will be initialized with the given item.
 
 Variables may be initialized using the initialization operator (`:=`) in a statement separate from declaration. For example, the following fragments of code are equivalent:
 
