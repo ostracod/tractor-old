@@ -1,7 +1,7 @@
 
 import * as niceUtils from "../niceUtils.js";
 import { IdentifierMap } from "../identifier.js";
-import { VariableDefinition } from "../definition/variableDefinition.js";
+import { InitableVariableDefinition } from "../definition/variableDefinition.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompVoid } from "../compItem/compValue.js";
 import { initializationOperator } from "./operator.js";
@@ -15,6 +15,7 @@ interface StatementOperand {
 }
 
 export class StatementPancake {
+    block: StatementBlock;
     statements: Statement[];
     uselessStatements: Set<Statement>;
     labelIndexMap: IdentifierMap<number>;
@@ -23,8 +24,9 @@ export class StatementPancake {
     
     // Assumes that transformControlFlow has been called
     // on the parent block.
-    constructor(statements: Statement[]) {
-        this.statements = statements;
+    constructor(block: StatementBlock) {
+        this.block = block;
+        this.statements = this.block.getFlattenedStatements();
         this.uselessStatements = new Set();
         this.labelIndexMap = null;
         this.reachabilityMap = null;
@@ -145,7 +147,7 @@ export class StatementPancake {
     }
     
     resolveInitItems(): void {
-        const statementOperandsMap: Map<VariableDefinition, StatementOperand[]> = new Map();
+        const statementOperandsMap: Map<InitableVariableDefinition, StatementOperand[]> = new Map();
         this.statements.forEach((statement) => {
             if (!(statement instanceof ExpressionStatement)) {
                 return;
@@ -158,8 +160,11 @@ export class StatementPancake {
             const operand1 = expression.operand1.get();
             const operand2 = expression.operand2.get();
             const definition = operand1.getDefinition();
-            if (!(definition instanceof VariableDefinition)) {
+            if (!(definition instanceof InitableVariableDefinition)) {
                 throw operand1.createError("Expected variable definition.");
+            }
+            if (!definition.hasParentNode(this.block)) {
+                throw operand1.createError("Cannot initialize this variable here.");
             }
             let statementOperands: StatementOperand[];
             if (statementOperandsMap.has(definition)) {

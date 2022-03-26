@@ -9,6 +9,7 @@ import { SourceFile, TractorFile } from "./parse/sourceFile.js";
 import { Expression } from "./statement/expression.js";
 import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement/statement.js";
 import { StatementBlock, RootStatementBlock } from "./statement/statementBlock.js";
+import { StatementPancake } from "./statement/statementPancake.js";
 import { InlineFunctionDefinition } from "./definition/functionDefinition.js";
 import { TypeResolver } from "./typeResolver.js";
 import { targetLanguageMap, TargetLanguage } from "./targetLanguage.js";
@@ -203,7 +204,7 @@ export class Compiler extends Node {
             if (block.getParentNode() instanceof ScopeStatement) {
                 return 0;
             }
-            const pancake = block.createPancake();
+            const pancake = new StatementPancake(block);
             pancake.determineReachability();
             pancake.markUnreachableAsUseless();
             pancake.markUselessJumpStatements();

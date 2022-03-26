@@ -88,6 +88,20 @@ export abstract class Node implements Displayable {
         return this.getCompiler().rootBlock.get();
     }
     
+    hasParentNode(node: Node): boolean {
+        let parentNode: Node = this;
+        while (true) {
+            parentNode = parentNode.getParentNode();
+            if (parentNode === null) {
+                break;
+            }
+            if (parentNode === node) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     // If handle returns a node:
     //   > processNodes will replace the original node
     //   > processNodes will not recur

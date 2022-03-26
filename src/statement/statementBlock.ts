@@ -363,7 +363,7 @@ export class StatementBlock extends Node {
     }
     
     evaluateToCompItemOrNull(): CompItem {
-        const pancake = this.createPancake();
+        const pancake = new StatementPancake(this);
         pancake.determineReachability();
         const { returnCompItems } = pancake;
         return (returnCompItems.length === 1) ? returnCompItems[0] : null;
@@ -381,11 +381,6 @@ export class StatementBlock extends Node {
             }
         });
         return output;
-    }
-    
-    createPancake(): StatementPancake {
-        const statements = this.getFlattenedStatements();
-        return new StatementPancake(statements);
     }
     
     removeEmptyScopeStatements(): number {

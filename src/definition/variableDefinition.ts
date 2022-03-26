@@ -3,22 +3,20 @@ import { IdentifierBehavior } from "../identifierBehavior.js";
 import { Pos } from "../parse/pos.js";
 import { Expression } from "../statement/expression.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
+import { ItemType } from "../compItem/itemType.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
     
-    getCompItemOrNull(): CompItem {
-        const constraintType = this.typeResolver.get().type;
-        // TODO: Intersect constraintType with variable
-        // storage type and init item type.
-        return (constraintType === null) ? null : new CompUnknown(constraintType);
+    getResolvedType(): ItemType {
+        return this.typeResolver.get().type;
     }
     
-    // Returns whether the expression has been handled.
-    handleInitExpression(expression: Expression): boolean {
-        return false;
+    getCompItemOrNull(): CompItem {
+        const type = this.getResolvedType();
+        return (type === null) ? null : new CompUnknown(type);
     }
     
     getDefinitionName(): string {
@@ -33,7 +31,66 @@ export class ArgVariableDefinition extends VariableDefinition {
     }
 }
 
-export class FrameVariableDefinition extends VariableDefinition {
+export abstract class InitableVariableDefinition extends VariableDefinition {
+    initItem: CompKnown;
+    initItemType: ItemType;
+    resolvedType: ItemType;
+    
+    constructor(
+        pos: Pos,
+        identifierBehavior: IdentifierBehavior,
+        typeExpression: Expression,
+    ) {
+        super(pos, identifierBehavior, typeExpression);
+        this.initItem = null;
+        this.initItemType = null;
+        this.resolvedType = null;
+    }
+    
+    getResolvedType(): ItemType {
+        if (this.resolvedType === null) {
+            if (this.initItemType === null) {
+                return null;
+            }
+            const constraintType = super.getResolvedType();
+            if (constraintType === null) {
+                return null;
+            }
+            const strippedType = this.initItemType.stripStorageTypes();
+            this.resolvedType = constraintType.intersectType(strippedType);
+            if (this.resolvedType === null) {
+                throw this.createError("Variable init item is incompatible with constraint type.");
+            }
+        }
+        return this.resolvedType;
+    }
+    
+    handleInitItem(item: CompItem): void {
+        this.initItemType = item.getType();
+        if (item instanceof CompKnown) {
+            this.initItem = item;
+        }
+    }
+    
+    // Returns whether the expression has been handled.
+    handleInitExpression(expression: Expression): boolean {
+        const compItem = expression.evaluateToCompItemOrNull();
+        if (compItem !== null) {
+            this.handleInitItem(compItem);
+        }
+        return (this.initItem !== null);
+    }
+    
+    getDisplayLine(): string {
+        let output = super.getDisplayLine();
+        if (this.initItem !== null) {
+            output += `; init item: ${this.initItem.getDisplayString()}`;
+        }
+        return output;
+    }
+}
+
+export class FrameVariableDefinition extends InitableVariableDefinition {
     
     getDefinitionNameHelper(): string {
         return "Frame";
@@ -50,37 +107,10 @@ export class FrameVariableDefinition extends VariableDefinition {
     }
 }
 
-export class CompVariableDefinition extends VariableDefinition {
-    item: CompKnown;
-    
-    constructor(
-        pos: Pos,
-        identifierBehavior: IdentifierBehavior,
-        typeExpression: Expression,
-    ) {
-        super(pos, identifierBehavior, typeExpression);
-        this.item = null;
-    }
+export class CompVariableDefinition extends InitableVariableDefinition {
     
     getCompItemOrNull(): CompItem {
-        return this.item;
-    }
-    
-    handleInitExpression(expression: Expression): boolean {
-        const compItem = expression.evaluateToCompItemOrNull();
-        if (!(compItem instanceof CompKnown)) {
-            return false;
-        }
-        this.item = compItem;
-        return true;
-    }
-    
-    getDisplayLine(): string {
-        let output = super.getDisplayLine();
-        if (this.item !== null) {
-            output += `; item: ${this.item.getDisplayString()}`;
-        }
-        return output;
+        return (this.initItem === null) ? super.getCompItemOrNull() : this.initItem;
     }
     
     getDefinitionNameHelper(): string {
@@ -95,7 +125,7 @@ export class FixedVariableDefinition extends CompVariableDefinition {
     }
 }
 
-export class AutoVariableDefinition extends VariableDefinition {
+export class AutoVariableDefinition extends InitableVariableDefinition {
     
     handleInitExpression(expression: Expression): boolean {
         const compItem = expression.evaluateToCompItemOrNull();
@@ -106,7 +136,7 @@ export class AutoVariableDefinition extends VariableDefinition {
                 null,
             );
             definition.setTypeResolver(this.typeResolver.get());
-            definition.item = compItem;
+            definition.handleInitItem(compItem);
             const block = this.getParentBlock();
             block.removeDefinition(this.identifierBehavior.identifier);
             block.addDefinition(definition);
