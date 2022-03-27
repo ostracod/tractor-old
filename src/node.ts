@@ -88,18 +88,10 @@ export abstract class Node implements Displayable {
         return this.getCompiler().rootBlock.get();
     }
     
-    hasParentNode(node: Node): boolean {
-        let parentNode: Node = this;
-        while (true) {
-            parentNode = parentNode.getParentNode();
-            if (parentNode === null) {
-                break;
-            }
-            if (parentNode === node) {
-                return true;
-            }
-        }
-        return false;
+    getPancakeBase(): StatementBlock {
+        return this.getParentByFilter((node) => (
+            node instanceof constructors.StatementBlock && node.isPancakeBase()
+        )) as StatementBlock;
     }
     
     // If handle returns a node:

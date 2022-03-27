@@ -362,6 +362,10 @@ export class StatementBlock extends Node {
         );
     }
     
+    isPancakeBase(): boolean {
+        return !(this.getParentNode() instanceof ScopeStatement);
+    }
+    
     evaluateToCompItemOrNull(): CompItem {
         const pancake = new StatementPancake(this);
         pancake.determineReachability();

@@ -15,18 +15,17 @@ interface StatementOperand {
 }
 
 export class StatementPancake {
-    block: StatementBlock;
+    baseBlock: StatementBlock;
     statements: Statement[];
     uselessStatements: Set<Statement>;
     labelIndexMap: IdentifierMap<number>;
     reachabilityMap: Map<Statement, boolean>;
     returnCompItems: CompItem[];
     
-    // Assumes that transformControlFlow has been called
-    // on the parent block.
-    constructor(block: StatementBlock) {
-        this.block = block;
-        this.statements = this.block.getFlattenedStatements();
+    // Assumes that transformControlFlow has been called on baseBlock.
+    constructor(baseBlock: StatementBlock) {
+        this.baseBlock = baseBlock;
+        this.statements = this.baseBlock.getFlattenedStatements();
         this.uselessStatements = new Set();
         this.labelIndexMap = null;
         this.reachabilityMap = null;
@@ -163,7 +162,7 @@ export class StatementPancake {
             if (!(definition instanceof InitableVariableDefinition)) {
                 throw operand1.createError("Expected variable definition.");
             }
-            if (!definition.hasParentNode(this.block)) {
+            if (definition.getPancakeBase() !== this.baseBlock) {
                 throw operand1.createError("Cannot initialize this variable here.");
             }
             let statementOperands: StatementOperand[];

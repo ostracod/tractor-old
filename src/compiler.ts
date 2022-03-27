@@ -201,7 +201,7 @@ export class Compiler extends Node {
     // transformControlFlow, but before expandInlineFunctions.
     processStatementPancakes(): number {
         return this.iterateOverExpandedBlocks((block) => {
-            if (block.getParentNode() instanceof ScopeStatement) {
+            if (!block.isPancakeBase()) {
                 return 0;
             }
             const pancake = new StatementPancake(block);

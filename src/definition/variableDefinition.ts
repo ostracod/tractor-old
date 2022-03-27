@@ -4,14 +4,27 @@ import { Pos } from "../parse/pos.js";
 import { Expression } from "../statement/expression.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { ItemType } from "../compItem/itemType.js";
+import { StorageType, FrameType, CompType, FixedType } from "../compItem/storageType.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
     
+    getStorageType(): StorageType {
+        return new FrameType();
+    }
+    
     getResolvedType(): ItemType {
-        return this.typeResolver.get().type;
+        const constraintType = this.typeResolver.get().type;
+        if (constraintType === null) {
+            return null;
+        }
+        const storageType = this.getStorageType();
+        if (storageType === null) {
+            return null;
+        }
+        return constraintType.intersectType(storageType);
     }
     
     getCompItemOrNull(): CompItem {
@@ -52,14 +65,14 @@ export abstract class InitableVariableDefinition extends VariableDefinition {
             if (this.initItemType === null) {
                 return null;
             }
-            const constraintType = super.getResolvedType();
-            if (constraintType === null) {
+            const type1 = super.getResolvedType();
+            if (type1 === null) {
                 return null;
             }
-            const strippedType = this.initItemType.stripStorageTypes();
-            this.resolvedType = constraintType.intersectType(strippedType);
+            const type2 = this.initItemType.stripStorageTypes();
+            this.resolvedType = type1.intersectType(type2);
             if (this.resolvedType === null) {
-                throw this.createError("Variable init item is incompatible with constraint type.");
+                throw this.createError("Init item is incompatible with variable type.");
             }
         }
         return this.resolvedType;
@@ -116,12 +129,20 @@ export class CompVariableDefinition extends InitableVariableDefinition {
     getDefinitionNameHelper(): string {
         return "Compile-time";
     }
+    
+    getStorageType(): StorageType {
+        return new CompType();
+    }
 }
 
 export class FixedVariableDefinition extends CompVariableDefinition {
     
     getDefinitionNameHelper(): string {
         return "Fixed";
+    }
+    
+    getStorageType(): StorageType {
+        return new FixedType();
     }
 }
 
@@ -149,6 +170,10 @@ export class AutoVariableDefinition extends InitableVariableDefinition {
     
     getDefinitionNameHelper(): string {
         return "Auto";
+    }
+    
+    getStorageType(): StorageType {
+        return null;
     }
 }
 
