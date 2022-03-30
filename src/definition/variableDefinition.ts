@@ -45,6 +45,7 @@ export class ArgVariableDefinition extends VariableDefinition {
 }
 
 export abstract class InitableVariableDefinition extends VariableDefinition {
+    hasInitExpression: boolean;
     initItem: CompKnown;
     initItemType: ItemType;
     resolvedType: ItemType;
@@ -55,6 +56,7 @@ export abstract class InitableVariableDefinition extends VariableDefinition {
         typeExpression: Expression,
     ) {
         super(pos, identifierBehavior, typeExpression);
+        this.hasInitExpression = null;
         this.initItem = null;
         this.initItemType = null;
         this.resolvedType = null;
@@ -62,11 +64,17 @@ export abstract class InitableVariableDefinition extends VariableDefinition {
     
     getResolvedType(): ItemType {
         if (this.resolvedType === null) {
-            if (this.initItemType === null) {
+            if (this.hasInitExpression === null) {
                 return null;
             }
             const type1 = super.getResolvedType();
             if (type1 === null) {
+                return null;
+            }
+            if (!this.hasInitExpression) {
+                return type1;
+            }
+            if (this.initItemType === null) {
                 return null;
             }
             const type2 = this.initItemType.stripStorageTypes();

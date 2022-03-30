@@ -2,6 +2,7 @@
 import * as niceUtils from "../niceUtils.js";
 import { IdentifierMap } from "../identifier.js";
 import { InitableVariableDefinition } from "../definition/variableDefinition.js";
+import { DefinitionMap } from "../definition/definitionMap.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompVoid } from "../compItem/compValue.js";
 import { initializationOperator } from "./operator.js";
@@ -17,6 +18,7 @@ interface StatementOperand {
 export class StatementPancake {
     baseBlock: StatementBlock;
     statements: Statement[];
+    scopes: DefinitionMap[];
     uselessStatements: Set<Statement>;
     labelIndexMap: IdentifierMap<number>;
     reachabilityMap: Map<Statement, boolean>;
@@ -25,7 +27,9 @@ export class StatementPancake {
     // Assumes that transformControlFlow has been called on baseBlock.
     constructor(baseBlock: StatementBlock) {
         this.baseBlock = baseBlock;
-        this.statements = this.baseBlock.getFlattenedStatements();
+        const result = this.baseBlock.getFlattenedStatements();
+        this.statements = result.statements;
+        this.scopes = result.scopes;
         this.uselessStatements = new Set();
         this.labelIndexMap = null;
         this.reachabilityMap = null;
@@ -146,6 +150,8 @@ export class StatementPancake {
     }
     
     resolveInitItems(): void {
+        
+        // Create a map from variable definition to init expressions.
         const statementOperandsMap: Map<InitableVariableDefinition, StatementOperand[]> = new Map();
         this.statements.forEach((statement) => {
             if (!(statement instanceof ExpressionStatement)) {
@@ -174,7 +180,10 @@ export class StatementPancake {
             }
             statementOperands.push({ statement, operand: operand2 });
         });
+        
+        // Handle init expressions in all variable definitions.
         statementOperandsMap.forEach((statementOperands, definition) => {
+            definition.hasInitExpression = (statementOperands.length > 0);
             if (statementOperands.length !== 1) {
                 return;
             }
@@ -183,6 +192,16 @@ export class StatementPancake {
             if (hasHandledStatement) {
                 this.uselessStatements.add(statement);
             }
+        });
+        
+        // Register missing init expressions for all other variable definitions.
+        this.scopes.forEach((scope) => {
+            scope.iterate((definition) => {
+                if (definition instanceof InitableVariableDefinition
+                        && definition.hasInitExpression === null) {
+                    definition.hasInitExpression = false;
+                }
+            });
         });
     }
     

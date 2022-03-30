@@ -373,18 +373,21 @@ export class StatementBlock extends Node {
         return (returnCompItems.length === 1) ? returnCompItems[0] : null;
     }
     
-    getFlattenedStatements(): Statement[] {
-        const output: Statement[] = [];
+    getFlattenedStatements(): { statements: Statement[], scopes: DefinitionMap[] } {
+        const statements: Statement[] = [];
+        const scopes: DefinitionMap[] = [];
         this.statements.forEach((slot) => {
             const statement = slot.get();
             if (statement instanceof ScopeStatement) {
-                const statements = statement.block.get().getFlattenedStatements();
-                niceUtils.extendList(output, statements);
+                const result = statement.block.get().getFlattenedStatements();
+                niceUtils.extendList(statements, result.statements);
+                niceUtils.extendList(scopes, result.scopes);
             } else {
-                output.push(statement);
+                statements.push(statement);
             }
         });
-        return output;
+        scopes.push(this.scope.get());
+        return { statements, scopes };
     }
     
     removeEmptyScopeStatements(): number {
