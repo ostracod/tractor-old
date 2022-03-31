@@ -222,9 +222,9 @@ Variable storage directive may be one of the following:
 
 Each storage directive is associated with a storage type:
 
-* `VAR` variables conform to `frameT`.
+* `VAR` variables conform to `frameT & compLocT`.
 * `COMP` variables conform to `compT`.
-* `FIXED` variables conform to `fixedT`.
+* `FIXED` variables conform to `fixedT & compLocT & compT`.
 * `AUTO` variables may conform to `frameT`, `compT`, or `fixedT`.
 
 Variable initialization determines the first item which a variable will contain. A variable may not be initialized more than once. If a variable is not initialized, the variable will contain an undefined item.

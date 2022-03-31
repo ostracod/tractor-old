@@ -7,7 +7,7 @@ import { CompilerError } from "./compilerError.js";
 import { Node, NodeSlot } from "./node.js";
 import { SourceFile, TractorFile } from "./parse/sourceFile.js";
 import { Expression } from "./statement/expression.js";
-import { ImportStatement, FunctionStatement, ScopeStatement } from "./statement/statement.js";
+import { ImportStatement, FunctionStatement } from "./statement/statement.js";
 import { StatementBlock, RootStatementBlock } from "./statement/statementBlock.js";
 import { StatementPancake } from "./statement/statementPancake.js";
 import { InlineFunctionDefinition } from "./definition/functionDefinition.js";

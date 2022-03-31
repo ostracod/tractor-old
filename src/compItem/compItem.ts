@@ -2,10 +2,14 @@
 import { Displayable } from "../interfaces.js";
 import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
+import * as niceUtils from "../niceUtils.js";
 import { ItemType } from "./itemType.js";
 import { BasicType } from "./basicType.js";
+import { StorageType } from "./storageType.js";
 
 export abstract class CompItem implements Displayable {
+    
+    abstract copy(): CompItem;
     
     abstract getType(): ItemType;
     
@@ -33,6 +37,10 @@ export class CompUnknown extends CompItem {
         this.type = type;
     }
     
+    copy(): CompUnknown {
+        return new CompUnknown(this.type.copy());
+    }
+    
     getType(): ItemType {
         return this.type;
     }
@@ -44,9 +52,13 @@ export class CompUnknown extends CompItem {
 
 export abstract class CompKnown<T extends BasicType = BasicType> extends CompItem {
     
+    getStorageTypes(): StorageType[] {
+        return [new constructors.CompType()];
+    }
+    
     getType(): T {
         const output = this.getTypeHelper().copy() as T;
-        output.storageTypes.push(new constructors.CompType());
+        niceUtils.extendList(output.storageTypes, this.getStorageTypes());
         return output;
     }
     

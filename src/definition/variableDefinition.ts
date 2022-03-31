@@ -3,16 +3,18 @@ import { IdentifierBehavior } from "../identifierBehavior.js";
 import { Pos } from "../parse/pos.js";
 import { Expression } from "../statement/expression.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
+import { CompValue } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { StorageType, FrameType, CompType, FixedType } from "../compItem/storageType.js";
+import { StorageType, FrameType, CompType, FixedType, CompLocationType } from "../compItem/storageType.js";
+import { AndType } from "../compItem/manipulationType.js";
 import { SingleTypeDefinition } from "./singleTypeDefinition.js";
 
 export abstract class VariableDefinition extends SingleTypeDefinition {
     
     abstract getDefinitionNameHelper(): string;
     
-    getStorageType(): StorageType {
-        return new FrameType();
+    getStorageType(): ItemType {
+        return new AndType(new FrameType(), new CompLocationType());
     }
     
     getResolvedType(): ItemType {
@@ -130,16 +132,32 @@ export class FrameVariableDefinition extends InitableVariableDefinition {
 
 export class CompVariableDefinition extends InitableVariableDefinition {
     
+    // Excludes compT.
+    getStorageTypesHelper(): StorageType[] {
+        return [];
+    }
+    
     getCompItemOrNull(): CompItem {
-        return (this.initItem === null) ? super.getCompItemOrNull() : this.initItem;
+        const { initItem } = this;
+        if (initItem === null) {
+            return super.getCompItemOrNull();
+        } else if (initItem instanceof CompValue) {
+            const output = initItem.copy();
+            output.storageTypes = this.getStorageTypesHelper();
+            return output;
+        } else {
+            return initItem;
+        }
     }
     
     getDefinitionNameHelper(): string {
         return "Compile-time";
     }
     
-    getStorageType(): StorageType {
-        return new CompType();
+    getStorageType(): ItemType {
+        return (this.getStorageTypesHelper() as ItemType[]).reduce((accumulator, type) => (
+            new AndType(accumulator, type)
+        ), new CompType());
     }
 }
 
@@ -149,8 +167,8 @@ export class FixedVariableDefinition extends CompVariableDefinition {
         return "Fixed";
     }
     
-    getStorageType(): StorageType {
-        return new FixedType();
+    getStorageTypesHelper(): StorageType[] {
+        return [new FixedType(), new CompLocationType()];
     }
 }
 
@@ -180,7 +198,7 @@ export class AutoVariableDefinition extends InitableVariableDefinition {
         return "Auto";
     }
     
-    getStorageType(): StorageType {
+    getStorageType(): ItemType {
         return null;
     }
 }
