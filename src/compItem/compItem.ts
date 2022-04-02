@@ -1,11 +1,8 @@
 
 import { Displayable } from "../interfaces.js";
-import { constructors } from "../constructors.js";
 import { CompilerError } from "../compilerError.js";
-import * as niceUtils from "../niceUtils.js";
 import { ItemType } from "./itemType.js";
 import { BasicType } from "./basicType.js";
-import { StorageType } from "./storageType.js";
 
 export abstract class CompItem implements Displayable {
     
@@ -50,7 +47,7 @@ export class CompUnknown extends CompItem {
     }
 }
 
-export abstract class CompKnown<T extends BasicType = BasicType> extends CompItem {
+export abstract class CompKnown extends CompItem {
     
     abstract copy(): CompKnown;
     

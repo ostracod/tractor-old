@@ -1,10 +1,12 @@
 
 import { CompilerError } from "../compilerError.js";
+import * as typeUtils from "../compItem/typeUtils.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
+import { StorageType, CompType } from "../compItem/storageType.js";
 import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
@@ -50,8 +52,20 @@ export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
         unaryOperatorMap[this.text] = this;
     }
     
-    getIntegerType(type: IntegerType): IntegerType {
+    // Ignores storage types.
+    getIntegerTypeHelper(type: IntegerType): IntegerType {
         throw new CompilerError("getIntegerType is not implemented for this operator");
+    }
+    
+    getIntegerStorageTypes(type: IntegerType): StorageType[] {
+        return typeUtils.matchStorageTypes(type, [CompType]);
+    }
+    
+    getIntegerType(type: IntegerType): IntegerType {
+        const output = this.getIntegerTypeHelper(type).copy() as IntegerType;
+        const storageTypes = this.getIntegerStorageTypes(type);
+        output.setStorageTypes(storageTypes);
+        return output;
     }
     
     calculateInteger(operand: bigint): bigint {
@@ -79,7 +93,7 @@ export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
 
 export abstract class UnaryTypeCopyOperator extends UnaryOperator {
     
-    getIntegerType(type: IntegerType): IntegerType {
+    getIntegerTypeHelper(type: IntegerType): IntegerType {
         return type;
     }
 }
@@ -117,7 +131,7 @@ export class BooleanInversionOperator extends UnaryOperator {
         super("!");
     }
     
-    getIntegerType(type: IntegerType): IntegerType {
+    getIntegerTypeHelper(type: IntegerType): IntegerType {
         return booleanType;
     }
     
@@ -145,8 +159,29 @@ export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> {
         throw this.createTypeError();
     }
     
-    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+    // Ignores storage types.
+    getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType {
         throw new CompilerError("getIntegerType is not implemented for this operator");
+    }
+    
+    getIntegerStorageTypes(type1: IntegerType, type2: IntegerType): StorageType[] {
+        const compType1 = typeUtils.matchStorageType(type1, CompType);
+        const compType2 = typeUtils.matchStorageType(type2, CompType);
+        if ((compType1 !== null && compType1.isComplement)
+                || (compType2 !== null && compType2.isComplement)) {
+            return [new CompType(true)];
+        }
+        if (compType1 === null || compType2 === null) {
+            return [];
+        }
+        return [new CompType()];
+    }
+    
+    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+        const output = this.getIntegerTypeHelper(type1, type2).copy() as IntegerType;
+        const storageTypes = this.getIntegerStorageTypes(type1, type2);
+        output.setStorageTypes(storageTypes);
+        return output;
     }
     
     getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
@@ -227,7 +262,7 @@ export abstract class BinaryIntegerOperator extends BinaryOperator {
 
 export abstract class BinaryTypeMergeOperator extends BinaryIntegerOperator {
     
-    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType {
         // isSigned and bitAmount are nullable, so
         // we need to be a little careful here.
         let isSigned: boolean;
@@ -325,7 +360,7 @@ export abstract class BitshiftOperator extends BinaryIntegerOperator {
         super(text, 5);
     }
     
-    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType {
         return type1;
     }
 }
@@ -360,7 +395,7 @@ export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
         return this.calculateBoolean(operand1, operand2) ? 1n : 0n;
     }
     
-    getIntegerType(type1: IntegerType, type2: IntegerType): IntegerType {
+    getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType {
         return booleanType;
     }
 }

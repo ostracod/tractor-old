@@ -1,6 +1,5 @@
 
 import { CompilerError } from "../compilerError.js";
-import * as niceUtils from "../niceUtils.js";
 import { TargetLanguage } from "../targetLanguage.js";
 import { FunctionSignature, ContextFunctionSignature } from "../functionSignature.js";
 import { FunctionDefinition } from "../definition/functionDefinition.js";
@@ -10,7 +9,7 @@ import { ItemType } from "./itemType.js";
 import { BasicType, ValueType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
 import { StorageType, CompType } from "./storageType.js";
 
-export abstract class CompValue<T extends ValueType = ValueType> extends CompKnown<T> {
+export abstract class CompValue<T extends ValueType = ValueType> extends CompKnown {
     type: T;
     
     constructor(type: T) {
@@ -157,7 +156,7 @@ export class CompArray extends CompValue<ArrayType> {
 export const createCompArray = (elements: CompKnown[], elementType: ItemType): CompArray => {
     const type = new ArrayType(elementType, elements.length);
     return new CompArray(elements, type);
-}
+};
 
 export class CompStruct extends CompValue<StructType> {
     items: CompKnown[];

@@ -1,7 +1,7 @@
 
 import * as niceUtils from "../niceUtils.js";
 import { BasicType } from "./basicType.js";
-import { StorageType } from "./storageType.js";
+import { StorageType, StorageTypeConstructor } from "./storageType.js";
 
 export const getIntrinsicStorageTypes = (types: StorageType[]): StorageType[] => {
     const output: StorageType[] = [];
@@ -147,6 +147,35 @@ export const mergeStorageTypes = (types: StorageType[]): StorageType[] => {
             }
         }
     }
+    return output;
+};
+
+export const matchStorageType = <T extends StorageType = StorageType>(
+    basicType: BasicType,
+    storageTypeConstructor: StorageTypeConstructor<T>,
+): T => {
+    const storageType1 = new storageTypeConstructor();
+    if (basicType.conformsToType(storageType1)) {
+        return storageType1;
+    }
+    const storageType2 = new storageTypeConstructor(true);
+    if (basicType.conformsToType(storageType2)) {
+        return storageType2;
+    }
+    return null;
+};
+
+export const matchStorageTypes = (
+    basicType: BasicType,
+    storageTypeConstructors: StorageTypeConstructor[],
+): StorageType[] => {
+    const output: StorageType[] = [];
+    storageTypeConstructors.forEach((storageTypeConstructor) => {
+        const storageType = matchStorageType(basicType, storageTypeConstructor);
+        if (storageType !== null) {
+            output.push(storageType);
+        }
+    });
     return output;
 };
 

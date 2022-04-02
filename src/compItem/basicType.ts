@@ -58,6 +58,7 @@ export class BasicType extends ItemType {
         }
         if (!this.conformsToType(type)) {
             this.storageTypes.push(type);
+            this.storageTypes = typeUtils.mergeStorageTypes(this.storageTypes);
         }
     }
     
