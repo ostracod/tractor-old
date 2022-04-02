@@ -7,7 +7,7 @@ import { BasicType, TypeType } from "./basicType.js";
 
 export class ItemType extends CompKnown<TypeType> {
     
-    getTypeHelper(): TypeType {
+    getType(): TypeType {
         return new constructors.TypeType(this);
     }
     

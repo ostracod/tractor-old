@@ -5,7 +5,7 @@ import { StatementType, expressionStatementType, directiveStatementTypeMap } fro
 import { Statement } from "../statement/statement.js";
 import { Expression, CompKnownExpression, IdentifierExpression, UnaryExpression, BinaryExpression, SubscriptExpression, FieldAccessExpression, InvocationExpression, ListExpression } from "../statement/expression.js";
 import { unaryOperatorMap, binaryOperatorMap, operatorTextSet } from "../statement/operator.js";
-import { CompInteger, CompArray } from "../compItem/compValue.js";
+import { CompInteger, CompArray, createCompArray } from "../compItem/compValue.js";
 import { characterType } from "../compItem/basicType.js";
 import { Token, WordToken, NumberToken, StringToken, CharacterToken, DelimiterToken, OperatorToken } from "./token.js";
 
@@ -224,7 +224,7 @@ const parseStringToken = (token: StringToken): CompArray => {
         const compItem = new CompInteger(BigInt(charCode), characterType);
         elements.push(compItem);
     }
-    return new CompArray(elements, characterType);
+    return createCompArray(elements, characterType);
 };
 
 const readExpressionHelper = (tokens: Token[], index: number): ExpressionResult => {

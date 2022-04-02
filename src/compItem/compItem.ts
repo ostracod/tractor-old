@@ -52,17 +52,7 @@ export class CompUnknown extends CompItem {
 
 export abstract class CompKnown<T extends BasicType = BasicType> extends CompItem {
     
-    getStorageTypes(): StorageType[] {
-        return [new constructors.CompType()];
-    }
-    
-    getType(): T {
-        const output = this.getTypeHelper().copy() as T;
-        niceUtils.extendList(output.storageTypes, this.getStorageTypes());
-        return output;
-    }
-    
-    abstract getTypeHelper(): T;
+    abstract copy(): CompKnown;
     
     // Assumes that this.getType().canConvertToType(type) is true.
     convertToType(type: ItemType): CompKnown {

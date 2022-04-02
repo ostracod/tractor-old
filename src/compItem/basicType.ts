@@ -52,6 +52,22 @@ export class BasicType extends ItemType {
         return output;
     }
     
+    addStorageType(type: StorageType): void {
+        if (!this.intersectsType(type)) {
+            throw new CompilerError("Incompatible storage type.");
+        }
+        if (!this.conformsToType(type)) {
+            this.storageTypes.push(type);
+        }
+    }
+    
+    setStorageTypes(types: StorageType[]): void {
+        this.storageTypes = [];
+        types.forEach((type) => {
+            this.addStorageType(type);
+        });
+    }
+    
     // Should ignore all member variable values.
     containsBasicTypeClass(type: BasicType): boolean {
         return (type instanceof this.constructor);

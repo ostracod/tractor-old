@@ -53,8 +53,8 @@ const mergeBasicTypesHelper = (types: BasicType[]): boolean => {
             if (hasRemovedStorageTypes) {
                 updatedType1 = type1.copy();
                 updatedType2 = type2.copy();
-                updatedType1.storageTypes = storageTypes1;
-                updatedType2.storageTypes = storageTypes2;
+                updatedType1.setStorageTypes(storageTypes1);
+                updatedType2.setStorageTypes(storageTypes2);
             } else {
                 updatedType1 = type1;
                 updatedType2 = type2;

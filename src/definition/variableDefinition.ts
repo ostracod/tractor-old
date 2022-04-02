@@ -143,7 +143,7 @@ export class CompVariableDefinition extends InitableVariableDefinition {
             return super.getCompItemOrNull();
         } else if (initItem instanceof CompValue) {
             const output = initItem.copy();
-            output.storageTypes = this.getStorageTypesHelper();
+            output.setStorageTypes(this.getStorageTypesHelper());
             return output;
         } else {
             return initItem;

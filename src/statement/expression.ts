@@ -298,7 +298,7 @@ export class SubscriptExpression extends AccessExpression {
         }
         if (operand2 instanceof CompUnknown) {
             const compStringType = new ArrayType(characterType);
-            compStringType.storageTypes.push(new CompType());
+            compStringType.addStorageType(new CompType());
             if (!operand2.getType().conformsToType(compStringType)) {
                 throw this.createError("Expected compile-time string.");
             }

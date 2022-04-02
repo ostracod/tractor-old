@@ -8,40 +8,45 @@ import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { BasicType, ValueType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
-import { StorageType } from "./storageType.js";
+import { StorageType, CompType } from "./storageType.js";
 
 export abstract class CompValue<T extends ValueType = ValueType> extends CompKnown<T> {
-    // Excludes compT.
-    storageTypes: StorageType[];
+    type: T;
     
-    constructor() {
+    constructor(type: T) {
         super();
-        this.storageTypes = [];
+        this.type = type.copy() as T;
+        this.enforceCompType();
     }
     
-    abstract copyHelper(): CompValue;
+    abstract copy(): CompValue<T>;
     
-    copy(): CompValue {
-        const output = this.copyHelper();
-        output.storageTypes = this.storageTypes.map((storageType) => storageType.copy());
-        return output;
+    getType(): ItemType {
+        return this.type;
     }
     
-    getStorageTypes(): StorageType[] {
-        const output = super.getStorageTypes();
-        niceUtils.extendList(output, this.storageTypes);
-        return output;
+    addStorageType(type: StorageType): void {
+        this.type.addStorageType(type);
+    }
+    
+    enforceCompType(): void {
+        this.addStorageType(new CompType());
+    }
+    
+    setStorageTypes(types: StorageType[]): void {
+        this.type.setStorageTypes(types);
+        this.enforceCompType();
     }
 }
 
 export class CompVoid extends CompValue<VoidType> {
     
-    copyHelper(): CompValue {
-        return new CompVoid();
+    constructor() {
+        super(new VoidType());
     }
     
-    getTypeHelper(): VoidType {
-        return new VoidType();
+    copy(): CompVoid {
+        return new CompVoid();
     }
     
     getDisplayString(): string {
@@ -51,24 +56,17 @@ export class CompVoid extends CompValue<VoidType> {
 
 export class CompInteger extends CompValue<IntegerType> {
     value: bigint;
-    integerType: IntegerType;
     
-    constructor(value: bigint, integerType: IntegerType = null) {
-        super();
-        this.value = value;
-        if (integerType === null) {
-            this.integerType = new IntegerType();
-        } else {
-            this.integerType = integerType;
+    constructor(value: bigint, type: IntegerType = null) {
+        if (type === null) {
+            type = new IntegerType();
         }
+        super(type);
+        this.value = value;
     }
     
-    copyHelper(): CompValue {
-        return new CompInteger(this.value, this.integerType.copy() as IntegerType);
-    }
-    
-    getTypeHelper(): IntegerType {
-        return this.integerType;
+    copy(): CompInteger {
+        return new CompInteger(this.value, this.type);
     }
     
     convertToBoolean(): boolean {
@@ -95,19 +93,13 @@ export class CompInteger extends CompValue<IntegerType> {
 }
 
 export class CompNull extends CompValue<PointerType> {
-    pointerType: PointerType;
     
-    constructor(pointerType: PointerType) {
-        super();
-        this.pointerType = pointerType;
+    constructor(type: PointerType) {
+        super(type);
     }
     
-    copyHelper(): CompValue {
-        return new CompNull(this.pointerType.copy() as PointerType);
-    }
-    
-    getTypeHelper(): PointerType {
-        return this.pointerType;
+    copy(): CompNull {
+        return new CompNull(this.type);
     }
     
     convertToBasicType(type: BasicType): CompKnown {
@@ -129,29 +121,24 @@ export class CompNull extends CompValue<PointerType> {
 
 export class CompArray extends CompValue<ArrayType> {
     elements: CompKnown[];
-    elementType: ItemType;
-    arrayType: ArrayType;
     
-    constructor(elements: CompKnown[], elementType: ItemType = null) {
-        super();
-        this.elements = elements;
-        if (elementType === null) {
-            this.elementType = new ItemType();
-        } else {
-            this.elementType = elementType;
+    constructor(elements: CompKnown[], type: ArrayType = null) {
+        if (type === null) {
+            type = new ArrayType(new ItemType(), elements.length);
         }
-        this.arrayType = new ArrayType(this.elementType, this.elements.length);
+        super(type);
+        this.elements = elements;
     }
     
-    copyHelper(): CompValue {
+    copy(): CompArray {
         return new CompArray(
-            this.elements.map((element) => element.copy() as CompKnown),
-            this.elementType.copy(),
+            this.elements.map((element) => element.copy()),
+            this.type,
         );
     }
     
     convertToString(): string {
-        if (!(this.elementType instanceof IntegerType)) {
+        if (!(this.type.elementType instanceof IntegerType)) {
             throw new CompilerError("Expected an array of characters.");
         }
         const numberList = this.elements.map((element) => (
@@ -161,57 +148,50 @@ export class CompArray extends CompValue<ArrayType> {
         return buffer.toString("utf8");
     }
     
-    getTypeHelper(): ArrayType {
-        return this.arrayType;
-    }
-    
     getDisplayString(): string {
         const textList = this.elements.map((element) => element.getDisplayString());
-        return `{${textList.join(", ")}}:${this.arrayType.getDisplayString()}`;
+        return `{${textList.join(", ")}}:${this.type.getDisplayString()}`;
     }
 }
 
+export const createCompArray = (elements: CompKnown[], elementType: ItemType): CompArray => {
+    const type = new ArrayType(elementType, elements.length);
+    return new CompArray(elements, type);
+}
+
 export class CompStruct extends CompValue<StructType> {
-    structType: StructType;
     items: CompKnown[];
     itemMap: { [name: string]: CompKnown };
     
-    constructor(structType: StructType, items: CompKnown[]) {
-        super();
-        this.structType = structType;
+    constructor(type: StructType, items: CompKnown[]) {
+        super(type);
         this.items = items;
         this.itemMap = {};
-        if (items.length !== this.structType.getDataFieldAmount()) {
+        if (items.length !== this.type.getDataFieldAmount()) {
             throw new CompilerError("Incorrect number of struct fields.");
         }
-        this.structType.iterateOverDataFields((field, index) => {
+        this.type.iterateOverDataFields((field, index) => {
             this.itemMap[field.name] = items[index];
         });
     }
     
-    copyHelper(): CompValue {
+    copy(): CompStruct {
         return new CompStruct(
-            this.structType.copy() as StructType,
-            this.items.map((item) => item.copy() as CompKnown),
+            this.type,
+            this.items.map((item) => item.copy()),
         );
-    }
-    
-    getTypeHelper(): StructType {
-        return this.structType;
     }
     
     getDisplayString(): string {
         const textList = this.items.map((item) => item.getDisplayString());
-        return `{${textList.join(", ")}}:${this.structType.getDisplayString()}`;
+        return `{${textList.join(", ")}}:${this.type.getDisplayString()}`;
     }
 }
 
 export abstract class FunctionHandle extends CompValue<FunctionType> {
     
-    abstract getSignature(): FunctionSignature;
-    
-    getTypeHelper(): FunctionType {
-        return new FunctionType(this.getSignature());
+    constructor(signature: FunctionSignature) {
+        super(new FunctionType(signature));
     }
 }
 
@@ -219,16 +199,12 @@ export class DefinitionFunctionHandle extends FunctionHandle {
     functionDefinition: FunctionDefinition;
     
     constructor(functionDefinition: FunctionDefinition) {
-        super();
+        super(functionDefinition.signature);
         this.functionDefinition = functionDefinition;
     }
     
-    copyHelper(): CompValue {
+    copy(): DefinitionFunctionHandle {
         return new DefinitionFunctionHandle(this.functionDefinition);
-    }
-    
-    getSignature(): FunctionSignature {
-        return this.functionDefinition.signature;
     }
     
     getDisplayString(): string {
@@ -261,20 +237,21 @@ export class BuiltInFunctionHandle extends FunctionHandle {
         argTypes: ItemType[],
         returnType: ItemType,
     ) {
-        super();
-        this.name = name;
-        this.targetLanguage = targetLanguage;
-        this.contextConstructor = contextConstructor;
-        this.signature = new ContextFunctionSignature(
-            this.targetLanguage,
+        const signature = new ContextFunctionSignature(
+            targetLanguage,
             false,
             argTypes,
             returnType,
-            this.contextConstructor,
+            contextConstructor,
         );
+        super(signature);
+        this.name = name;
+        this.targetLanguage = targetLanguage;
+        this.contextConstructor = contextConstructor;
+        this.signature = signature;
     }
     
-    copyHelper(): CompValue {
+    copy(): BuiltInFunctionHandle {
         return new (this.constructor as BuiltInFunctionHandleConstructor)(
             this.name,
             this.targetLanguage,
@@ -282,10 +259,6 @@ export class BuiltInFunctionHandle extends FunctionHandle {
             this.signature.argTypes,
             this.signature.returnType,
         );
-    }
-    
-    getSignature(): FunctionSignature {
-        return this.signature;
     }
     
     evaluateToCompItem(args: CompItem[]): CompItem {
@@ -320,16 +293,13 @@ export class CompList extends CompValue<ListType> {
     elements: CompKnown[];
     
     constructor(elements: CompKnown[]) {
-        super();
+        const type = new ListType(elements.map((item) => item.getType()));
+        super(type);
         this.elements = elements;
     }
     
-    copyHelper(): CompValue {
-        return new CompList(this.elements.map((element) => element.copy() as CompKnown));
-    }
-    
-    getTypeHelper(): ListType {
-        return new ListType(this.elements.map((item) => item.getType()));
+    copy(): CompList {
+        return new CompList(this.elements.map((element) => element.copy()));
     }
     
     convertToBasicType(type: BasicType): CompKnown {
@@ -341,7 +311,7 @@ export class CompList extends CompValue<ListType> {
         } else if (type instanceof ArrayType) {
             return new CompArray(this.elements.map((element) => (
                 element.convertToType(type.elementType)
-            )), type.elementType);
+            )), type);
         } else if (type instanceof StructType) {
             const fieldItems: CompKnown[] = [];
             type.iterateOverDataFields((field, index) => {
