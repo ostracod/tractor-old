@@ -7,14 +7,15 @@ import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, booleanType, PointerType } from "../compItem/basicType.js";
 import { NotType, OrType, AndType } from "../compItem/manipulationType.js";
 import { StorageType, CompType } from "../compItem/storageType.js";
-import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature, CastOperatorSignature } from "./operatorSignature.js";
+import { OperatorInterface, UnaryOperatorInterface, IntegerOperatorInterface, TypeOperatorInterface, BinaryOperatorInterface, TwoIntegersOperatorInterface, TwoTypesOperatorInterface, TwoPointersOperatorInterface, ConversionOperatorInterface } from "./operatorInterfaces.js";
+import { OperatorSignature, UnaryOperatorSignature, IntegerOperatorSignature, TypeOperatorSignature, BinaryOperatorSignature, AssignmentOperatorSignature, TwoIntegersOperatorSignature, TwoTypesOperatorSignature, TwoPointersOperatorSignature, PointerIntegerOperatorSignature, IntegerPointerOperatorSignature, ConversionOperatorSignature } from "./operatorSignature.js";
 import { Expression } from "./expression.js";
 
 export const operatorTextSet = new Set<string>();
 export const unaryOperatorMap: { [text: string]: UnaryOperator } = {};
 export const binaryOperatorMap: { [text: string]: BinaryOperator } = {};
 
-export abstract class Operator<T extends OperatorSignature> {
+export abstract class Operator<T extends OperatorSignature> implements OperatorInterface {
     text: string;
     signatures: T[];
     
@@ -44,18 +45,18 @@ export abstract class Operator<T extends OperatorSignature> {
     }
 }
 
-export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
+export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> implements UnaryOperatorInterface, IntegerOperatorInterface {
     
     constructor(text: string) {
         super(text);
-        this.signatures.push(new IntegerOperatorSignature());
+        this.signatures.push(new IntegerOperatorSignature(this));
         unaryOperatorMap[this.text] = this;
     }
     
+    abstract calculateInteger(operand: bigint): bigint;
+    
     // Ignores storage types.
-    getIntegerTypeHelper(type: IntegerType): IntegerType {
-        throw new CompilerError("getIntegerType is not implemented for this operator");
-    }
+    abstract getIntegerTypeHelper(type: IntegerType): IntegerType;
     
     getIntegerStorageTypes(type: IntegerType): StorageType[] {
         return typeUtils.matchStorageTypes(type, [CompType]);
@@ -66,14 +67,6 @@ export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> {
         const storageTypes = this.getIntegerStorageTypes(type);
         output.setStorageTypes(storageTypes);
         return output;
-    }
-    
-    calculateInteger(operand: bigint): bigint {
-        throw new CompilerError("calculateInteger is not implemented for this operator");
-    }
-    
-    calculateItemByType(operand: ItemType): CompItem {
-        throw new CompilerError("calculateItemByType is not implemented for this operator");
     }
     
     calculateCompItem(operand: CompItem): CompItem {
@@ -109,11 +102,11 @@ export class NegationOperator extends UnaryTypeCopyOperator {
     }
 }
 
-export class BitwiseInversionOperator extends UnaryTypeCopyOperator {
+export class BitwiseInversionOperator extends UnaryTypeCopyOperator implements TypeOperatorInterface {
     
     constructor() {
         super("~");
-        this.signatures.push(new TypeOperatorSignature());
+        this.signatures.push(new TypeOperatorSignature(this));
     }
     
     calculateInteger(operand: bigint): bigint {
@@ -140,7 +133,7 @@ export class BooleanInversionOperator extends UnaryOperator {
     }
 }
 
-export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> {
+export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> implements BinaryOperatorInterface {
     precedence: number;
     
     constructor(text: string, precedence: number) {
@@ -159,10 +152,75 @@ export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> {
         throw this.createTypeError();
     }
     
-    // Ignores storage types.
-    getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType {
-        throw new CompilerError("getIntegerType is not implemented for this operator");
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code1 = expression1.convertToUnixC();
+        const code2 = expression2.convertToUnixC();
+        return `(${code1} ${this.getUnixCText()} ${code2})`;
     }
+}
+
+export class AssignmentOperator extends BinaryOperator {
+    
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new AssignmentOperatorSignature(this));
+    }
+}
+
+export class InitializationOperator extends AssignmentOperator {
+    precedence: number;
+    
+    constructor() {
+        super(":=", 14);
+    }
+    
+    getUnixCText(): string {
+        return "=";
+    }
+}
+
+export class ConversionOperator extends BinaryOperator implements ConversionOperatorInterface {
+    
+    constructor(text = "::") {
+        super(text, 2);
+        this.signatures.push(new ConversionOperatorSignature(this));
+    }
+    
+    getConversionType(type1: ItemType, type2: ItemType): ItemType {
+        return type2;
+    }
+    
+    generateUnixC(expression1: Expression, expression2: Expression): string {
+        const code1 = expression1.convertToUnixC();
+        const code2 = expression2.convertToUnixC();
+        return `((${code2})${code1})`;
+    }
+}
+
+export class CastOperator extends ConversionOperator {
+    
+    constructor() {
+        super(":");
+    }
+    
+    getConversionType(type1: ItemType, type2: ItemType): ItemType {
+        const output = type1.intersectType(type2);
+        if (output === null) {
+            throw new CompilerError("Cannot cast type.");
+        }
+        return output;
+    }
+}
+
+export abstract class BinaryIntegerOperator extends BinaryOperator implements TwoIntegersOperatorInterface {
+    
+    constructor(text: string, precedence: number) {
+        super(text, precedence);
+        this.signatures.push(new TwoIntegersOperatorSignature(this));
+    }
+    
+    // Ignores storage types.
+    abstract getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType;
     
     getIntegerStorageTypes(type1: IntegerType, type2: IntegerType): StorageType[] {
         const compType1 = typeUtils.matchStorageType(type1, CompType);
@@ -184,80 +242,7 @@ export abstract class BinaryOperator extends Operator<BinaryOperatorSignature> {
         return output;
     }
     
-    getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
-        throw new CompilerError("getTypeByPointers is not implemented for this operator");
-    }
-    
-    calculateInteger(operand1: bigint, operand2: bigint): bigint {
-        throw new CompilerError("calculateInteger is not implemented for this operator");
-    }
-    
-    calculateItemByTypes(operand1: ItemType, operand2: ItemType): CompItem {
-        throw new CompilerError("calculateItemByTypes is not implemented for this operator");
-    }
-    
-    generateUnixC(expression1: Expression, expression2: Expression): string {
-        const code1 = expression1.convertToUnixC();
-        const code2 = expression2.convertToUnixC();
-        return `(${code1} ${this.getUnixCText()} ${code2})`;
-    }
-}
-
-export class AssignmentOperator extends BinaryOperator {
-    
-    constructor(text: string, precedence: number) {
-        super(text, precedence);
-        this.signatures.push(new AssignmentOperatorSignature());
-    }
-}
-
-export class InitializationOperator extends AssignmentOperator {
-    precedence: number;
-    
-    constructor() {
-        super(":=", 14);
-    }
-    
-    getUnixCText(): string {
-        return "=";
-    }
-}
-
-export class ConversionOperator extends BinaryOperator {
-    
-    constructor(text = "::") {
-        super(text, 2);
-        this.signatures.push(this.getConversionSignature());
-    }
-    
-    getConversionSignature(): ConversionOperatorSignature {
-        return new ConversionOperatorSignature();
-    }
-    
-    generateUnixC(expression1: Expression, expression2: Expression): string {
-        const code1 = expression1.convertToUnixC();
-        const code2 = expression2.convertToUnixC();
-        return `((${code2})${code1})`;
-    }
-}
-
-export class CastOperator extends ConversionOperator {
-    
-    constructor() {
-        super(":");
-    }
-    
-    getConversionSignature(): ConversionOperatorSignature {
-        return new CastOperatorSignature();
-    }
-}
-
-export abstract class BinaryIntegerOperator extends BinaryOperator {
-    
-    constructor(text: string, precedence: number) {
-        super(text, precedence);
-        this.signatures.push(new TwoIntegersOperatorSignature());
-    }
+    abstract calculateInteger(operand1: bigint, operand2: bigint): bigint;
 }
 
 export abstract class BinaryTypeMergeOperator extends BinaryIntegerOperator {
@@ -328,8 +313,8 @@ export class AdditionOperator extends BinaryTypeMergeOperator {
     
     constructor() {
         super("+", 4);
-        this.signatures.push(new PointerIntegerOperatorSignature());
-        this.signatures.push(new IntegerPointerOperatorSignature());
+        this.signatures.push(new PointerIntegerOperatorSignature(this));
+        this.signatures.push(new IntegerPointerOperatorSignature(this));
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
@@ -337,16 +322,19 @@ export class AdditionOperator extends BinaryTypeMergeOperator {
     }
 }
 
-export class SubtractionOperator extends BinaryTypeMergeOperator {
+export class SubtractionOperator extends BinaryTypeMergeOperator implements TwoPointersOperatorInterface {
     
     constructor() {
         super("-", 4);
-        this.signatures.push(new TwoPointersOperatorSignature());
-        this.signatures.push(new PointerIntegerOperatorSignature());
+        this.signatures.push(new TwoPointersOperatorSignature(this));
+        this.signatures.push(new PointerIntegerOperatorSignature(this));
     }
     
     getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
-        return new IntegerType();
+        // TODO: Decide what the size of the integer should be.
+        const output = new IntegerType();
+        output.setStorageTypes([new CompType(true)]);
+        return output;
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
@@ -400,15 +388,23 @@ export abstract class BinaryBooleanOperator extends BinaryIntegerOperator {
     }
 }
 
-export abstract class ComparisonOperator extends BinaryIntegerOperator {
+export abstract class ComparisonOperator extends BinaryBooleanOperator implements TwoPointersOperatorInterface {
     
     constructor(text: string, precedence: number) {
         super(text, precedence);
-        this.signatures.push(new TwoPointersOperatorSignature());
+        this.signatures.push(new TwoPointersOperatorSignature(this));
+    }
+    
+    getTypeByTypes(): ItemType {
+        const output = booleanType.copy();
+        output.setStorageTypes([new CompType()]);
+        return output;
     }
     
     getTypeByPointers(type1: PointerType, type2: PointerType): ItemType {
-        return booleanType;
+        const output = booleanType.copy();
+        booleanType.setStorageTypes([new CompType(true)]);
+        return output;
     }
 }
 
@@ -456,11 +452,11 @@ export class LessOrEqualOperator extends ComparisonOperator {
     }
 }
 
-export class EqualityOperator extends ComparisonOperator {
+export class EqualityOperator extends ComparisonOperator implements TwoTypesOperatorInterface {
     
     constructor() {
         super("==", 7);
-        this.signatures.push(new TwoTypesOperatorSignature());
+        this.signatures.push(new TwoTypesOperatorSignature(this));
     }
     
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
@@ -473,11 +469,11 @@ export class EqualityOperator extends ComparisonOperator {
     }
 }
 
-export class InequalityOperator extends ComparisonOperator {
+export class InequalityOperator extends ComparisonOperator implements TwoTypesOperatorInterface {
     
     constructor() {
         super("!=", 7);
-        this.signatures.push(new TwoTypesOperatorSignature());
+        this.signatures.push(new TwoTypesOperatorSignature(this));
     }
     
     calculateBoolean(operand1: bigint, operand2: bigint): boolean {
@@ -492,16 +488,16 @@ export class InequalityOperator extends ComparisonOperator {
 
 export abstract class BitwiseOperator extends BinaryTypeMergeOperator {
     
-    constructor(text: string, precedence: number) {
-        super(text, precedence);
-        this.signatures.push(new TwoTypesOperatorSignature());
+    getTypeByTypes(): ItemType {
+        return null;
     }
 }
 
-export class BitwiseAndOperator extends BitwiseOperator {
+export class BitwiseAndOperator extends BitwiseOperator implements TwoTypesOperatorInterface {
     
     constructor() {
         super("&", 8);
+        this.signatures.push(new TwoTypesOperatorSignature(this));
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
@@ -524,10 +520,11 @@ export class BitwiseXorOperator extends BitwiseOperator {
     }
 }
 
-export class BitwiseOrOperator extends BitwiseOperator {
+export class BitwiseOrOperator extends BitwiseOperator implements TwoTypesOperatorInterface {
     
     constructor() {
         super("|", 10);
+        this.signatures.push(new TwoTypesOperatorSignature(this));
     }
     
     calculateInteger(operand1: bigint, operand2: bigint): bigint {
