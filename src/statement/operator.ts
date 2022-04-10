@@ -1,6 +1,5 @@
 
 import { CompilerError } from "../compilerError.js";
-import * as typeUtils from "../compItem/typeUtils.js";
 import { CompItem } from "../compItem/compItem.js";
 import { CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
@@ -59,7 +58,7 @@ export abstract class UnaryOperator extends Operator<UnaryOperatorSignature> imp
     abstract getIntegerTypeHelper(type: IntegerType): IntegerType;
     
     getIntegerStorageTypes(type: IntegerType): StorageType[] {
-        return typeUtils.matchStorageTypes(type, [CompType]);
+        return type.matchStorageTypes([CompType]);
     }
     
     getIntegerType(type: IntegerType): IntegerType {
@@ -187,7 +186,7 @@ export class ConversionOperator extends BinaryOperator implements ConversionOper
     }
     
     getConversionType(type1: ItemType, type2: ItemType): ItemType {
-        return type2;
+        return type2.getNakedBasicType();
     }
     
     generateUnixC(expression1: Expression, expression2: Expression): string {
@@ -204,7 +203,7 @@ export class CastOperator extends ConversionOperator {
     }
     
     getConversionType(type1: ItemType, type2: ItemType): ItemType {
-        const output = type1.intersectType(type2);
+        const output = type2.getNakedBasicType().intersectType(type1);
         if (output === null) {
             throw new CompilerError("Cannot cast type.");
         }
@@ -223,8 +222,8 @@ export abstract class BinaryIntegerOperator extends BinaryOperator implements Tw
     abstract getIntegerTypeHelper(type1: IntegerType, type2: IntegerType): IntegerType;
     
     getIntegerStorageTypes(type1: IntegerType, type2: IntegerType): StorageType[] {
-        const compType1 = typeUtils.matchStorageType(type1, CompType);
-        const compType2 = typeUtils.matchStorageType(type2, CompType);
+        const compType1 = type1.matchStorageType(CompType);
+        const compType2 = type2.matchStorageType(CompType);
         if ((compType1 !== null && compType1.isComplement)
                 || (compType2 !== null && compType2.isComplement)) {
             return [new CompType(true)];

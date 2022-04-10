@@ -4,6 +4,7 @@ import { CompilerError } from "../compilerError.js";
 import * as typeUtils from "./typeUtils.js";
 import { CompKnown } from "./compItem.js";
 import { BasicType, TypeType } from "./basicType.js";
+import { StorageType, CompType } from "./storageType.js";
 
 export class ItemType extends CompKnown {
     
@@ -76,6 +77,38 @@ export class ItemType extends CompKnown {
     
     equalsType(type: ItemType): boolean {
         return this.containsType(type) && type.containsType(this);
+    }
+    
+    getNakedBasicType(): BasicType {
+        const basicTypes = this.getBasicTypes();
+        if (basicTypes.length !== 1) {
+            throw new CompilerError("Unexpected type union.");
+        }
+        const [output] = basicTypes;
+        if (output.storageTypes.length > 0) {
+            throw new CompilerError("Unexpected storage type.");
+        }
+        return output;
+    }
+    
+    getConversionStorageTypes(): StorageType[] {
+        const basicTypes = this.getBasicTypes();
+        let compType: CompType;
+        basicTypes.forEach((basicType, index) => {
+            const tempCompType = basicType.matchStorageType(constructors.CompType);
+            if (index <= 0) {
+                compType = tempCompType;
+            } else {
+                if ((compType === null) !== (tempCompType === null)) {
+                    return null;
+                }
+                if (compType !== null
+                        && compType.isComplement !== tempCompType.isComplement) {
+                    return null;
+                }
+            }
+        });
+        return (compType === null) ? [] : [compType];
     }
     
     canConvertToType(type: ItemType): boolean {

@@ -3,8 +3,9 @@ import { CompilerError } from "../compilerError.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
-import { ValueType, IntegerType, PointerType } from "../compItem/basicType.js";
+import { IntegerType, PointerType } from "../compItem/basicType.js";
 import { CompType } from "../compItem/storageType.js";
+import { AndType } from "../compItem/manipulationType.js";
 import { OperatorInterface, UnaryOperatorInterface, IntegerOperatorInterface, TypeOperatorInterface, BinaryOperatorInterface, TwoIntegersOperatorInterface, TwoTypesOperatorInterface, TwoPointersOperatorInterface, ConversionOperatorInterface } from "./operatorInterfaces.js";
 
 export abstract class OperatorSignature<T extends OperatorInterface = OperatorInterface> {
@@ -207,11 +208,18 @@ export class ConversionOperatorSignature extends BinaryOperatorSignature<Convers
         operand1: CompItem,
         operand2: CompItem,
     ): CompItem {
-        const operandType1 = operand1.getType();
-        if (!(operandType1 instanceof ValueType && operand2 instanceof ItemType)) {
+        if (!(operand2 instanceof ItemType)) {
             return null;
         }
-        const conversionType = operator.getConversionType(operandType1, operand2);
+        const operandType1 = operand1.getType();
+        let conversionType = operator.getConversionType(operandType1, operand2);
+        const storageTypes = operandType1.getConversionStorageTypes();
+        if (storageTypes === null) {
+            throw new CompilerError("Cannot resolve storage type for conversion.");
+        }
+        conversionType = (storageTypes as ItemType[]).reduce((accumulator, storageType) => (
+            new AndType(accumulator, storageType)
+        ), conversionType);
         if (!operandType1.canConvertToType(conversionType)) {
             throw new CompilerError("Cannot convert type.");
         }

@@ -6,7 +6,7 @@ import { ResolvedField, DataField } from "../resolvedField.js";
 import { FunctionSignature, SimpleFunctionSignature } from "../functionSignature.js";
 import * as typeUtils from "./typeUtils.js";
 import { ItemType } from "./itemType.js";
-import { StorageType, CompType, ConcreteType, FrameType, FixedType } from "./storageType.js";
+import { StorageTypeConstructor, StorageType, CompType, ConcreteType, FrameType, FixedType } from "./storageType.js";
 
 export class BasicType extends ItemType {
     // Excludes intrinsic storage types.
@@ -128,6 +128,31 @@ export class BasicType extends ItemType {
     
     canConvertToBasicType(type: BasicType): boolean {
         return false;
+    }
+    
+    matchStorageType<T extends StorageType = StorageType>(
+        storageTypeConstructor: StorageTypeConstructor<T>,
+    ): T {
+        const storageType1 = new storageTypeConstructor();
+        if (this.conformsToType(storageType1)) {
+            return storageType1;
+        }
+        const storageType2 = new storageTypeConstructor(true);
+        if (this.conformsToType(storageType2)) {
+            return storageType2;
+        }
+        return null;
+    }
+    
+    matchStorageTypes(storageTypeConstructors: StorageTypeConstructor[]): StorageType[] {
+        const output: StorageType[] = [];
+        storageTypeConstructors.forEach((storageTypeConstructor) => {
+            const storageType = this.matchStorageType(storageTypeConstructor);
+            if (storageType !== null) {
+                output.push(storageType);
+            }
+        });
+        return output;
     }
     
     getDisplayStringHelper(): string {
