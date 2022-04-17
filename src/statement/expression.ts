@@ -6,7 +6,7 @@ import { TypeField } from "../resolvedField.js";
 import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
-import { IntegerType, characterType, ArrayType, FieldsType, ListType } from "../compItem/basicType.js";
+import { BasicType, IntegerType, characterType, ArrayType, FieldsType, ListType } from "../compItem/basicType.js";
 import { ConstantType, CompType, LocationType, CompLocationType, FrameType, FixedType } from "../compItem/storageType.js";
 import { CompVoid, CompInteger, CompArray, CompStruct, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
@@ -230,7 +230,18 @@ export class BinaryExpression extends Expression {
 }
 
 abstract class AccessExpression extends Expression {
-
+    
+    getAccessStorageTypes(operandType1: BasicType, offsetIsComp: boolean | null = true) {
+        const output = operandType1.matchStorageTypes([
+            ConstantType, CompType, LocationType, FrameType, FixedType,
+        ]);
+        const compLocType = new CompLocationType();
+        if (operandType1.conformsToType(compLocType) && offsetIsComp) {
+            output.push(new CompLocationType());
+        }
+        return output;
+    }
+    
     accessFieldByName(operand: CompItem<FieldsType>, name: string): CompItem {
         const fieldsType = operand.getType();
         const field = fieldsType.fieldMap[name];
@@ -240,10 +251,14 @@ abstract class AccessExpression extends Expression {
         if (field instanceof TypeField) {
             return field.type;
         }
+        const storageTypes = this.getAccessStorageTypes(fieldsType);
         if (operand instanceof CompStruct) {
-            return operand.itemMap[name];
+            const fieldItem = operand.itemMap[name].copy();
+            fieldItem.setTypeStorageTypes(storageTypes);
+            return fieldItem;
         }
-        return new CompUnknown(field.type);
+        const fieldType = field.type.andWithStorageTypes(storageTypes);
+        return new CompUnknown(fieldType);
     }
 }
 
@@ -264,10 +279,10 @@ export class SubscriptExpression extends AccessExpression {
     accessArrayElement(operand1: CompItem<ArrayType>, operand2: CompItem): CompItem {
         const arrayType = operand1.getType();
         let index: number = null;
-        const storageTypes = arrayType.matchStorageTypes([
-            ConstantType, CompType, LocationType, FrameType, FixedType,
-        ]);
-        if (operand2 !== null) {
+        let offsetIsComp: boolean;
+        if (operand2 === null) {
+            offsetIsComp = null;
+        } else {
             const indexType = operand2.getType();
             if (operand2 instanceof CompUnknown) {
                 if (!(indexType instanceof IntegerType)) {
@@ -278,17 +293,15 @@ export class SubscriptExpression extends AccessExpression {
             } else {
                 throw this.createError("Expected integer.");
             }
-            const compLocType = new CompLocationType();
             const compType = new CompType();
-            if (arrayType.conformsToType(compLocType) && indexType.conformsToType(compType)) {
-                storageTypes.push(new CompLocationType());
-            }
+            offsetIsComp = indexType.conformsToType(compType);
         }
         if (index !== null) {
             if (index < 0 || (arrayType.length !== null && index >= arrayType.length)) {
                 throw this.createError("Array index is out of bounds.");
             }
         }
+        const storageTypes = this.getAccessStorageTypes(arrayType, offsetIsComp);
         if (operand1 instanceof CompUnknown || index === null) {
             const elementType = arrayType.elementType.andWithStorageTypes(storageTypes);
             return new CompUnknown(elementType);
