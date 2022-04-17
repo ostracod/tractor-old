@@ -7,34 +7,29 @@ import { FunctionContextConstructor } from "../functionContext.js";
 import { CompItem, CompKnown } from "./compItem.js";
 import { ItemType } from "./itemType.js";
 import { BasicType, ValueType, VoidType, IntegerType, PointerType, ArrayType, StructType, FunctionType, ListType } from "./basicType.js";
-import { StorageType, CompType } from "./storageType.js";
+import { StorageType } from "./storageType.js";
 
-export abstract class CompValue<T extends ValueType = ValueType> extends CompKnown {
+export abstract class CompValue<T extends ValueType = ValueType> extends CompKnown<T> {
     type: T;
     
     constructor(type: T) {
         super();
         this.type = type.copy() as T;
-        this.enforceCompType();
+        this.enforceTypeCompType();
     }
     
     abstract copy(): CompValue<T>;
     
-    getType(): ItemType {
+    getType(): T {
         return this.type;
     }
     
-    addStorageType(type: StorageType): void {
+    clearTypeStorageTypes(): void {
+        this.type.clearStorageTypes();
+    }
+    
+    addTypeStorageType(type: StorageType): void {
         this.type.addStorageType(type);
-    }
-    
-    enforceCompType(): void {
-        this.addStorageType(new CompType());
-    }
-    
-    setStorageTypes(types: StorageType[]): void {
-        this.type.setStorageTypes(types);
-        this.enforceCompType();
     }
 }
 

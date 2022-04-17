@@ -1,14 +1,16 @@
 
+import { constructors } from "../constructors.js";
 import { Displayable } from "../interfaces.js";
 import { CompilerError } from "../compilerError.js";
 import { ItemType } from "./itemType.js";
 import { BasicType } from "./basicType.js";
+import { StorageType } from "./storageType.js";
 
-export abstract class CompItem implements Displayable {
+export abstract class CompItem<T extends ItemType = ItemType> implements Displayable {
     
     abstract copy(): CompItem;
     
-    abstract getType(): ItemType;
+    abstract getType(): T;
     
     abstract getDisplayString(): string;
     
@@ -26,10 +28,10 @@ export abstract class CompItem implements Displayable {
 // represent a strict superset of the fully resolved type.
 // As a result, the type cannot be TypeType, because in that
 // case type.type would be known.
-export class CompUnknown extends CompItem {
-    type: ItemType;
+export class CompUnknown<T extends ItemType = ItemType> extends CompItem<T> {
+    type: T;
     
-    constructor(type: ItemType) {
+    constructor(type: T) {
         super();
         this.type = type;
     }
@@ -38,7 +40,7 @@ export class CompUnknown extends CompItem {
         return new CompUnknown(this.type.copy());
     }
     
-    getType(): ItemType {
+    getType(): T {
         return this.type;
     }
     
@@ -47,9 +49,26 @@ export class CompUnknown extends CompItem {
     }
 }
 
-export abstract class CompKnown extends CompItem {
+export abstract class CompKnown<T extends ItemType = ItemType> extends CompItem<T> {
     
     abstract copy(): CompKnown;
+    
+    abstract addTypeStorageType(type: StorageType): void;
+    
+    // May remove compT from storage types.
+    abstract clearTypeStorageTypes(): void;
+    
+    enforceTypeCompType(): void {
+        this.addTypeStorageType(new constructors.CompType());
+    }
+    
+    setTypeStorageTypes(types: StorageType[]): void {
+        this.clearTypeStorageTypes();
+        types.forEach((type) => {
+            this.addTypeStorageType(type);
+        });
+        this.enforceTypeCompType();
+    }
     
     // Assumes that this.getType().canConvertToType(type) is true.
     convertToType(type: ItemType): CompKnown {

@@ -52,6 +52,10 @@ export class BasicType extends ItemType {
         return output;
     }
     
+    clearStorageTypes(): void {
+        this.storageTypes = [];
+    }
+    
     addStorageType(type: StorageType): void {
         if (!this.intersectsType(type)) {
             throw new CompilerError("Incompatible storage type.");
@@ -63,7 +67,7 @@ export class BasicType extends ItemType {
     }
     
     setStorageTypes(types: StorageType[]): void {
-        this.storageTypes = [];
+        this.clearStorageTypes();
         types.forEach((type) => {
             this.addStorageType(type);
         });
@@ -145,14 +149,14 @@ export class BasicType extends ItemType {
     }
     
     matchStorageTypes(storageTypeConstructors: StorageTypeConstructor[]): StorageType[] {
-        const output: StorageType[] = [];
+        const storageTypes: StorageType[] = [];
         storageTypeConstructors.forEach((storageTypeConstructor) => {
             const storageType = this.matchStorageType(storageTypeConstructor);
             if (storageType !== null) {
-                output.push(storageType);
+                storageTypes.push(storageType);
             }
         });
-        return output;
+        return typeUtils.mergeStorageTypes(storageTypes);
     }
     
     getDisplayStringHelper(): string {

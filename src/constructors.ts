@@ -6,7 +6,7 @@ import { StatementGenerator } from "./statement/statementGenerator.js";
 import { Expression } from "./statement/expression.js";
 import { BasicType, TypeType } from "./compItem/basicType.js";
 import { CompType, ConcreteType } from "./compItem/storageType.js";
-import { OrType } from "./compItem/manipulationType.js";
+import { OrType, AndType } from "./compItem/manipulationType.js";
 
 // This is just a massive hack to avoid circular dependencies.
 
@@ -21,6 +21,7 @@ interface Constructors {
     CompType: typeof CompType;
     ConcreteType: typeof ConcreteType;
     OrType: typeof OrType;
+    AndType: typeof AndType;
 }
 
 export const constructors = {} as Constructors;

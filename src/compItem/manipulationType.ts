@@ -99,5 +99,6 @@ export class AndType extends BinaryType {
 }
 
 constructors.OrType = OrType;
+constructors.AndType = AndType;
 
 

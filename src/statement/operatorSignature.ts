@@ -5,7 +5,6 @@ import { CompVoid, CompInteger } from "../compItem/compValue.js";
 import { ItemType } from "../compItem/itemType.js";
 import { IntegerType, PointerType } from "../compItem/basicType.js";
 import { CompType } from "../compItem/storageType.js";
-import { AndType } from "../compItem/manipulationType.js";
 import { OperatorInterface, UnaryOperatorInterface, IntegerOperatorInterface, TypeOperatorInterface, BinaryOperatorInterface, TwoIntegersOperatorInterface, TwoTypesOperatorInterface, TwoPointersOperatorInterface, ConversionOperatorInterface } from "./operatorInterfaces.js";
 
 export abstract class OperatorSignature<T extends OperatorInterface = OperatorInterface> {
@@ -217,9 +216,7 @@ export class ConversionOperatorSignature extends BinaryOperatorSignature<Convers
         if (storageTypes === null) {
             throw new CompilerError("Cannot resolve storage type for conversion.");
         }
-        conversionType = (storageTypes as ItemType[]).reduce((accumulator, storageType) => (
-            new AndType(accumulator, storageType)
-        ), conversionType);
+        conversionType = conversionType.andWithStorageTypes(storageTypes);
         if (!operandType1.canConvertToType(conversionType)) {
             throw new CompilerError("Cannot convert type.");
         }

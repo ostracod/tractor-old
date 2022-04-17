@@ -7,7 +7,7 @@ import { InlineFunctionDefinition } from "../definition/functionDefinition.js";
 import { Definition } from "../definition/definition.js";
 import { CompItem, CompUnknown, CompKnown } from "../compItem/compItem.js";
 import { IntegerType, characterType, ArrayType, FieldsType, ListType } from "../compItem/basicType.js";
-import { CompType } from "../compItem/storageType.js";
+import { ConstantType, CompType, LocationType, CompLocationType, FrameType, FixedType } from "../compItem/storageType.js";
 import { CompVoid, CompInteger, CompArray, CompStruct, FunctionHandle, DefinitionFunctionHandle, BuiltInFunctionHandle, CompList } from "../compItem/compValue.js";
 import { Statement } from "./statement.js";
 import { UnaryOperator, BinaryOperator, unaryOperatorMap } from "./operator.js";
@@ -231,9 +231,8 @@ export class BinaryExpression extends Expression {
 
 abstract class AccessExpression extends Expression {
 
-    // operand.getType() must be an instance of FieldsType.
-    accessFieldByName(operand: CompItem, name: string): CompItem {
-        const fieldsType = operand.getType() as FieldsType;
+    accessFieldByName(operand: CompItem<FieldsType>, name: string): CompItem {
+        const fieldsType = operand.getType();
         const field = fieldsType.fieldMap[name];
         if (typeof field === "undefined") {
             throw this.createError(`Could not find field with the name "${name}".`);
@@ -262,19 +261,27 @@ export class SubscriptExpression extends AccessExpression {
         return `${this.expression1.get().getDisplayString()}[${this.expression2.get().getDisplayString()}]`;
     }
     
-    // operand1.getType() must be an instance of ArrayType.
-    accessArrayElement(operand1: CompItem, operand2: CompItem): CompItem {
-        const arrayType = operand1.getType() as ArrayType;
+    accessArrayElement(operand1: CompItem<ArrayType>, operand2: CompItem): CompItem {
+        const arrayType = operand1.getType();
         let index: number = null;
+        const storageTypes = arrayType.matchStorageTypes([
+            ConstantType, CompType, LocationType, FrameType, FixedType,
+        ]);
         if (operand2 !== null) {
+            const indexType = operand2.getType();
             if (operand2 instanceof CompUnknown) {
-                if (!(operand2.getType() instanceof IntegerType)) {
+                if (!(indexType instanceof IntegerType)) {
                     throw this.createError("Expected integer.");
                 }
             } else if (operand2 instanceof CompInteger) {
                 index = Number(operand2.value);
             } else {
                 throw this.createError("Expected integer.");
+            }
+            const compLocType = new CompLocationType();
+            const compType = new CompType();
+            if (arrayType.conformsToType(compLocType) && indexType.conformsToType(compType)) {
+                storageTypes.push(new CompLocationType());
             }
         }
         if (index !== null) {
@@ -283,16 +290,18 @@ export class SubscriptExpression extends AccessExpression {
             }
         }
         if (operand1 instanceof CompUnknown || index === null) {
-            return new CompUnknown(arrayType.elementType);
+            const elementType = arrayType.elementType.andWithStorageTypes(storageTypes);
+            return new CompUnknown(elementType);
         } else if (operand1 instanceof CompArray) {
-            return operand1.elements[index];
+            const element = operand1.elements[index].copy();
+            element.setTypeStorageTypes(storageTypes);
+            return element;
         } else {
             throw this.createError("Expected array.");
         }
     }
     
-    // operand1.getType() must be an instance of FieldsType.
-    accessFieldByItem(operand1: CompItem, operand2: CompItem): CompItem {
+    accessFieldByItem(operand1: CompItem<FieldsType>, operand2: CompItem): CompItem {
         if (operand2 === null) {
             return null;
         }
@@ -319,9 +328,9 @@ export class SubscriptExpression extends AccessExpression {
         }
         const operandType1 = operand1.getType();
         if (operandType1 instanceof ArrayType) {
-            return this.accessArrayElement(operand1, operand2);
+            return this.accessArrayElement(operand1 as CompItem<ArrayType>, operand2);
         } else if (operandType1 instanceof FieldsType) {
-            return this.accessFieldByItem(operand1, operand2);
+            return this.accessFieldByItem(operand1 as CompItem<FieldsType>, operand2);
         } else {
             throw this.createError("Expected array, struct, or union.");
         }
@@ -363,7 +372,7 @@ export class FieldAccessExpression extends AccessExpression {
         if (!(operand.getType() instanceof FieldsType)) {
             throw this.createError("Expected struct or union.");
         }
-        return this.accessFieldByName(operand, this.fieldName);
+        return this.accessFieldByName(operand as CompItem<FieldsType>, this.fieldName);
     }
     
     convertToUnixC(): string {

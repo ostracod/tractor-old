@@ -6,7 +6,7 @@ import { CompKnown } from "./compItem.js";
 import { BasicType, TypeType } from "./basicType.js";
 import { StorageType, CompType } from "./storageType.js";
 
-export class ItemType extends CompKnown {
+export class ItemType extends CompKnown<TypeType> {
     
     getType(): TypeType {
         return new constructors.TypeType(this);
@@ -18,6 +18,17 @@ export class ItemType extends CompKnown {
     
     copy(): ItemType {
         return new ItemType();
+    }
+    
+    clearTypeStorageTypes(): void {
+        // Do nothing.
+    }
+    
+    addTypeStorageType(type: StorageType): void {
+        const compType = new constructors.CompType();
+        if (!compType.conformsToType(type)) {
+            throw new CompilerError("typeT must conform to compT.");
+        }
     }
     
     // The union of all elements in the output
@@ -131,6 +142,12 @@ export class ItemType extends CompKnown {
         return (basicTypes as ItemType[]).reduce((accumulator, basicType) => (
             new constructors.OrType(accumulator, basicType)
         ));
+    }
+    
+    andWithStorageTypes(storageTypes: StorageType[]): ItemType {
+        return (storageTypes as ItemType[]).reduce((accumulator, storageType) => (
+            new constructors.AndType(accumulator, storageType)
+        ), this);
     }
     
     getDisplayString(): string {
