@@ -90,12 +90,16 @@ export class ItemType extends CompKnown<TypeType> {
         return this.containsType(type) && type.containsType(this);
     }
     
-    getNakedBasicType(): BasicType {
+    getBasicType(): BasicType {
         const basicTypes = this.getBasicTypes();
         if (basicTypes.length !== 1) {
             throw new CompilerError("Unexpected type union.");
         }
-        const [output] = basicTypes;
+        return basicTypes[0];
+    }
+    
+    getNakedBasicType(): BasicType {
+        const output = this.getBasicType();
         if (output.storageTypes.length > 0) {
             throw new CompilerError("Unexpected storage type.");
         }
@@ -130,6 +134,15 @@ export class ItemType extends CompKnown<TypeType> {
         }
         const basicType2 = basicTypes2[0];
         return basicTypes1.some((basicType1) => basicType1.canConvertToBasicType(basicType2));
+    }
+    
+    getPointerElementType(): ItemType {
+        const output = this.getBasicType().copy();
+        const storageTypes = output.matchStorageTypes([
+            constructors.FrameType, constructors.FixedType, constructors.ConstantType,
+        ]);
+        output.setStorageTypes(storageTypes);
+        return output;
     }
     
     stripStorageTypes(): ItemType {

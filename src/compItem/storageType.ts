@@ -141,7 +141,10 @@ export const storageTypeConstructors: StorageTypeConstructor[] = [
     CompLocationType, FrameType, FixedType,
 ];
 
+constructors.ConstantType = ConstantType;
 constructors.CompType = CompType;
 constructors.ConcreteType = ConcreteType;
+constructors.FrameType = FrameType;
+constructors.FixedType = FixedType;
 
 

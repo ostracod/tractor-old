@@ -331,7 +331,7 @@ class NewPtrFunctionContext extends FunctionContext {
     pointerType: PointerType;
     
     initialize(args: CompItem[]): void {
-        const elementType = args[0].getType();
+        const elementType = args[0].getType().getPointerElementType();
         this.pointerType = this.targetLanguage.createPointerType(elementType);
     }
     
@@ -348,7 +348,7 @@ class DerefPtrFunctionContext extends FunctionContext {
         if (!(pointerType instanceof PointerType)) {
             throw new CompilerError("Argument must conform to ptrT(itemT).");
         }
-        this.elementType = pointerType.elementType;
+        this.elementType = pointerType.elementType.getPointerElementType();
     }
     
     getReturnItem(): CompItem {
